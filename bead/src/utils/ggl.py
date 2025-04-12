@@ -5,20 +5,16 @@ import argparse
 import importlib
 import os
 import sys
-from dataclasses import dataclass
-from math import ceil
-import gzip
 import time
-
-from tqdm.rich import tqdm
-from art import *
+from dataclasses import dataclass
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
+from art import *
+from tqdm.rich import tqdm
 
-from . import conversion, data_processing, helper, plotting, diagnostics
-from ..trainers import training, inference
+from ..trainers import inference, training
+from . import conversion, data_processing, diagnostics, helper, plotting
 
 
 def get_arguments():
@@ -175,7 +171,6 @@ class Config:
     deterministic_algorithm: bool
     separate_model_saving: bool
     subsample_size: int
-
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
@@ -420,17 +415,15 @@ def prepare_inputs(paths, config, verbose: bool = False):
                 print("Jets tensor shape:", jets_tensor.shape)
                 print("Constituents tensor shape:", constituents_tensor.shape)
             if keyword == "bkg_train":
-                torch.save(events_tensor, out_path + f"/bkg_train_events.pt")
-                torch.save(jets_tensor, out_path + f"/bkg_train_jets.pt")
-                torch.save(
-                    constituents_tensor, out_path + f"/bkg_train_constituents.pt"
-                )
+                torch.save(events_tensor, out_path + "/bkg_train_events.pt")
+                torch.save(jets_tensor, out_path + "/bkg_train_jets.pt")
+                torch.save(constituents_tensor, out_path + "/bkg_train_constituents.pt")
             elif keyword == "bkg_test":
-                torch.save(events_tensor, out_path + f"/bkg_test_genLabeled_events.pt")
-                torch.save(jets_tensor, out_path + f"/bkg_test_genLabeled_jets.pt")
+                torch.save(events_tensor, out_path + "/bkg_test_genLabeled_events.pt")
+                torch.save(jets_tensor, out_path + "/bkg_test_genLabeled_jets.pt")
                 torch.save(
                     constituents_tensor,
-                    out_path + f"/bkg_test_genLabeled_constituents.pt",
+                    out_path + "/bkg_test_genLabeled_constituents.pt",
                 )
 
         except ValueError as e:
@@ -447,9 +440,9 @@ def prepare_inputs(paths, config, verbose: bool = False):
             print("Events tensor shape:", events_tensor.shape)
             print("Jets tensor shape:", jets_tensor.shape)
             print("Constituents tensor shape:", constituents_tensor.shape)
-        torch.save(events_tensor, out_path + f"/sig_test_events.pt")
-        torch.save(jets_tensor, out_path + f"/sig_test_jets.pt")
-        torch.save(constituents_tensor, out_path + f"/sig_test_constituents.pt")
+        torch.save(events_tensor, out_path + "/sig_test_events.pt")
+        torch.save(jets_tensor, out_path + "/sig_test_jets.pt")
+        torch.save(constituents_tensor, out_path + "/sig_test_constituents.pt")
     except ValueError as e:
         print(e)
 
@@ -736,9 +729,9 @@ def run_full_chain(
         operation = MODE_OPERATIONS[mode_name]
 
         if verbose:
-            print(f"\n{'='*40}")
+            print(f"\n{'=' * 40}")
             print(f"Executing step: {mode_name.replace('_', ' ').title()}")
-            print(f"{'='*40}")
+            print(f"{'=' * 40}")
 
         # Execute the operation with its arguments
         operation["func"](*operation["args"])

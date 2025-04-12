@@ -1,17 +1,15 @@
+import cProfile
+import io
 import os
+import pstats
+from pstats import SortKey
 
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import matplotlib.ticker
 import numpy as np
 import torch
-
-import io
-import pstats
-import cProfile
-from pstats import SortKey
-import torch
-from torch.profiler import profile, record_function, ProfilerActivity
+from torch.profiler import ProfilerActivity, profile, record_function
 
 
 def get_mean_node_activations(input_dict: dict) -> dict:

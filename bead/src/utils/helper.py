@@ -1,22 +1,20 @@
 # This file contains functions that help manipulate different artifacts as required
 # in the pipeline. The functions in this file are used to manipulate data, models, and tensors.
-import numpy as np
 import os
+
+import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset
-from numpy import ndarray
-from sklearn.model_selection import train_test_split
-
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import (
+    MaxAbsScaler,
     MinMaxScaler,
-    StandardScaler,
-    RobustScaler,
     PowerTransformer,
     QuantileTransformer,
-    MaxAbsScaler,
+    RobustScaler,
+    StandardScaler,
 )
-from sklearn.base import BaseEstimator, TransformerMixin
+from torch.utils.data import Dataset
 
 from ..models import models
 from . import loss
@@ -563,7 +561,6 @@ def train_val_split(tensor, train_ratio):
     # Determine the split sizes
     total_size = tensor.size(0)
     train_size = int(train_ratio * total_size)
-    val_size = total_size - train_size
 
     # Generate a random permutation of indices.
     indices = torch.randperm(total_size)
@@ -678,7 +675,6 @@ def create_datasets(
     jets_val_label,
     constituents_val_label,
 ):
-
     # Create datasets for training data
     events_train_dataset = CustomDataset(events_train, events_train_label)
     jets_train_dataset = CustomDataset(jets_train, jets_train_label)
