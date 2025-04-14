@@ -1,11 +1,10 @@
 import os
-import sys
-import numpy as np
-import h5py
-import torch
-from sklearn.preprocessing import LabelEncoder
-from loky import get_reusable_executor
 import pickle
+import sys
+
+import h5py
+import numpy as np
+import torch
 
 from . import helper, normalization
 
@@ -33,73 +32,73 @@ def load_data(file_path, file_type="h5", verbose: bool = False):
     return events, jets, constituents
 
 
-def encode_pid_parallel(constits_tensor_path, encoded_tensor_path, pid_map_path):
-    """
-    Parallelized: Reads the constituent-level tensor and encodes the pid column using categorical encoding.
-    Saves the new tensor and the pid map for later retrieval.
-    """
+# def encode_pid_parallel(constits_tensor_path, encoded_tensor_path, pid_map_path):
+#     """
+#     Parallelized: Reads the constituent-level tensor and encodes the pid column using categorical encoding.
+#     Saves the new tensor and the pid map for later retrieval.
+#     """
 
-    # Load constituent-level tensor
-    constits_tensor = torch.load(constits_tensor_path)
-    constits_array = constits_tensor.numpy()
+#     # Load constituent-level tensor
+#     constits_tensor = torch.load(constits_tensor_path)
+#     constits_array = constits_tensor.numpy()
 
-    # Extract pid column
-    pid_column = constits_array[:, :, 3]
+#     # Extract pid column
+#     pid_column = constits_array[:, :, 3]
 
-    # Perform categorical encoding
-    label_encoder = LabelEncoder()
-    encoded_pids = label_encoder.fit_transform(pid_column)
+#     # Perform categorical encoding
+#     label_encoder = LabelEncoder()
+#     encoded_pids = label_encoder.fit_transform(pid_column)
 
-    # Replace pid column in the array
-    constits_array[:, :, 3] = encoded_pids
+#     # Replace pid column in the array
+#     constits_array[:, :, 3] = encoded_pids
 
-    # Save the encoded tensor
-    encoded_tensor = torch.tensor(constits_array, dtype=torch.float32)
-    torch.save(encoded_tensor, encoded_tensor_path)
+#     # Save the encoded tensor
+#     encoded_tensor = torch.tensor(constits_array, dtype=torch.float32)
+#     torch.save(encoded_tensor, encoded_tensor_path)
 
-    # Save the pid map (original to encoded)
-    pid_map = {
-        "original_pid": label_encoder.classes_.tolist(),
-        "encoded_pid": list(range(len(label_encoder.classes_))),
-    }
-    pid_map_df = pd.DataFrame(pid_map)
+#     # Save the pid map (original to encoded)
+#     pid_map = {
+#         "original_pid": label_encoder.classes_.tolist(),
+#         "encoded_pid": list(range(len(label_encoder.classes_))),
+#     }
+#     # pid_map_df = pd.DataFrame(pid_map)
 
-    # Parallel write using loky
-    with get_reusable_executor(max_workers=1) as executor:
-        executor.submit(pid_map_df.to_csv, pid_map_path, index=False).result()
+#     # Parallel write using loky
+#     with get_reusable_executor(max_workers=1) as executor:
+#         executor.submit(pid_map_df.to_csv, pid_map_path, index=False).result()
 
-    print(f"Encoded tensor saved to {encoded_tensor_path}")
-    print(f"PID map saved to {pid_map_path}")
+#     print(f"Encoded tensor saved to {encoded_tensor_path}")
+#     print(f"PID map saved to {pid_map_path}")
 
 
-def decode_pid(encoded_tensor_path, pid_map_path, decoded_tensor_path):
-    """
-    Reads the encoded tensor and pid map, decodes the pids back to their original values,
-    and saves the decoded tensor.
-    """
+# def decode_pid(encoded_tensor_path, pid_map_path, decoded_tensor_path):
+#     """
+#     Reads the encoded tensor and pid map, decodes the pids back to their original values,
+#     and saves the decoded tensor.
+#     """
 
-    # Load the encoded tensor
-    encoded_tensor = torch.load(encoded_tensor_path)
-    encoded_array = encoded_tensor.numpy()
+#     # Load the encoded tensor
+#     encoded_tensor = torch.load(encoded_tensor_path)
+#     encoded_array = encoded_tensor.numpy()
 
-    # Load the PID map
-    pid_map_df = pd.read_csv(pid_map_path)
-    encoded_to_original = dict(
-        zip(pid_map_df["encoded_pid"], pid_map_df["original_pid"])
-    )
+#     # Load the PID map
+#     # pid_map_df = pd.read_csv(pid_map_path)
+#     encoded_to_original = dict(
+#         zip(pid_map_df["encoded_pid"], pid_map_df["original_pid"])
+#     )
 
-    # Decode the pid column
-    pid_column = encoded_array[:, :, 3]
-    decoded_pids = np.vectorize(encoded_to_original.get)(pid_column)
+#     # Decode the pid column
+#     pid_column = encoded_array[:, :, 3]
+#     decoded_pids = np.vectorize(encoded_to_original.get)(pid_column)
 
-    # Replace the pid column with the decoded values
-    encoded_array[:, :, 3] = decoded_pids
+#     # Replace the pid column with the decoded values
+#     encoded_array[:, :, 3] = decoded_pids
 
-    # Save the decoded tensor
-    decoded_tensor = torch.tensor(encoded_array, dtype=torch.float32)
-    torch.save(decoded_tensor, decoded_tensor_path)
+#     # Save the decoded tensor
+#     decoded_tensor = torch.tensor(encoded_array, dtype=torch.float32)
+#     torch.save(decoded_tensor, decoded_tensor_path)
 
-    print(f"Decoded tensor saved to {decoded_tensor_path}")
+#     print(f"Decoded tensor saved to {decoded_tensor_path}")
 
 
 def select_top_jets_and_constituents(
@@ -188,7 +187,7 @@ def process_and_save_tensors(
     file_type = config.file_type
     n_jets = config.num_jets
     n_constits = config.num_constits
-    n_workers = config.parallel_workers
+    # n_workers = config.parallel_workers
     norm = config.normalizations
 
     if verbose:
@@ -312,7 +311,7 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
         if verbose:
             print("Splitting data into training and validation sets...")
             print(
-                f"Train:Val split ratio: {config.train_size*100}:{(1-config.train_size)*100}"
+                f"Train:Val split ratio: {config.train_size * 100}:{(1 - config.train_size) * 100}"
             )
         try:
             # Apply the function to each tensor, producing a list of three tuples.

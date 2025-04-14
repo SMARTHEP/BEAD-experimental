@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
-from art import *
+from art import *  # noqa: F403
 from tqdm.rich import tqdm
 
 from ..trainers import inference, training
@@ -27,7 +27,7 @@ def get_arguments():
     parser = argparse.ArgumentParser(
         prog="bead",
         description=(
-            text2art(" BEAD ", font="varsity")
+            text2art(" BEAD ", font="varsity")  # noqa: F405
             + "       /-----\\   /-----\\   /-----\\   /-----\\\n      /       \\ /       \\ /"
             "       \\ /       \\\n-----|         /         /         /         |-----\n      \\"
             "       / \\       / \\       / \\       /\n       \\-----/   \\-----/   \\-----/   \\"
