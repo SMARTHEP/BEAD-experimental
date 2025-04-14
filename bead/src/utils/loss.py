@@ -13,12 +13,7 @@
 # limitations under the License.
 
 import torch
-import torch.nn as nn
-from scipy.stats import wasserstein_distance
-from torch.nn import functional
-from tqdm import tqdm
 from torch.nn import functional as F
-from torch import distributions as dist
 
 
 class BaseLoss:
@@ -365,7 +360,7 @@ class VAELossL1(VAELoss):
         base_loss = super(VAELossL1, self).calculate(
             recon, target, mu, logvar, parameters, log_det_jacobian=0
         )
-        loss, recon_loss, kl_loss = base_loss
+        vae_loss, recon_loss, kl_loss = base_loss
         l1_loss = self.l1_reg_fn.calculate(parameters)
         loss = vae_loss + self.l1_weight * l1_loss
         return loss, vae_loss, recon_loss, kl_loss, l1_loss
@@ -392,7 +387,7 @@ class VAELossL2(VAELoss):
         base_loss = super(VAELossL2, self).calculate(
             recon, target, mu, logvar, parameters, log_det_jacobian=0
         )
-        loss, recon_loss, kl_loss = base_loss
+        vae_loss, recon_loss, kl_loss = base_loss
         l2_loss = self.l2_reg_fn.calculate(parameters)
         loss = vae_loss + self.l2_weight * l2_loss
         return loss, vae_loss, recon_loss, kl_loss, l2_loss
