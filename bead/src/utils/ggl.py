@@ -18,7 +18,8 @@ from . import conversion, data_processing, diagnostics, helper, plotting
 
 
 def get_arguments():
-    """Determines commandline arguments specified by BEAD user. Use `--help` to see what
+    """
+    Determines commandline arguments specified by BEAD user. Use `--help` to see what
     options are available.
 
     Returns: .py, string, folder: `.py` file containing the config options, string determining what mode to run,
@@ -33,20 +34,7 @@ def get_arguments():
             "       / \\       / \\       / \\       /\n       \\-----/   \\-----/   \\-----/   \\"
             "-----/\n\n"
         ),
-        #     "\n\n\nBEAD is a deep learning based anomaly detection algorithm for new Physics searches at the LHC.\n\n"
-        #     "BEAD has five main running modes:\n\n"
-        #     "\t1. Data handling: Deals with handling file types, conversions between them\n "
-        #     "and pre-processing the data to feed as inputs to the DL models.\n\n"
-        #     "\t2. Training: Train your model to learn implicit representations of your background\n "
-        #     "data that may come from multiple sources/generators to get a single, encriched latent representation of it.\n\n"
-        #     "\t3. Inference: Using a model trained on an enriched background, feed in samples you want\n "
-        #     "to detect anomalies in using the '--detect or -d' mode.\n\n"
-        #     "\t4. Plotting: After running Inference, or Training you can generate plots similar to\n "
-        #     "what is shown in the paper. These include performance plots as well as different visualizations of the learned data.\n\n"
-        #     "\t5. Diagnostics: Enabling this mode allows running profilers that measure a host of metrics connected\n "
-        #     "to the usage of the compute node you run on to help you optimize the code if needed(using CPU-GPU metrics).\n\n\n"
-        # ),
-        # epilog="Enjoy!",
+        epilog="Happy Hunting!",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -134,7 +122,9 @@ def get_arguments():
 
 @dataclass
 class Config:
-    """Defines a configuration dataclass"""
+    """
+    Defines a configuration dataclass
+    """
 
     workspace_name: str
     project_name: str
@@ -174,7 +164,8 @@ class Config:
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
-    """Creates a default config file for a project.
+    """
+    Creates a default config file for a project.
     Args:
         workspace_name (str): Name of the workspace.
         project_name (str): Name of the project.
@@ -236,7 +227,8 @@ def create_new_project(
     verbose: bool = False,
     base_path: str = "workspaces",
 ) -> None:
-    """Creates a new project directory output subdirectories and config files within a workspace.
+    """
+    Creates a new project directory output subdirectories and config files within a workspace.
 
     Args:
         workspace_name (str): Creates a workspace (dir) for storing data and projects with this name.
@@ -279,7 +271,8 @@ def create_new_project(
 
 
 def convert_csv(paths, config, verbose: bool = False):
-    """Convert the input ''.csv' into the file_type selected in the config file ('.h5' by default)
+    """
+    Convert the input ''.csv' into the file_type selected in the config file ('.h5' by default)
 
         Separate event-level, jet-level and constituent-level data into separate datasets/files.
 
@@ -347,9 +340,10 @@ def convert_csv(paths, config, verbose: bool = False):
 
 
 def prepare_inputs(paths, config, verbose: bool = False):
-    """Read the input data and generate torch tensors ready to train on.
+    """
+    Read the input data and generate torch tensors ready to train on.
 
-        Select number of leading jets per event and number of leading constituents per jet to be used for training.
+    Select number of leading jets per event and number of leading constituents per jet to be used for training.
 
     Args:
         paths: Dictionary of common paths used in the pipeline
@@ -454,8 +448,9 @@ def prepare_inputs(paths, config, verbose: bool = False):
 
 
 def run_training(paths, config, verbose: bool = False):
-    """Main function calling the training functions, ran when --mode=train is selected.
-        The three functions called are: 'data_processing.preproc_inputs' and `training.train`.
+    """
+    Main function calling the training functions, ran when --mode=train is selected.
+    The three functions called are: 'data_processing.preproc_inputs' and `training.train`.
 
     Args:
         paths (dictionary): Dictionary of common paths used in the pipeline
@@ -540,8 +535,9 @@ def run_training(paths, config, verbose: bool = False):
 
 
 def run_inference(paths, config, verbose: bool = False):
-    """Main function calling the training functions, ran when --mode=train is selected.
-        The three functions called are: `process`, `ggl.mode_init` and `training.train`.
+    """
+    Main function calling the training functions, ran when --mode=train is selected.
+    The three functions called are: `process`, `ggl.mode_init` and `training.train`.
 
     Args:
         paths (dictionary): Dictionary of common paths used in the pipeline
@@ -611,8 +607,9 @@ def run_inference(paths, config, verbose: bool = False):
 
 
 def run_plots(paths, config, verbose: bool):
-    """Main function calling the two plotting functions, ran when --mode=plot is selected.
-       The two main functions this calls are: `ggl.plotter` and `ggl.loss_plotter`
+    """
+    Main function calling the two plotting functions, ran when --mode=plot is selected.
+    The two main functions this calls are: `ggl.plotter` and `ggl.loss_plotter`
 
     Args:
         paths (dictionary): Dictionary of common paths used in the pipeline
@@ -647,7 +644,8 @@ def run_plots(paths, config, verbose: bool):
 
 
 def run_diagnostics(project_path, verbose: bool):
-    """Calls diagnostics.diagnose()
+    """
+    Calls diagnostics.diagnose()
 
     Args:
         input_path (str): path to the np.array contataining the activations values
