@@ -1,5 +1,5 @@
 # This file contains functions that help manipulate different artifacts as required
-# in the pipeline. The functions in this file are used to manipulate data, models, and tensors.
+# in the pipeline. The functions in this file are used to manipulate data, models, and # tensors.
 import os
 
 import numpy as np
@@ -21,8 +21,9 @@ from . import loss
 
 
 def get_device():
-    """Returns the appropriate processing device. IF cuda is available it returns "cuda:0"
-        Otherwise it returns "cpu"
+    """
+    Returns the appropriate processing device. IF cuda is available it returns "cuda:0"
+    Otherwise it returns "cpu"
 
     Returns:
         _type_: Device string, either "cpu" or "cuda:0"
@@ -38,7 +39,8 @@ def get_device():
 
 
 def detach_device(tensor):
-    """Detaches a given tensor to ndarray
+    """
+    Detaches a given tensor to ndarray
 
     Args:
         tensor (torch.Tensor): The PyTorch tensor one wants to convert to a ndarray
@@ -50,7 +52,8 @@ def detach_device(tensor):
 
 
 def convert_to_tensor(data):
-    """Converts ndarray to torch.Tensors.
+    """
+    Converts ndarray to torch.Tensors.
 
     Args:
         data (ndarray): The data you wish to convert from ndarray to torch.Tensor.
@@ -62,7 +65,8 @@ def convert_to_tensor(data):
 
 
 def numpy_to_tensor(data):
-    """Converts ndarray to torch.Tensors.
+    """
+    Converts ndarray to torch.Tensors.
 
     Args:
         data (ndarray): The data you wish to convert from ndarray to torch.Tensor.
@@ -74,7 +78,8 @@ def numpy_to_tensor(data):
 
 
 def save_model(model, model_path: str) -> None:
-    """Saves the models state dictionary as a `.pt` file to the given path.
+    """
+    Saves the models state dictionary as a `.pt` file to the given path.
 
     Args:
         model (nn.Module): The PyTorch model to save.
@@ -87,7 +92,8 @@ def save_model(model, model_path: str) -> None:
 
 
 def encoder_saver(model, model_path: str) -> None:
-    """Saves the Encoder state dictionary as a `.pt` file to the given path
+    """
+    Saves the Encoder state dictionary as a `.pt` file to the given path
 
     Args:
         model (nn.Module): The PyTorch model to save.
@@ -100,7 +106,8 @@ def encoder_saver(model, model_path: str) -> None:
 
 
 def decoder_saver(model, model_path: str) -> None:
-    """Saves the Decoder state dictionary as a `.pt` file to the given path
+    """
+    Saves the Decoder state dictionary as a `.pt` file to the given path
 
     Args:
         model (nn.Module): The PyTorch model to save.
@@ -113,7 +120,9 @@ def decoder_saver(model, model_path: str) -> None:
 
 
 class Log1pScaler(BaseEstimator, TransformerMixin):
-    """Log(1+x) transformer for positive-skewed HEP features"""
+    """
+    Log(1+x) transformer for positive-skewed HEP features
+    """
 
     def __init__(self):
         self.epsilon = 1e-8  # Small value to prevent log(0)
@@ -131,7 +140,9 @@ class Log1pScaler(BaseEstimator, TransformerMixin):
 
 
 class L2Normalizer(BaseEstimator, TransformerMixin):
-    """L2 normalization per feature of data"""
+    """
+    L2 normalization per feature of data
+    """
 
     def __init__(self):
         self.norms = None
@@ -617,7 +628,8 @@ def add_sig_bkg_label(tensors: tuple, label: str) -> tuple:
 
 
 def data_label_split(data):
-    """Splits the data into features and labels.
+    """
+    Splits the data into features and labels.
 
     Args:
         data (ndarray): The data you wish to split into features and labels.
@@ -700,7 +712,8 @@ def create_datasets(
 
 
 def calculate_in_shape(data, config, test_mode=False):
-    """Calculates the input shapes for the models based on the data.
+    """
+    Calculates the input shapes for the models based on the data.
 
     Args:
         data (ndarray): The data you wish to calculate the input shapes for.
@@ -746,7 +759,8 @@ def calculate_in_shape(data, config, test_mode=False):
 
 
 def model_init(in_shape, config):
-    """Initializing the models attributes to a model_object variable.
+    """
+    Initializing the models attributes to a model_object variable.
 
     Args:
         model_name (str): The name of the model you wish to initialize. This should correspond to what your Model name.
@@ -781,7 +795,8 @@ def model_init(in_shape, config):
 
 
 def get_loss(loss_function: str):
-    """Returns the loss_object based on the string provided.
+    """
+    Returns the loss_object based on the string provided.
 
     Args:
         loss_function (str): The loss function you wish to use. Options include:
@@ -971,14 +986,15 @@ class LRScheduler:
 
 
 def load_model(model_path: str, in_shape, config):
-    """Loads the state dictionary of the trained model into a model variable. This variable is then used for passing
+    """
+
+    Loads the state dictionary of the trained model into a model variable. This variable is then used for passing
     data through the encoding and decoding functions.
 
     Args:
-        model_object (object): Object with the models attributes
         model_path (str): Path to model
-        n_features (int): Input dimension size
-        z_dim (int): Latent space size
+        in_shape (tuple): Input shape
+        config (Config): Configuration object
 
     Returns: nn.Module: Returns a model object with the attributes of the model class, with the selected state
     dictionary loaded into it.
