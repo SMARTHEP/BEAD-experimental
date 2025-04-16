@@ -1,17 +1,13 @@
 # Description: This file contains a function to generate plots for training epoch loss data and loss component data for train, val and test sets based on what files exist in the output directory.
 import os
-import numpy as np
+
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.backends.backend_pdf import PdfPages
-import matplotlib.patches as mpatches
-from tqdm.rich import tqdm
-
+import trimap
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.metrics import roc_curve, auc
-from sklearn.neighbors import NearestNeighbors
-import trimap
+from sklearn.metrics import auc, roc_curve
 
 
 def plot_losses(output_dir, save_dir, config, verbose: bool = False):
@@ -117,7 +113,9 @@ def plot_losses(output_dir, save_dir, config, verbose: bool = False):
         print("Loss plots generated successfully and saved to: ", save_dir)
 
 
-def reduce_dim_subsampled(data, method="trimap", n_components=2, n_samples=None, verbose=False):
+def reduce_dim_subsampled(
+    data, method="trimap", n_components=2, n_samples=None, verbose=False
+):
     """
     Reduce the dimensionality of the input data using the specified method.
     Supports subsampling and PCA preprocessing for large datasets.
@@ -169,20 +167,24 @@ def reduce_dim_subsampled(data, method="trimap", n_components=2, n_samples=None,
         reduced = reducer.fit_transform(data)
         method_used = "trimap"
     else:
-        raise ValueError(f"Invalid method: {method}. Must be 'pca', 'tsne', or 'trimap'.")
+        raise ValueError(
+            f"Invalid method: {method}. Must be 'pca', 'tsne', or 'trimap'."
+        )
 
     return reduced, method_used, indices
 
 
 def plot_latent_variables(config, paths, verbose=False):
     prefixes = ["train_", "test_"]
-    
+
     def reduce_dim(data):
         if config.latent_space_size > 50:
             if verbose:
-                print(f"Applying PCA to reduce latent space from {config.latent_space_size} to 50 dimensions...")
+                print(
+                    f"Applying PCA to reduce latent space from {config.latent_space_size} to 50 dimensions..."
+                )
             data = PCA(n_components=50).fit_transform(data)
-        
+
         style = config.latent_space_plot_style.lower()
         if style == "pca":
             reducer = PCA(n_components=2)
@@ -194,16 +196,26 @@ def plot_latent_variables(config, paths, verbose=False):
             reducer = trimap.TRIMAP(n_dims=2)
             method = "trimap"
         else:
-            raise ValueError(f"Invalid latent_space_plot_style: {style}. Must be 'pca', 'tsne', or 'trimap'.")
-        
+            raise ValueError(
+                f"Invalid latent_space_plot_style: {style}. Must be 'pca', 'tsne', or 'trimap'."
+            )
+
         if verbose:
             print(f"Reducing to 2 dimensions using {method.upper()}...")
         return reducer.fit_transform(data), method
 
     for prefix in prefixes:
         # Construct file paths
-        label_path = os.path.join(paths["output_path"], "results", f"{prefix}{config.input_level}_label.npy")
-        gen_label_path = os.path.join(paths["data_path"], config.file_type, "tensors", "processed", f"{prefix}gen_label_{config.input_level}.npy")
+        label_path = os.path.join(
+            paths["output_path"], "results", f"{prefix}{config.input_level}_label.npy"
+        )
+        gen_label_path = os.path.join(
+            paths["data_path"],
+            config.file_type,
+            "tensors",
+            "processed",
+            f"{prefix}gen_label_{config.input_level}.npy",
+        )
         z0_path = os.path.join(paths["output_path"], "results", f"{prefix}z0_data.npy")
         zk_path = os.path.join(paths["output_path"], "results", f"{prefix}zk_data.npy")
 
@@ -252,60 +264,86 @@ def plot_latent_variables(config, paths, verbose=False):
             # Only Herwig, Pythia, and Sherpa classes for train prefix
             colors = []
             for i in range(len(gen_labels)):
-                if gen_labels[i] == 0: colors.append("green")
-                elif gen_labels[i] == 1: colors.append("blue")
-                elif gen_labels[i] == 2: colors.append("yellow")
-                else: colors.append("black")  # Fallback for unexpected labels
+                if gen_labels[i] == 0:
+                    colors.append("green")
+                elif gen_labels[i] == 1:
+                    colors.append("blue")
+                elif gen_labels[i] == 2:
+                    colors.append("yellow")
+                else:
+                    colors.append("black")  # Fallback for unexpected labels
         else:
             # For test prefix, include signal (red) and background classes
             colors = []
             for i in range(n_background):
-                if gen_labels[i] == 0: colors.append("green")
-                elif gen_labels[i] == 1: colors.append("blue")
-                elif gen_labels[i] == 2: colors.append("yellow")
-                else: colors.append("black")
+                if gen_labels[i] == 0:
+                    colors.append("green")
+                elif gen_labels[i] == 1:
+                    colors.append("blue")
+                elif gen_labels[i] == 2:
+                    colors.append("yellow")
+                else:
+                    colors.append("black")
             colors.extend(["red"] * (len(labels) - n_background))
 
         # Plot latent variables
         for data, latent_suffix in [(z0, "_z0"), (zk, "_zk")]:
             if config.subsample_plot:
                 colors_z = []
-                reduced, method, indices = reduce_dim_subsampled(data, method=config.latent_space_plot_style, n_samples=config.subsample_size, verbose=verbose)
+                reduced, method, indices = reduce_dim_subsampled(
+                    data,
+                    method=config.latent_space_plot_style,
+                    n_samples=config.subsample_size,
+                    verbose=verbose,
+                )
                 colors_z = [colors[i] for i in indices]
             else:
                 reduced, method = reduce_dim(data)
                 colors_z = colors
-            plt.figure(figsize=(8,6))
-            plt.scatter(reduced[:,0], reduced[:,1], c=colors_z, alpha=0.7, edgecolors="w", s=60)
-            plt.title(f"{latent_suffix[1:].upper()} {method.upper()} Embedding ({prefix[:-1]})")
+            plt.figure(figsize=(8, 6))
+            plt.scatter(
+                reduced[:, 0],
+                reduced[:, 1],
+                c=colors_z,
+                alpha=0.7,
+                edgecolors="w",
+                s=60,
+            )
+            plt.title(
+                f"{latent_suffix[1:].upper()} {method.upper()} Embedding ({prefix[:-1]})"
+            )
             plt.xlabel("Component 1")
             plt.ylabel("Component 2")
-            
+
             # Create legend based on prefix
             if prefix == "train_":
                 legend = [
                     mpatches.Patch(color="green", label="Herwig"),
                     mpatches.Patch(color="blue", label="Pythia"),
-                    mpatches.Patch(color="yellow", label="Sherpa")
+                    mpatches.Patch(color="yellow", label="Sherpa"),
                 ]
             else:
                 legend = [
                     mpatches.Patch(color="green", label="Herwig"),
                     mpatches.Patch(color="blue", label="Pythia"),
                     mpatches.Patch(color="yellow", label="Sherpa"),
-                    mpatches.Patch(color="red", label="Signal")
+                    mpatches.Patch(color="red", label="Signal"),
                 ]
             plt.legend(handles=legend)
-            
-            save_path = os.path.join(paths["output_path"], "plots", "latent_space", 
-                                   f"{prefix[:-1]}{latent_suffix}.pdf")
+
+            save_path = os.path.join(
+                paths["output_path"],
+                "plots",
+                "latent_space",
+                f"{prefix[:-1]}{latent_suffix}.pdf",
+            )
             plt.savefig(save_path, format="pdf")
             plt.close()
 
 
 def plot_mu_logvar(config, paths, verbose=False):
     prefixes = ["train_", "test_"]
-    
+
     def reduce_dim(data):
         if config.latent_space_size > 50:
             data = PCA(n_components=50).fit_transform(data)
@@ -321,9 +359,19 @@ def plot_mu_logvar(config, paths, verbose=False):
 
     for prefix in prefixes:
         mu_path = os.path.join(paths["output_path"], "results", f"{prefix}mu_data.npy")
-        logvar_path = os.path.join(paths["output_path"], "results", f"{prefix}logvar_data.npy")
-        label_path = os.path.join(paths["output_path"], "results", f"{prefix}{config.input_level}_label.npy")
-        gen_label_path = os.path.join(paths["data_path"], config.file_type, "tensors", "processed", f"{prefix}gen_label_{config.input_level}.npy")
+        logvar_path = os.path.join(
+            paths["output_path"], "results", f"{prefix}logvar_data.npy"
+        )
+        label_path = os.path.join(
+            paths["output_path"], "results", f"{prefix}{config.input_level}_label.npy"
+        )
+        gen_label_path = os.path.join(
+            paths["data_path"],
+            config.file_type,
+            "tensors",
+            "processed",
+            f"{prefix}gen_label_{config.input_level}.npy",
+        )
 
         # Check if required files exist
         required_files = [mu_path, logvar_path, gen_label_path]
@@ -370,64 +418,100 @@ def plot_mu_logvar(config, paths, verbose=False):
             # Only Herwig, Pythia, and Sherpa classes for train prefix
             colors = []
             for i in range(len(gen_labels)):
-                if gen_labels[i] == 0: colors.append("green")
-                elif gen_labels[i] == 1: colors.append("blue")
-                elif gen_labels[i] == 2: colors.append("yellow")
-                else: colors.append("black")
+                if gen_labels[i] == 0:
+                    colors.append("green")
+                elif gen_labels[i] == 1:
+                    colors.append("blue")
+                elif gen_labels[i] == 2:
+                    colors.append("yellow")
+                else:
+                    colors.append("black")
         else:
             # For test prefix, include signal (red) and background classes
             colors = []
             for i in range(n_background):
-                if gen_labels[i] == 0: colors.append("green")
-                elif gen_labels[i] == 1: colors.append("blue")
-                elif gen_labels[i] == 2: colors.append("yellow")
-                else: colors.append("black")
+                if gen_labels[i] == 0:
+                    colors.append("green")
+                elif gen_labels[i] == 1:
+                    colors.append("blue")
+                elif gen_labels[i] == 2:
+                    colors.append("yellow")
+                else:
+                    colors.append("black")
             colors.extend(["red"] * (len(labels) - n_background))
 
         # Plot latent means (mu)
         if config.subsample_plot:
             colors_z = []
-            reduced_mu, method, indices = reduce_dim_subsampled(mu, method=config.latent_space_plot_style, n_samples=config.subsample_size, verbose=verbose)
+            reduced_mu, method, indices = reduce_dim_subsampled(
+                mu,
+                method=config.latent_space_plot_style,
+                n_samples=config.subsample_size,
+                verbose=verbose,
+            )
             colors_z = [colors[i] for i in indices]
         else:
             reduced_mu, method = reduce_dim(mu)
             colors_z = colors
-        plt.figure(figsize=(8,6))
-        plt.scatter(reduced_mu[:,0], reduced_mu[:,1], c=colors_z, alpha=0.7, edgecolors="w", s=60)
+        plt.figure(figsize=(8, 6))
+        plt.scatter(
+            reduced_mu[:, 0],
+            reduced_mu[:, 1],
+            c=colors_z,
+            alpha=0.7,
+            edgecolors="w",
+            s=60,
+        )
         plt.title(f"Mu {method.upper()} Embedding ({prefix[:-1]})")
         # Create legend based on prefix
         if prefix == "train_":
             legend = [
                 mpatches.Patch(color="green", label="Herwig"),
                 mpatches.Patch(color="blue", label="Pythia"),
-                mpatches.Patch(color="yellow", label="Sherpa")
+                mpatches.Patch(color="yellow", label="Sherpa"),
             ]
         else:
             legend = [
                 mpatches.Patch(color="green", label="Herwig"),
                 mpatches.Patch(color="blue", label="Pythia"),
                 mpatches.Patch(color="yellow", label="Sherpa"),
-                mpatches.Patch(color="red", label="Signal")
+                mpatches.Patch(color="red", label="Signal"),
             ]
         plt.legend(handles=legend)
-        plt.savefig(os.path.join(paths["output_path"], "plots", "latent_space", 
-                               f"{config.project_name}_{prefix[:-1]}_mu.pdf"))
+        plt.savefig(
+            os.path.join(
+                paths["output_path"],
+                "plots",
+                "latent_space",
+                f"{config.project_name}_{prefix[:-1]}_mu.pdf",
+            )
+        )
         plt.close()
 
         # Plot uncertainty
         sigma = np.exp(0.5 * logvar)
         uncertainty = np.mean(sigma, axis=1)
-        plt.figure(figsize=(8,6))
-        for color, values in zip(["green", "blue", "yellow", "red"], 
-                              [uncertainty[gen_labels == 0],
-                               uncertainty[gen_labels == 1],
-                               uncertainty[gen_labels == 2],
-                               uncertainty[len(gen_labels):] if prefix == "test_" else []]):
+        plt.figure(figsize=(8, 6))
+        for color, values in zip(
+            ["green", "blue", "yellow", "red"],
+            [
+                uncertainty[gen_labels == 0],
+                uncertainty[gen_labels == 1],
+                uncertainty[gen_labels == 2],
+                uncertainty[len(gen_labels) :] if prefix == "test_" else [],
+            ],
+        ):
             if len(values) > 0:
                 plt.hist(values, bins=30, alpha=0.6, color=color)
         plt.title(f"Uncertainty Distribution ({prefix[:-1]})")
-        plt.savefig(os.path.join(paths["output_path"], "plots", "latent_space", 
-                               f"{prefix[:-1]}_uncertainty.pdf"))
+        plt.savefig(
+            os.path.join(
+                paths["output_path"],
+                "plots",
+                "latent_space",
+                f"{prefix[:-1]}_uncertainty.pdf",
+            )
+        )
         plt.close()
 
 
@@ -446,7 +530,7 @@ def plot_roc_curve(config, paths, verbose: bool = False):
         paths["output_path"], "results", config.input_level + "_label.npy"
     )
     output_dir = os.path.join(paths["output_path"], "results")
-    #check if the label file exists
+    # check if the label file exists
     if not os.path.exists(label_path):
         raise FileNotFoundError(f"Label file not found: {label_path}")
     else:
@@ -499,6 +583,4 @@ def plot_roc_curve(config, paths, verbose: bool = False):
     # Save the plot as a PDF file.
     save_filename = os.path.join(paths["output_path"], "plots", "loss", "roc.pdf")
     plt.savefig(save_filename)
-    plt.close()
- plt.savefig(save_filename)
     plt.close()
