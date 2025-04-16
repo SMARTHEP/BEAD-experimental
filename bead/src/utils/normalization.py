@@ -1,6 +1,7 @@
 # Custom normalization functions for analysis.
 
 import numpy as np
+
 from . import helper
 
 
@@ -253,7 +254,7 @@ def invert_normalize_constit_pj_custom(normalized_data, scalers):
         [
             event_id,
             jet_id,
-            original_num_const,
+            constit_id,
             b_tagged,
             original_constit_pt,
             original_constit_eta,
