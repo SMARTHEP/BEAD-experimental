@@ -17,14 +17,14 @@ import os
 from src.utils import ggl
 
 __all__ = (
-    "create_new_project",
-    "convert_csv",
-    "prepare_inputs",
-    "run_training",
-    "run_inference",
-    "run_plots",
-    "run_full_chain",
-    "run_diagnostics",
+    "create_new_project",  # noqa: F822
+    "convert_csv",  # noqa: F822
+    "prepare_inputs",  # noqa: F822
+    "run_training",  # noqa: F822
+    "run_inference",  # noqa: F822
+    "run_plots",  # noqa: F822
+    "run_full_chain",  # noqa: F822
+    "run_diagnostics",  # noqa: F822
 )
 
 
