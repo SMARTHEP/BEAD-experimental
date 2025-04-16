@@ -908,7 +908,9 @@ def call_forward(model, inputs):
 class EarlyStopping:
     """
     Class to perform early stopping during model training.
+
     Attributes:
+
         patience (int): The number of epochs to wait before stopping the training process if the
             validation loss doesn't improve.
         min_delta (float): The minimum difference between the new loss and the previous best loss
