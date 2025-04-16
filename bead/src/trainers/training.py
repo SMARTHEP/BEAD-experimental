@@ -15,18 +15,15 @@
 import os
 import random
 import time
-import sys
-import numpy as np
-from tqdm.rich import tqdm
 import warnings
-from tqdm import TqdmExperimentalWarning
 
-from torch.nn import functional as F
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm import TqdmExperimentalWarning
+from tqdm.rich import tqdm
 
-from ..utils import helper, loss, diagnostics
-
+from ..utils import diagnostics, helper
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -60,7 +57,6 @@ def fit(
     running_loss = 0.0
 
     for idx, batch in enumerate(tqdm(dataloader)):
-
         inputs, labels = batch
         # Set previous gradients to zero
         optimizer.zero_grad()
@@ -115,7 +111,6 @@ def validate(config, model, dataloader, loss_fn, reg_param):
 
     with torch.no_grad():
         for idx, batch in enumerate(tqdm(dataloader)):
-
             inputs, labels = batch
 
             out = helper.call_forward(model, inputs)
@@ -276,7 +271,7 @@ def train(
     model = model.to(device)
     if verbose:
         print(f"Device used for training: {device}")
-        print(f"Inputs and model moved to device")
+        print("Inputs and model moved to device")
 
     # Pushing input data into the torch-DataLoader object and combines into one DataLoader object (a basic wrapper
     # around several DataLoader objects).
@@ -491,7 +486,7 @@ def train(
     if config.activation_extraction:
         activations = diagnostics.dict_to_square_matrix(model.get_activations())
         model.detach_hooks(hooks)
-        np.save(os.path.join(project_path, "activations.npy"), activations)
+        np.save(os.path.join(output_path, "models", "activations.npy"), activations)
 
     if verbose:
         print(f"Training the model took {(end - start) / 60:.3} minutes")
