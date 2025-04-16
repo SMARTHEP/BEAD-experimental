@@ -13,14 +13,8 @@
 # limitations under the License.
 
 import os
-import time
-import gzip
-from math import ceil
-
-import numpy as np
 
 from src.utils import ggl
-
 
 __all__ = (
     "create_new_project",
@@ -89,7 +83,9 @@ def main():
     elif mode == "diagnostics":
         ggl.run_diagnostics(paths, config, verbose)
     elif mode == "chain":
-        ggl.run_full_chain(workspace_name, project_name, paths, config, options, verbose)
+        ggl.run_full_chain(
+            workspace_name, project_name, paths, config, options, verbose
+        )
     else:
         raise NameError(
             "BEAD mode "
