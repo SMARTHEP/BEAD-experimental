@@ -1,11 +1,11 @@
 import math
-import numpy as np
 
+import numpy as np
 import torch
 import torch.nn as nn
-from torch.nn.parameter import Parameter
-from torch.nn.modules.module import Module
 import torch.nn.functional as F
+from torch.nn.modules.module import Module
+from torch.nn.parameter import Parameter
 
 DEFAULT_MIN_BIN_WIDTH = 1e-3
 DEFAULT_MIN_BIN_HEIGHT = 1e-3
@@ -21,7 +21,6 @@ class Identity(nn.Module):
 
 
 class MaskedLinear(nn.Module):
-
     def __init__(self, in_features, out_features, diagonal_zeros=False, bias=True):
         super(MaskedLinear, self).__init__()
         self.in_features = in_features
@@ -90,7 +89,6 @@ class MaskedLinear(nn.Module):
 
 
 class MaskedConv2d(nn.Module):
-
     def __init__(
         self,
         in_features,
@@ -128,7 +126,7 @@ class MaskedConv2d(nn.Module):
         assert n_out % n_in == 0 or n_in % n_out == 0, "%d - %d" % (n_in, n_out)
 
         # Build autoregressive mask
-        l = (self.size_kernel[0] - 1) // 2
+        l = (self.size_kernel[0] - 1) // 2  # noqa: E741
         m = (self.size_kernel[1] - 1) // 2
         mask = np.ones(
             (n_out, n_in, self.size_kernel[0], self.size_kernel[1]), dtype=np.float32
@@ -198,7 +196,6 @@ class CNN_Flow_Layer(nn.Module):
         self.conv1d = nn.Conv1d(1, 1, kernel_size, dilation=dilation)
 
     def forward(self, x):
-
         # pad zero to the right
         padded_x = F.pad(x, (0, (self.kernel_size - 1) * self.dilation))
 

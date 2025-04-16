@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Dict, Any, Tuple
 
 import torch
-from torch import nn
 import torch.utils.data
+from torch import nn
+from torch.autograd import Variable
 from torch.nn import functional as F
-from torch.autograd import Function, Variable
 
-from ..utils import helper
 from . import flows
 
 
@@ -447,7 +445,6 @@ class OrthogonalSylvester_ConvVAE(ConvVAE):
             self.add_module("flow_" + str(k), flow_k)
 
     def batch_construct_orthogonal(self, q):
-
         # Reshape to shape (num_flows * batch_size, z_size * num_ortho_vecs)
         q = q.view(-1, self.z_size * self.num_ortho_vecs)
 
@@ -486,7 +483,6 @@ class OrthogonalSylvester_ConvVAE(ConvVAE):
         return amat
 
     def forward(self, x):
-
         self.log_det_j = 0
 
         out, z_mu, z_var = self.encode(x)
@@ -524,7 +520,6 @@ class OrthogonalSylvester_ConvVAE(ConvVAE):
 
         # Normalizing flows
         for k in range(self.num_flows):
-
             flow_k = getattr(self, "flow_" + str(k))
             z_k, log_det_jacobian = flow_k(
                 z[k], r1[:, :, :, k], r2[:, :, :, k], q_ortho[k, :, :, :], b[:, :, :, k]
@@ -601,7 +596,6 @@ class HouseholderSylvester_ConvVAE(ConvVAE):
             self.add_module("flow_" + str(k), flow_k)
 
     def batch_construct_orthogonal(self, q):
-
         # Reshape to shape (num_flows * batch_size * num_householder, z_size)
         q = q.view(-1, self.z_size)
 
@@ -661,7 +655,6 @@ class HouseholderSylvester_ConvVAE(ConvVAE):
 
         # Normalizing flows
         for k in range(self.num_flows):
-
             flow_k = getattr(self, "flow_" + str(k))
             q_k = q_ortho[k]
 
@@ -760,7 +753,6 @@ class TriangularSylvester_ConvVAE(ConvVAE):
 
         # Normalizing flows
         for k in range(self.num_flows):
-
             flow_k = getattr(self, "flow_" + str(k))
             if k % 2 == 1:
                 # Alternate with reorderering z for triangular flow
@@ -902,7 +894,6 @@ class NSFAR_ConvVAE(ConvVAE):
         z = [self.reparameterize(z_mu, z_var)]
         # Normalizing flows
         for k in range(self.num_flows):
-
             flow_k = getattr(self, "flow_" + str(k))
 
             z_k, log_det_jacobian = flow_k(z[k])

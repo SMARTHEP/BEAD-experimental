@@ -4,29 +4,24 @@ Collection of flow strategies
 
 from __future__ import print_function
 
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.nn.init as init
 from torch.autograd import Variable
-import torch.nn.functional as F
-import numpy as np
-import math
-import sys
 
 from .layers import (
     FCNN,
+    Dilation_Block,
     MaskedConv2d,
     MaskedLinear,
-    CNN_Flow_Layer,
-    Dilation_Block,
     unconstrained_RQS,
 )
 
 
 class Planar(nn.Module):
-
     def __init__(self):
-
         super(Planar, self).__init__()
 
         self.h = nn.Tanh()
@@ -38,7 +33,6 @@ class Planar(nn.Module):
         return 1 - self.h(x) ** 2
 
     def forward(self, zk, u, w, b):
-
         zk = zk.unsqueeze(2)
 
         # reparameterize u such that the flow becomes invertible
@@ -66,7 +60,6 @@ class Sylvester(nn.Module):
     """
 
     def __init__(self, num_ortho_vecs):
-
         super(Sylvester, self).__init__()
 
         self.num_ortho_vecs = num_ortho_vecs
@@ -89,7 +82,6 @@ class Sylvester(nn.Module):
         return 1 - self.h(x) ** 2
 
     def _forward(self, zk, r1, r2, q_ortho, b, sum_ldj=True):
-
         # Amortized flow parameters
         zk = zk.unsqueeze(1)
 
@@ -122,7 +114,6 @@ class Sylvester(nn.Module):
         return z, log_det_j
 
     def forward(self, zk, r1, r2, q_ortho, b, sum_ldj=True):
-
         return self._forward(zk, r1, r2, q_ortho, b, sum_ldj)
 
 
@@ -132,7 +123,6 @@ class TriangularSylvester(nn.Module):
     """
 
     def __init__(self, z_size):
-
         super(TriangularSylvester, self).__init__()
 
         self.z_size = z_size
@@ -148,7 +138,6 @@ class TriangularSylvester(nn.Module):
         return 1 - self.h(x) ** 2
 
     def _forward(self, zk, r1, r2, b, permute_z=None, sum_ldj=True):
-
         # Amortized flow parameters
         zk = zk.unsqueeze(1)
 
@@ -187,12 +176,10 @@ class TriangularSylvester(nn.Module):
         return z, log_det_j
 
     def forward(self, zk, r1, r2, q_ortho, b, sum_ldj=True):
-
         return self._forward(zk, r1, r2, q_ortho, b, sum_ldj)
 
 
 class IAF(nn.Module):
-
     def __init__(
         self,
         z_size,
@@ -247,7 +234,6 @@ class IAF(nn.Module):
         self.param_list = torch.nn.ParameterList(self.param_list)
 
     def forward(self, z, h_context):
-
         logdets = 0.0
         for i, flow in enumerate(self.flows):
             if (i + 1) % 2 == 0 and not self.conv2d:
@@ -280,7 +266,6 @@ class CNN_Flow(nn.Module):
 
         self.layers = nn.ModuleList()
         for i in range(cnn_layers):
-
             block = Dilation_Block(dim, kernel_size, test_mode)
             self.layers.append(block)
 
