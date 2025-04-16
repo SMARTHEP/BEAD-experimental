@@ -15,18 +15,15 @@
 import os
 import random
 import time
-import sys
-import numpy as np
-from tqdm.rich import tqdm
 import warnings
-from tqdm import TqdmExperimentalWarning
 
-from torch.nn import functional as F
+import numpy as np
 import torch
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import ConcatDataset, DataLoader
+from tqdm import TqdmExperimentalWarning
+from tqdm.rich import tqdm
 
-from ..utils import helper, loss, diagnostics
-
+from ..utils import diagnostics, helper
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -103,9 +100,7 @@ def infer(
         events_sig,
         jets_sig,
         constituents_sig,
-    ) = (
-        data_bkg + data_sig
-    )
+    ) = data_bkg + data_sig
 
     (
         events_bkg_label,
@@ -114,9 +109,7 @@ def infer(
         events_sig_label,
         jets_sig_label,
         constituents_sig_label,
-    ) = (
-        labels_bkg + labels_sig
-    )
+    ) = labels_bkg + labels_sig
 
     # Save labels
     np.save(
@@ -212,7 +205,7 @@ def infer(
         print(f"Model loaded from {model_path}")
         print(f"Model architecture:\n{model}")
         print(f"Device used for inference: {device}")
-        print(f"Inputs and model moved to device")
+        print("Inputs and model moved to device")
         # Pushing input data into the torch-DataLoader object and combines into one DataLoader object (a basic wrapper
         # around several DataLoader objects).
         print("Loading data into DataLoader and using batch size of ", 1)
@@ -294,14 +287,13 @@ def infer(
         hooks = model.store_hooks()
 
     if verbose:
-        print(f"Beginning Inference")
+        print("Beginning Inference")
 
     # Inference
     parameters = model.parameters()
 
     with torch.no_grad():
         for idx, batch in enumerate(tqdm(test_dl)):
-
             inputs, labels = batch
 
             out = helper.call_forward(model, inputs)
@@ -331,7 +323,7 @@ def infer(
     if config.activation_extraction:
         activations = diagnostics.dict_to_square_matrix(model.get_activations())
         model.detach_hooks(hooks)
-        np.save(os.path.join(project_path, "activations.npy"), activations)
+        np.save(os.path.join(output_path, "models", "activations.npy"), activations)
 
     if verbose:
         print(f"Inference took {(end - start) / 60:.3} minutes")
