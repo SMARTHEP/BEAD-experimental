@@ -66,6 +66,29 @@ def infer(
     # Get the device and move tensors to the device
     device = helper.get_device()
 
+    # Reshape tensors to pass to conv layers
+    if "ConvVAE" in config.model_name or "ConvAE" in config.model_name:
+        (
+            events_bkg,
+            jets_bkg,
+            constituents_bkg,
+            events_sig,
+            jets_sig,
+            constituents_sig,
+        ) = [x.unsqueeze(1).float() for x in data_bkg + data_sig]
+
+        data_bkg = (
+            events_bkg,
+            jets_bkg,
+            constituents_bkg,
+        )
+
+        data_sig = (
+            events_sig,
+            jets_sig,
+            constituents_sig,
+        )
+
     (
         events_bkg,
         jets_bkg,
@@ -124,27 +147,6 @@ def infer(
         os.path.join(output_path, "results", "test_constituent_label.npy"),
         np.concatenate([constituents_bkg_label, constituents_sig_label]),
     )
-
-    # Reshape tensors to pass to conv layers
-    if "ConvVAE" in config.model_name or "ConvAE" in config.model_name:
-        (
-            events_bkg,
-            jets_bkg,
-            constituents_bkg,
-            events_sig,
-            jets_sig,
-            constituents_sig,
-        ) = [
-            x.unsqueeze(1).float()
-            for x in [
-                events_bkg,
-                jets_bkg,
-                constituents_bkg,
-                events_sig,
-                jets_sig,
-                constituents_sig,
-            ]
-        ]
 
     data = (
         events_bkg,

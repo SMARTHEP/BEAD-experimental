@@ -173,6 +173,17 @@ def train(
     # Get the device and move tensors to the device
     device = helper.get_device()
 
+    # Reshape tensors to pass to conv layers
+    if "ConvVAE" in config.model_name:
+        (
+            events_train,
+            jets_train,
+            constituents_train,
+            events_val,
+            jets_val,
+            constituents_val,
+        ) = [x.unsqueeze(1).float() for x in data]
+
     (
         events_train,
         jets_train,
@@ -190,27 +201,6 @@ def train(
         jets_val_label,
         constituents_val_label,
     ) = [x.to(device) for x in labels]
-
-    # Reshape tensors to pass to conv layers
-    if "ConvVAE" in config.model_name:
-        (
-            events_train,
-            jets_train,
-            constituents_train,
-            events_val,
-            jets_val,
-            constituents_val,
-        ) = [
-            x.unsqueeze(1).float()
-            for x in [
-                events_train,
-                jets_train,
-                constituents_train,
-                events_val,
-                jets_val,
-                constituents_val,
-            ]
-        ]
 
     data = (
         events_train,
