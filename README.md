@@ -5,7 +5,6 @@
 
 [![example event workflow](https://github.com/PRAkTIKal24/BEAD/actions/workflows/docs.yaml/badge.svg?event=push)](https://github.com/PRAkTIKal24/BEAD/actions)
 ![GitHub repo size](https://img.shields.io/github/repo-size/PRAkTIKal24/BEAD)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/PRAkTIKal24/BEAD/total)
 ![GitHub forks](https://img.shields.io/github/forks/PRAkTIKal24/BEAD?style=flat&color=blue)
 
 
