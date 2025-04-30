@@ -1,5 +1,18 @@
 """
-Collection of flow strategies
+Collection of flow strategies for variational inference and density estimation.
+
+This module implements various normalizing flow architectures that can be used to transform
+simple probability distributions into more complex ones. These flows are particularly useful
+for improving the expressiveness of variational autoencoders by allowing more flexible posterior
+distributions.
+
+Classes:
+    Planar: Planar flow transformation.
+    Sylvester: Standard Sylvester normalizing flow.
+    TriangularSylvester: Sylvester flow with triangular structure.
+    IAF: Inverse Autoregressive Flow.
+    CNN_Flow: Convolutional neural network based normalizing flow.
+    NSF_AR: Neural Spline Flow with autoregressive structure.
 """
 
 from __future__ import print_function

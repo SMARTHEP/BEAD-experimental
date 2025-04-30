@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+BEAD (Behavior and Anomaly Detection) main module.
+
+This module serves as the entry point for the BEAD framework, providing command-line
+interface functionality for anomaly detection workflows. It orchestrates the complete
+pipeline from data preparation to model training, inference, and result visualization.
+"""
+
 import os
 
 from src.utils import ggl
@@ -29,20 +37,26 @@ from src.utils import ggl
 
 
 def main():
-    """Calls different functions depending on argument parsed in command line.
+    """Process command-line arguments to execute BEAD functionality.
 
-        - if --mode=new_project: call `ggl.create_new_project` and create a new project sub directory with default config file
-        - if --mode=convert_csv: call `ggl.convert_csv` to convert csv to either hdf5 (default), npy or both formats
-        - if --mode=prepare_inputs: call `ggl.prepare_inputs` to read either hdt5 (default) or npy and generate torch tensors ready to train on
-        - if --mode=train: call `ggl.run_training` and train the network on given data and based on the config file and check if profilers are enabled
-        - if --mode=detect: call 'ggl.run_inference'
-        - if --mode=plot: call `ggl.run_plots` to generate all result plots described in the paper
-        - if --mode=full_chain: call `ggl.run_full_chain` to run all the steps starting from processing the csv to generating result plots
-        - if --mode=diagnostics: call `ggl.run_diagnostics` to run profilers to generate runtime metrics
+    Parses command-line arguments and executes the appropriate functionality based on the
+    specified mode. The available modes are:
 
+    Args:
+        Arguments are parsed from command line, not passed directly to this function.
+
+    Modes:
+        new_project: Create a new project with default configuration.
+        convert_csv: Convert CSV data to HDF5 or NPY format.
+        prepare_inputs: Process data files into PyTorch tensors for training.
+        train: Train a model using the prepared data.
+        detect: Run inference on data to detect anomalies.
+        plot: Generate visualization plots for results.
+        diagnostics: Run performance profiling and diagnostics.
+        chain: Execute the full pipeline from data conversion to visualization.
 
     Raises:
-        NameError: Raises error if the chosen mode does not exist.
+        NameError: If the specified mode is not recognized.
     """
     (
         config,
