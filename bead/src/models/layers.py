@@ -1,3 +1,29 @@
+"""
+Custom layer implementations for neural network architectures.
+
+This module provides specialized neural network layers used in various models across
+the BEAD framework. These include masked layers for autoregressive models, CNN flow layers,
+graph convolutional layers, and utility functions for spline-based flows.
+
+Classes:
+    Identity: Simple identity layer that returns its input unchanged.
+    MaskedLinear: Linear layer with masking for autoregressive architectures.
+    MaskedConv2d: 2D convolutional layer with masking capabilities.
+    CNN_Flow_Layer: Base layer for CNN-based normalizing flows.
+    Dilation_Block: Block of dilated convolutions for CNN flows.
+    GraphConvolution: Graph convolutional network layer.
+    FCNN: Simple fully connected neural network.
+    Log1pScaler: Scaler that applies log(1+x) transformation.
+    L2Normalizer: Scaler that applies L2 normalization.
+    SinCosTransformer: Transforms angles to sin/cos features.
+    ChainedScaler: Chains multiple scalers together.
+
+Functions:
+    searchsorted: Utility for finding indices where elements should be inserted.
+    unconstrained_RQS: Rational quadratic spline transformation with unconstrained inputs.
+    RQS: Rational quadratic spline transformation.
+"""
+
 import math
 
 import numpy as np
