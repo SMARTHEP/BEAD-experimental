@@ -1,12 +1,28 @@
-# Description: This script contains functions to convert CSV files to HDF5 and .npy files in parallel.
+"""
+Data conversion utilities for CSV to HDF5/NumPy.
+
+This module contains functions to convert CSV files to HDF5 and .npy files in parallel.
+It handles efficient reading and processing of large CSV files with event, jet, and
+constituent-level data, and saves them in a structured format for later analysis.
+
+Functions:
+    calculate_jet_properties_numba: Numba-accelerated calculation of jet properties.
+    process_event: Process a single event row from CSV.
+    csv_chunk_generator: Generator yielding CSV file chunks to process.
+    append_to_hdf5: Append data chunk to HDF5 dataset.
+    process_chunk: Process a chunk of CSV rows into homogeneous arrays.
+    convert_csv_to_hdf5_npy_parallel: Main function to convert CSV to HDF5/NumPy.
+"""
+
 import os
 
 os.environ["KMP_WARNINGS"] = "off"
 import csv
-import numpy as np
+
 import h5py
+import numpy as np
+from dask import compute, delayed
 from numba import njit
-from dask import delayed, compute
 
 # Define structured dtypes for memory efficiency
 event_dtype = np.dtype(
@@ -164,12 +180,8 @@ def process_chunk(chunk, start_evt_id):
 
     """
     events = []  # Each event: [evt_id, evt_weight, met, met_phi, num_jets]
-    jets = (
-        []
-    )  # Each jet: [evt_id, jet_index, num_constits, b_tagged, jet_pt, jet_eta, jet_phi]
-    constituents = (
-        []
-    )  # Each constituent: [evt_id, jet_index, constituent_index, particle_id, pt, eta, phi]
+    jets = []  # Each jet: [evt_id, jet_index, num_constits, b_tagged, jet_pt, jet_eta, jet_phi]
+    constituents = []  # Each constituent: [evt_id, jet_index, constituent_index, particle_id, pt, eta, phi]
     evt_id = start_evt_id
     for row in chunk:
         res = process_event(evt_id, row)
