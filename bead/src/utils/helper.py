@@ -661,6 +661,17 @@ def data_label_split(data):
 
 # Define the custom dataset class
 class CustomDataset(Dataset):
+    """
+    A custom PyTorch Dataset for handling paired data and label tensors.
+
+    This dataset provides a simple interface for accessing data points and their
+    corresponding labels, which is compatible with PyTorch's DataLoader.
+
+    Attributes:
+        data (torch.Tensor): The data tensor containing features.
+        labels (torch.Tensor): The labels tensor associated with the data.
+    """
+
     def __init__(self, data_tensor, label_tensor):
         self.data = data_tensor
         self.labels = label_tensor
@@ -687,6 +698,29 @@ def create_datasets(
     jets_val_label,
     constituents_val_label,
 ):
+    """
+    Creates CustomDataset objects for training and validation data.
+
+    This function pairs data tensors with their corresponding label tensors
+    to create dataset objects for events, jets, and constituents data.
+
+    Args:
+        events_train (torch.Tensor): Training events data.
+        jets_train (torch.Tensor): Training jets data.
+        constituents_train (torch.Tensor): Training constituents data.
+        events_val (torch.Tensor): Validation events data.
+        jets_val (torch.Tensor): Validation jets data.
+        constituents_val (torch.Tensor): Validation constituents data.
+        events_train_label (torch.Tensor): Labels for training events.
+        jets_train_label (torch.Tensor): Labels for training jets.
+        constituents_train_label (torch.Tensor): Labels for training constituents.
+        events_val_label (torch.Tensor): Labels for validation events.
+        jets_val_label (torch.Tensor): Labels for validation jets.
+        constituents_val_label (torch.Tensor): Labels for validation constituents.
+
+    Returns:
+        dict: A dictionary containing CustomDataset objects for all data types.
+    """
     # Create datasets for training data
     events_train_dataset = CustomDataset(events_train, events_train_label)
     jets_train_dataset = CustomDataset(jets_train, jets_train_label)
