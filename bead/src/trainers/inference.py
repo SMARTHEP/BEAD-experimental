@@ -1,16 +1,15 @@
-# Copyright 2022 Baler Contributors
+"""
+Inference functionality for trained models.
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+This module provides functionality to perform inference using trained models on test data.
+It handles the loading of both background and signal data, preprocessing, and passing it through
+the model to get reconstructions and latent representations. The resulting metrics, reconstructions,
+and latent variables are saved for later analysis.
 
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+Functions:
+    seed_worker: Sets seeds for workers to ensure reproducibility.
+    infer: Main function for performing inference on test data.
+"""
 
 import os
 import random
