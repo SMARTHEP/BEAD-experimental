@@ -1,5 +1,25 @@
-# Think of this file as your google assistant
-# This file is a collection of simple helper functions and is the control center that accesses all other src files
+"""
+Control center for BEAD command-line interface.
+
+This module serves as the main entry point for the BEAD CLI. It handles command-line arguments, project creation, and orchestrates the execution of various modes like data conversion, training, inference, and visualization.
+Think of this file as your google assistant
+This file is a collection of simple helper functions and is the control center that accesses all other src files
+
+Functions:
+    get_arguments: Parse command-line arguments.
+    create_default_config: Create default configuration file.
+    create_new_project: Create directory structure for new project.
+    convert_csv: Convert CSV files to HDF5 or NumPy format.
+    prepare_inputs: Process input data and create tensors.
+    run_training: Execute model training pipeline.
+    run_inference: Execute model inference pipeline.
+    run_plots: Generate plots from results.
+    run_diagnostics: Run model diagnostics.
+    run_full_chain: Execute a sequence of operations.
+
+Classes:
+    Config: Dataclass for storing configuration settings.
+"""
 
 import argparse
 import importlib
