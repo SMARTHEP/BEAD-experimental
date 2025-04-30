@@ -1,4 +1,18 @@
-# Description: This file contains a function to generate plots for training epoch loss data and loss component data for train, val and test sets based on what files exist in the output directory.
+"""
+Visualization utilities for model results.
+
+This module provides functions for creating visualizations of model training results,
+latent space embeddings, and performance metrics. These plots are essential for
+understanding model behavior and evaluating anomaly detection performance.
+
+Functions:
+    plot_losses: Generate plots for training and validation losses.
+    reduce_dim_subsampled: Reduce dimensionality with optional subsampling.
+    plot_latent_variables: Visualize latent space embeddings.
+    plot_mu_logvar: Plot latent space mean and variance.
+    plot_roc_curve: Generate ROC curves from model results.
+"""
+
 import os
 
 import matplotlib.patches as mpatches
