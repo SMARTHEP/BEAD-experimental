@@ -1,4 +1,16 @@
-# Custom normalization functions for analysis.
+"""
+Custom normalization functions for HEP data.
+
+This module provides specialized normalization functions for high-energy physics data,
+particularly for jet and constituent features. These functions handle the specific
+requirements of features like PT, eta, and phi in particle physics analyses.
+
+Functions:
+    normalize_jet_pj_custom: Custom normalization for jet data.
+    normalize_constit_pj_custom: Custom normalization for constituent data.
+    invert_normalize_jet_pj_custom: Invert custom jet normalization.
+    invert_normalize_constit_pj_custom: Invert custom constituent normalization.
+"""
 
 import numpy as np
 
