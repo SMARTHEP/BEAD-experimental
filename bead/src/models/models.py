@@ -1,17 +1,24 @@
-# Copyright 2022 Baler Contributors
+"""
+Neural network model architectures for anomaly detection.
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+This module provides various autoencoder and variational autoencoder architectures
+with different latent space configurations, flow transformations, and architectural
+choices. These models can be used for anomaly detection in particle physics data.
 
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+Classes:
+    AE: Basic autoencoder architecture.
+    AE_Dropout_BN: Autoencoder with dropout and batch normalization.
+    ConvAE: Convolutional autoencoder.
+    ConvVAE: Convolutional variational autoencoder.
+    Planar_ConvVAE: ConvVAE with planar normalizing flows.
+    OrthogonalSylvester_ConvVAE: ConvVAE with orthogonal Sylvester flows.
+    HouseholderSylvester_ConvVAE: ConvVAE with Householder Sylvester flows.
+    TriangularSylvester_ConvVAE: ConvVAE with triangular Sylvester flows.
+    IAF_ConvVAE: ConvVAE with inverse autoregressive flows.
+    ConvFlow_ConvVAE: ConvVAE with convolutional normalizing flows.
+    NSFAR_ConvVAE: ConvVAE with neural spline flows.
+    TransformerAE: Autoencoder with transformer components.
+"""
 
 import torch
 import torch.utils.data
