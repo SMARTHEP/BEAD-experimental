@@ -1,16 +1,28 @@
-# Copyright 2022 Baler Contributors
+"""
+Loss functions for training autoencoder and VAE models.
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+This module provides various loss functions for training autoencoders and variational autoencoders,
+including basic reconstruction losses, KL divergence, regularization terms, and combined losses
+for specialized models like those with normalizing flows.
 
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+Classes:
+    BaseLoss: Base class for all loss functions.
+    ReconstructionLoss: Standard reconstruction loss (MSE or L1).
+    KLDivergenceLoss: Kullback-Leibler divergence for VAE training.
+    WassersteinLoss: Earth Mover's Distance approximation.
+    L1Regularization: L1 weight regularization.
+    L2Regularization: L2 weight regularization.
+    BinaryCrossEntropyLoss: Binary cross-entropy loss.
+    VAELoss: Combined loss for VAE (reconstruction + KL).
+    VAEFlowLoss: Loss for VAE with normalizing flows.
+    ContrastiveLoss: Contrastive loss for clustering latent vectors.
+    VAELossEMD: VAE loss with Earth Mover's Distance term.
+    VAELossL1: VAE loss with L1 regularization.
+    VAELossL2: VAE loss with L2 regularization.
+    VAEFlowLossEMD: VAE flow loss with EMD term.
+    VAEFlowLossL1: VAE flow loss with L1 regularization.
+    VAEFlowLossL2: VAE flow loss with L2 regularization.
+"""
 
 import torch
 from torch.nn import functional as F
