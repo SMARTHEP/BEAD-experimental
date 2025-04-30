@@ -1,3 +1,17 @@
+"""
+Data processing utilities for HDF5/NumPy arrays.
+
+This module provides functions for loading, processing, and preparing data for training
+and inference. It includes utilities for selecting the top jets and constituents, normalizing
+data, and converting between different data formats.
+
+Functions:
+    load_data: Load data from HDF5 files.
+    select_top_jets_and_constituents: Select top N jets and M constituents.
+    process_and_save_tensors: Process input file and save as PyTorch tensors.
+    preproc_inputs: Preprocess inputs for training or inference.
+"""
+
 import os
 import pickle
 import sys
