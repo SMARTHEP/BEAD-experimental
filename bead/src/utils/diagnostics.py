@@ -1,3 +1,18 @@
+"""
+Diagnostic utilities for model analysis and profiling.
+
+This module provides functions for extracting and visualizing neural network activations,
+profiling model performance, and generating diagnostic plots for understanding model behavior.
+
+Functions:
+    get_mean_node_activations: Calculate mean activations for each node.
+    dict_to_square_matrix: Convert activation dictionary to square matrix.
+    plot: Generate neural activation pattern plot.
+    nap_diagnose: Neural activation pattern diagnosis.
+    pytorch_profile: Profile PyTorch code execution.
+    c_profile: Profile Python code execution with cProfile.
+"""
+
 import cProfile
 import io
 import os
