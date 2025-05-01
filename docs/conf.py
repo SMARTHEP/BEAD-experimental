@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.abspath(os.path.join('..')))
 # sys.path.insert(0, os.path.join(package_dir, 'src'))
 
 # conf.py
-autodoc_mock_imports = ['art']  # Remove any mocked dependencies if not needed
+autodoc_mock_imports = ['art', 'torch', 'numpy', 'tqdm', 'rich']  # Remove any mocked dependencies if not needed
 autodoc_default_options = {
     'members': True,
     'undoc-members': True,
