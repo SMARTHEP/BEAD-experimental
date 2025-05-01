@@ -90,12 +90,11 @@ def plot(data: np.array, output_path: str) -> None:
     ax.figure.savefig(os.path.join(output_path, "diagnostics.pdf"))
 
 
-def nap_diagnose(input_path: str, output_path: str) -> None:
+def nap_diagnose(input_path: str, output_path: str, verbose: bool = False) -> None:
     input = np.load(input_path)
     plot(input, output_path)
-    print(
-        "Diagnostics saved as diagnostics.pdf in the diagnostics folder of your project."
-    )
+    if verbose:
+        print("Diagnostics plots saved as <diagnostics.pdf> in the plotting directory.")
 
 
 def pytorch_profile(f, *args, **kwargs):
