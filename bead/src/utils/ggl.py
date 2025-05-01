@@ -675,11 +675,10 @@ def run_diagnostics(project_path, verbose: bool):
     output_path = os.path.join(project_path, "plotting")
     if verbose:
         print("Performing diagnostics")
-        print(f"Saving plots to {output_path}")
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     input_path = os.path.join(project_path, "training", "activations.npy")
-    diagnostics.nap_diagnose(input_path, output_path)
+    diagnostics.nap_diagnose(input_path, output_path, verbose)
 
 
 def run_full_chain(
