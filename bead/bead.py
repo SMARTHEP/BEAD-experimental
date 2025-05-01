@@ -22,7 +22,7 @@ pipeline from data preparation to model training, inference, and result visualiz
 
 import os
 
-from src.utils import ggl
+from .src.utils import ggl
 
 # __all__ = (
 #     "create_new_project",  # noqa: F822
