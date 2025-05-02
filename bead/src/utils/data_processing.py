@@ -53,8 +53,8 @@ def select_top_jets_and_constituents(
     Select top n_jets per event and, for each selected jet, top n_constits constituents.
 
     Returns:
-    - jets_out: (num_events, n_jets, jets.shape[1])
-    - constits_out: (num_events, n_jets * n_constits, constituents.shape[1])
+        jets_out: (num_events, n_jets, jets.shape[1])
+        constits_out: (num_events, n_jets * n_constits, constituents.shape[1])
 
     """
     # --- Pre-sort jets ---
