@@ -943,12 +943,11 @@ class EarlyStopping:
     """
     Class to perform early stopping during model training.
 
-    Attributes:
+    Args:
+        patience (int): The number of epochs to wait before stopping the training process if the validation loss doesn't improve.
+        min_delta (float): The minimum difference between the new loss and the previous best loss for the new loss to be considered an improvement.
 
-        patience (int): The number of epochs to wait before stopping the training process if the
-            validation loss doesn't improve.
-        min_delta (float): The minimum difference between the new loss and the previous best loss
-            for the new loss to be considered an improvement.
+    Attributes:
         counter (int): Counts the number of times the validation loss hasn't improved.
         best_loss (float): The best validation loss observed so far.
         early_stop (bool): Flag that indicates whether early stopping criteria have been met.
@@ -984,14 +983,12 @@ class LRScheduler:
 
     Args:
         optimizer (torch.optim.Optimizer): The optimizer whose learning rate will be adjusted.
-        patience (int): The number of epochs with no improvement in training loss after which the learning rate
-            will be reduced.
+        patience (int): The number of epochs with no improvement in training loss after which the learning rate will be reduced.
         min_lr (float, optional): The minimum learning rate that can be reached (default: 1e-6).
         factor (float, optional): The factor by which the learning rate will be reduced (default: 0.1).
 
     Attributes:
-        lr_scheduler (torch.optim.lr_scheduler.ReduceLROnPlateau): The PyTorch learning rate scheduler that
-            actually performs the adjustments.
+        lr_scheduler (torch.optim.lr_scheduler.ReduceLROnPlateau): The PyTorch learning rate scheduler that actually performs the adjustments.
 
     Example usage:
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -1032,8 +1029,7 @@ def load_model(model_path: str, in_shape, config):
         in_shape (tuple): Input shape
         config (Config): Configuration object
 
-    Returns: nn.Module: Returns a model object with the attributes of the model class, with the selected state
-    dictionary loaded into it.
+    Returns: nn.Module: Returns a model object with the attributes of the model class, with the selected state dictionary loaded into it.
     """
     device = get_device()
 
@@ -1061,10 +1057,10 @@ def save_loss_components(loss_data, component_names, suffix, save_dir="loss_outp
     <component_name>_<suffix>.npy
 
     Args:
-      - loss_data: a list of tuples, where each tuple contains loss components
-      - component_names: a list of strings naming each component in the tuple
-      - suffix: a string keyword to be appended (separated by '_') to each filename
-      - save_dir: directory to save .npy files (default "loss_outputs")
+      - loss_data (list): a list of tuples, where each tuple contains loss components
+      - component_names (list): a list of strings naming each component in the tuple
+      - suffix (str): a string keyword to be appended (separated by '_') to each filename
+      - save_dir (path): directory to save .npy files (default "loss_outputs")
 
     """
     # Ensure the save directory exists
