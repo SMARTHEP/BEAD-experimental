@@ -679,6 +679,8 @@ def run_diagnostics(project_path, verbose: bool):
         os.makedirs(output_path)
     input_path = os.path.join(project_path, "training", "activations.npy")
     diagnostics.nap_diagnose(input_path, output_path, verbose)
+    if verbose:
+        print("Diagnostics complete")
 
 
 def run_full_chain(
