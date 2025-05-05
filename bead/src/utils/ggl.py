@@ -28,9 +28,11 @@ import sys
 import time
 from dataclasses import dataclass
 
+import art as ar
 import numpy as np
 import torch
-from art import *
+
+# from art import *
 from tqdm.rich import tqdm
 
 from ..trainers import inference, training
@@ -48,7 +50,7 @@ def get_arguments():
     parser = argparse.ArgumentParser(
         prog="bead",
         description=(
-            text2art(" BEAD ", font="varsity")  # noqa: F405
+            ar.text2art(" BEAD ", font="varsity")  # noqa: F405
             + "       /-----\\   /-----\\   /-----\\   /-----\\\n      /       \\ /       \\ /"
             "       \\ /       \\\n-----|         /         /         /         |-----\n      \\"
             "       / \\       / \\       / \\       /\n       \\-----/   \\-----/   \\-----/   \\"
