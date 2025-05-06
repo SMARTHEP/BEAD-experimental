@@ -144,19 +144,38 @@ def reduce_dim_subsampled(
     data, method="trimap", n_components=2, n_samples=None, verbose=False
 ):
     """
-    Reduce the dimensionality of the input data using the specified method.
-    Supports subsampling and PCA preprocessing for large datasets.
+    Reduce dimensionality of data with optional subsampling for large datasets.
 
-    Parameters:
-        data (np.ndarray): Input data of shape (n_samples, n_features).
-        method (str): Dimensionality reduction method ("pca", "tsne", or "trimap").
-        n_components (int): Number of dimensions to reduce to.
-        n_samples (int): Number of samples to use for subsampling. If None, use all data.
-        verbose (bool): If True, print progress messages.
+    This function applies dimensionality reduction techniques (PCA, t-SNE, or TriMap)
+    to high-dimensional data, with options for subsampling large datasets to improve
+    computational efficiency.
 
-    Returns:
-        reduced (np.ndarray): Data reduced to n_components dimensions.
-        method_used (str): The method used for dimensionality reduction.
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Input data of shape (n_samples, n_features)
+    method : str, optional
+        Dimensionality reduction method to use: "pca", "tsne", or "trimap", default is "trimap"
+    n_components : int, optional
+        Number of dimensions to reduce to, default is 2
+    n_samples : int, optional
+        Number of samples to use (subsampling), if None uses all data, default is None
+    verbose : bool, optional
+        Whether to print progress messages, default is False
+
+    Returns
+    -------
+    numpy.ndarray
+        Reduced data with shape (n_samples, n_components)
+    str
+        The name of the dimensionality reduction method used
+    numpy.ndarray
+        Indices of the samples used for subsampling
+
+    Raises
+    ------
+    ValueError
+        If an invalid dimensionality reduction method is specified
     """
     # Subsampling for large datasets
     if n_samples is not None and data.shape[0] > n_samples:
@@ -202,6 +221,29 @@ def reduce_dim_subsampled(
 
 
 def plot_latent_variables(config, paths, verbose=False):
+    """
+    Visualize latent space embeddings from the model.
+
+    This function creates 2D projections of the latent space using dimensionality
+    reduction techniques (PCA, t-SNE, or TriMap) for both initial (z0) and final (zk)
+    latent variables, color-coded by class.
+
+    Parameters
+    ----------
+    config : object
+        Configuration object containing parameters like latent_space_size,
+        latent_space_plot_style, input_level, etc.
+    paths : dict
+        Dictionary of paths including output_path and data_path
+    verbose : bool, optional
+        Whether to print progress and debugging information, default is False
+
+    Notes
+    -----
+    The function handles both training and test data, with different color
+    schemes for each. For test data, signal samples are shown in red, while
+    background samples are colored according to their generator type.
+    """
     prefixes = ["train_", "test_"]
 
     def reduce_dim(data):
@@ -369,6 +411,28 @@ def plot_latent_variables(config, paths, verbose=False):
 
 
 def plot_mu_logvar(config, paths, verbose=False):
+    """
+    Visualize the mean (mu) and log-variance (logvar) of the latent space distribution.
+
+    This function creates two types of visualizations:
+    1. 2D projection of the mean vectors in latent space, color-coded by class
+    2. Histogram of uncertainties derived from the log-variance
+
+    Parameters
+    ----------
+    config : object
+        Configuration object containing parameters like latent_space_size,
+        latent_space_plot_style, input_level, etc.
+    paths : dict
+        Dictionary of paths including output_path and data_path
+    verbose : bool, optional
+        Whether to print progress and debugging information, default is False
+
+    Notes
+    -----
+    The uncertainty is calculated as the mean of the standard deviation (sigma)
+    across all dimensions of the latent space, where sigma = exp(0.5 * logvar).
+    """
     prefixes = ["train_", "test_"]
 
     def reduce_dim(data):
@@ -544,13 +608,33 @@ def plot_mu_logvar(config, paths, verbose=False):
 
 def plot_roc_curve(config, paths, verbose: bool = False):
     """
-    Generates and saves ROC curves for available loss component files.
+    Generate and save ROC curves for available loss component files.
 
-    Parameters:
-      config (dataClass): An object with user defined config options
-      paths (dictionary): Dictionary of common paths used in the pipeline
-      verbose: If True, prints additional debug information.
+    This function computes and plots Receiver Operating Characteristic (ROC) curves
+    for different loss components, evaluating their effectiveness as anomaly scores.
 
+    Parameters
+    ----------
+    config : object
+        Configuration object containing parameters like input_level and project_name
+    paths : dict
+        Dictionary containing paths, particularly output_path
+    verbose : bool, optional
+        Whether to print additional debug information, default is False
+
+    Raises
+    ------
+    FileNotFoundError
+        If the required label file is not found
+    ValueError
+        If ground truth labels are not a 1D array or if there's a length mismatch
+        between loss scores and ground truth labels
+
+    Notes
+    -----
+    The function generates a single plot containing ROC curves for all available
+    loss components (total loss, reconstruction loss, KL divergence, etc.),
+    with the area under the curve (AUC) displayed in the legend.
     """
     # Load ground truth binary labels from 'label.npy'
     label_path = os.path.join(
