@@ -26,14 +26,27 @@ from sklearn.metrics import auc, roc_curve
 
 def plot_losses(output_dir, save_dir, config, verbose: bool = False):
     """
-    Generates plots for training epoch loss data and loss component data for train, val and test sets based on what files exist in the output directory.
+    Generate plots for training and validation losses over epochs.
 
-    Parameters:
-        output_dir (str): The path to the directory containing output .npy files.
-        save_dir (str): The path to the directory where the plots will be saved.
-        config: A config object that defines user choices.
-        verbose (bool): If True, print progress messages.
+    This function creates two types of visualizations:
+    1. Training and validation total loss curves per epoch
+    2. Component-wise loss curves (reconstruction, KL divergence, etc.) for train/val/test sets
 
+    Parameters
+    ----------
+    output_dir : str
+        Directory containing the saved model output files (.npy)
+    save_dir : str
+        Directory where the generated plots will be saved
+    config : object
+        Configuration object containing model parameters like project_name and epochs
+    verbose : bool, optional
+        Whether to print progress messages, default is False
+
+    Raises
+    ------
+    FileNotFoundError
+        If required loss data files are not found in the output directory
     """
     if verbose:
         print("Making Loss Plots...")
