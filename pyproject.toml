@@ -1,6 +1,6 @@
 [project]
 name = "bead"
-version = "0.8.7"
+version = "0.9.0"
 description = "Background Enrichment based Anomaly Detection in HEP data"
 authors = [{ name = "Pratik Jawahar" }]
 requires-python = ">=3.10, <3.13"
