@@ -114,9 +114,9 @@ def get_arguments():
 
     workspace_name = args.project[0]
     project_name = args.project[1]
-    project_path = os.path.join("workspaces", workspace_name, project_name)
+    project_path = os.path.join("bead/workspaces", workspace_name, project_name)
     config_path = (
-        f"workspaces.{workspace_name}.{project_name}.config.{project_name}_config"
+        f"bead.workspaces.{workspace_name}.{project_name}.config.{project_name}_config"
     )
 
     if args.mode == "new_project":
@@ -247,7 +247,7 @@ def create_new_project(
     workspace_name: str,
     project_name: str,
     verbose: bool = False,
-    base_path: str = "workspaces",
+    base_path: str = "bead/workspaces",
 ) -> None:
     """
     Creates a new project directory output subdirectories and config files within a workspace.

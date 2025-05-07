@@ -69,11 +69,11 @@ def main():
 
     # Define paths dict for the different paths used frequently in the pipeline
     paths = {
-        "workspace_path": os.path.join("workspaces", workspace_name),
-        "project_path": os.path.join("workspaces", workspace_name, project_name),
-        "data_path": os.path.join("workspaces", workspace_name, "data"),
+        "workspace_path": os.path.join("bead/workspaces", workspace_name),
+        "project_path": os.path.join("bead/workspaces", workspace_name, project_name),
+        "data_path": os.path.join("bead/workspaces", workspace_name, "data"),
         "output_path": os.path.join(
-            "workspaces", workspace_name, project_name, "output"
+            "bead/workspaces", workspace_name, project_name, "output"
         ),
     }
 
@@ -106,3 +106,7 @@ def main():
             + mode
             + " not recognised. Use < bead --help > to see available modes."
         )
+
+
+if __name__ == "__main__":
+    main()
