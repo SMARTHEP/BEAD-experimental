@@ -1,4 +1,4 @@
-#!/binbash --login
+#!/bin/bash --login
 #SBATCH -J bead_run_v100
 #SBATCH -p gpuA
 #SBATCH -G 2
