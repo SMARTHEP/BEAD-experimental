@@ -50,7 +50,7 @@ echo "GPUs: $CUDA_VISIBLE_DEVICES"
 echo "CPUs per GPU: $SLURM_CPUS_PER_GPU"
 
 # Run BEAD training command
-poetry run bead -m chain -p $WORKSPACE_NAME $PROJECT_NAME -o $OPTIONS -v
+uv run bead -m chain -p $WORKSPACE_NAME $PROJECT_NAME -o $OPTIONS -v
 
 echo "Training finished."
 echo "Job completed at: $(date)"
