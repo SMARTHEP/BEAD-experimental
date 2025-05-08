@@ -1,12 +1,12 @@
 #!/binbash -l
-#SBATCH --job-name=bead_train_v100
-#SBATCH --partition=gpu_long
-#SBATCH --gres=gpu:V100:2
-#SBATCH --nodes=1
-#SBATCH --cpus-per-gpu=8
-#SBATCH --time=48:00:00
-#SBATCH --output=/mnt/scratch/your_username/bead_jobs/bead_v100_%j.out
-#SBATCH --error=/mnt/scratch/your_username/bead_jobs/bead_v100_%j.err
+#SBATCH -J bead_run_v100
+#SBATCH -p gpuV
+#SBATCH -G 2
+#SBATCH -n 1
+#SBATCH -c 16
+#SBATCH -t 2-0
+#SBATCH -o ~/scratch/x10719pj/bead_jobs/bead_v100_%j.out
+#SBATCH -e ~/scratch/your_username/bead_jobs/bead_v100_%j.err
 
 # --- User Defined Variables ---
 WORKSPACE_NAME=$1
