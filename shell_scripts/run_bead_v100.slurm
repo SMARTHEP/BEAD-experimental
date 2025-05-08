@@ -1,12 +1,12 @@
-#!/binbash -l
+#!/binbash --login
 #SBATCH -J bead_run_v100
-#SBATCH -p gpuV
+#SBATCH -p gpuA
 #SBATCH -G 2
 #SBATCH -n 1
 #SBATCH -c 16
 #SBATCH -t 2-0
-#SBATCH -o ~/scratch/x10719pj/bead_jobs/bead_v100_%j.out
-#SBATCH -e ~/scratch/your_username/bead_jobs/bead_v100_%j.err
+#SBATCH -o ../jobs_bead/bead_v100_%j.out
+#SBATCH -e ../jobs_bead/bead_v100_%j.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=pratik.jawahar@postgrad.manchester.ac.uk
 
@@ -38,7 +38,7 @@ echo "Changing to BEAD directory: $BEAD_DIR"
 cd $BEAD_DIR
 
 # Create job output/error directory if it doesn't exist
-mkdir -p ~/scratch/x10719pj/bead_jobs
+mkdir -p ../jobs_bead
 
 echo "Starting BEAD run..."
 echo "Chain Options: $OPTIONS"
