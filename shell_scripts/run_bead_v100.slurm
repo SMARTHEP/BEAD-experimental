@@ -1,6 +1,6 @@
 #!/bin/bash --login
 #SBATCH -J bead_run_v100
-#SBATCH -p gpuA
+#SBATCH -p gpuV
 #SBATCH -G 2
 #SBATCH -n 1
 #SBATCH -c 16
