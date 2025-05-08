@@ -7,6 +7,8 @@
 #SBATCH -t 2-0
 #SBATCH -o ~/scratch/x10719pj/bead_jobs/bead_v100_%j.out
 #SBATCH -e ~/scratch/your_username/bead_jobs/bead_v100_%j.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=pratik.jawahar@postgrad.manchester.ac.uk
 
 # --- User Defined Variables ---
 WORKSPACE_NAME=$1
