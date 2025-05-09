@@ -458,6 +458,7 @@ def train(
     with torch.no_grad():
         for idx, batch in enumerate(tqdm(train_dl)):
             inputs, labels = batch
+            inputs = inputs.to(device)
 
             out = helper.call_forward(model, inputs)
             recon, mu, logvar, ldj, z0, zk = out
