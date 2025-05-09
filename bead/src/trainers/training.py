@@ -28,14 +28,7 @@ from ..utils import diagnostics, helper
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 
-def fit(
-    config,
-    model,
-    dataloader,
-    loss_fn,
-    reg_param,
-    optimizer,
-):
+def fit(config, model, dataloader, loss_fn, reg_param, optimizer, device):
     """This function trains the model on the train set. It computes the losses and does the backwards propagation, and updates the optimizer as well.
 
     Args:
@@ -45,6 +38,7 @@ def fit(
         loss (lossObject): Defines the loss function used to train the model
         reg_param (float): Determines proportionality constant to balance different components of the loss.
         optimizer (torch.optim): Chooses optimizer for gradient descent.
+        device (torch.device): Chooses which device to use with torch
 
     Returns:
         list, model object: Training losses, Epoch_loss and trained model
@@ -58,6 +52,7 @@ def fit(
 
     for idx, batch in enumerate(tqdm(dataloader)):
         inputs, labels = batch
+        inputs = inputs.to(device)
         # Set previous gradients to zero
         optimizer.zero_grad()
 
@@ -90,7 +85,7 @@ def fit(
     return losses, epoch_loss, model
 
 
-def validate(config, model, dataloader, loss_fn, reg_param):
+def validate(config, model, dataloader, loss_fn, reg_param, device):
     """Function used to validate the training. Not necessary for doing compression, but gives a good indication of wether the model selected is a good fit or not.
 
     Args:
@@ -98,6 +93,7 @@ def validate(config, model, dataloader, loss_fn, reg_param):
         test_dl (torch.DataLoader): Defines the batched data which the model is validated on
         model_children (list): List of model parameters
         reg_param (float): Determines proportionality constant to balance different components of the loss.
+        device (torch.device): Chooses which device to use with torch
 
     Returns:
         float: Validation loss
@@ -112,6 +108,7 @@ def validate(config, model, dataloader, loss_fn, reg_param):
     with torch.no_grad():
         for idx, batch in enumerate(tqdm(dataloader)):
             inputs, labels = batch
+            inputs = inputs.to(device)
 
             out = helper.call_forward(model, inputs)
             recon, mu, logvar, ldj, z0, zk = out
@@ -192,6 +189,7 @@ def train(
             jets_val,
             constituents_val,
         )
+
     (
         events_train,
         jets_train,
@@ -199,7 +197,7 @@ def train(
         events_val,
         jets_val,
         constituents_val,
-    ) = [x.to(device) for x in data]
+    ) = data
 
     (
         events_train_label,
@@ -208,24 +206,7 @@ def train(
         events_val_label,
         jets_val_label,
         constituents_val_label,
-    ) = [x.to(device) for x in labels]
-
-    data = (
-        events_train,
-        jets_train,
-        constituents_train,
-        events_val,
-        jets_val,
-        constituents_val,
-    )
-    labels = (
-        events_train_label,
-        jets_train_label,
-        constituents_train_label,
-        events_val_label,
-        jets_val_label,
-        constituents_val_label,
-    )
+    ) = labels
 
     # Create datasets
     ds = helper.create_datasets(*data, *labels)
@@ -299,6 +280,7 @@ def train(
                 generator=g,
                 drop_last=True,
                 num_workers=config.parallel_workers,
+                pin_memory=True,
             )
             for ds in [ds["events_train"], ds["jets_train"], ds["constituents_train"]]
         ]
@@ -311,6 +293,7 @@ def train(
                 generator=g,
                 drop_last=True,
                 num_workers=config.parallel_workers,
+                pin_memory=True,
             )
             for ds in [ds["events_val"], ds["jets_val"], ds["constituents_val"]]
         ]
@@ -322,6 +305,7 @@ def train(
                 shuffle=False,
                 drop_last=True,
                 num_workers=config.parallel_workers,
+                pin_memory=True,
             )
             for ds in [ds["events_train"], ds["jets_train"], ds["constituents_train"]]
         ]
@@ -332,6 +316,7 @@ def train(
                 shuffle=False,
                 drop_last=True,
                 num_workers=config.parallel_workers,
+                pin_memory=True,
             )
             for ds in [ds["events_val"], ds["jets_val"], ds["constituents_val"]]
         ]
@@ -420,6 +405,7 @@ def train(
             loss_fn=loss_fn,
             reg_param=config.reg_param,
             optimizer=optimizer,
+            device=device,
         )
         train_loss.append(train_epoch_loss.detach().cpu().numpy())
         train_loss_data.append(train_losses)
@@ -431,6 +417,7 @@ def train(
                 dataloader=valid_dl,
                 loss_fn=loss_fn,
                 reg_param=config.reg_param,
+                device=device,
             )
             val_loss.append(val_epoch_loss.detach().cpu().numpy())
             val_loss_data.append(val_losses)

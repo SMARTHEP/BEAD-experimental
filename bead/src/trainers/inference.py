@@ -92,22 +92,13 @@ def infer(
         events_bkg,
         jets_bkg,
         constituents_bkg,
+    ) = data_bkg
+
+    (
         events_sig,
         jets_sig,
         constituents_sig,
-    ) = [x.to(device) for x in data_bkg + data_sig]
-
-    data_bkg = (
-        events_bkg,
-        jets_bkg,
-        constituents_bkg,
-    )
-
-    data_sig = (
-        events_sig,
-        jets_sig,
-        constituents_sig,
-    )
+    ) = data_sig
 
     # Split data and labels
     if verbose:
@@ -231,6 +222,7 @@ def infer(
                 generator=g,
                 drop_last=True,
                 num_workers=config.parallel_workers,
+                pin_memory=True,
             )
             for ds in [ds["events"], ds["jets"], ds["constituents"]]
         ]
@@ -243,6 +235,7 @@ def infer(
                 shuffle=False,
                 drop_last=True,
                 num_workers=config.parallel_workers,
+                pin_memory=True,
             )
             for ds in [ds["events"], ds["jets"], ds["constituents"]]
         ]
@@ -296,6 +289,7 @@ def infer(
     with torch.no_grad():
         for idx, batch in enumerate(tqdm(test_dl)):
             inputs, labels = batch
+            inputs = inputs.to(device)
 
             out = helper.call_forward(model, inputs)
             recon, mu, logvar, ldj, z0, zk = out
