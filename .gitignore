@@ -3,3 +3,4 @@ bead/__pycache__/__init__.cpython-310.pyc bead/__pycache__/bead.cpython-310.pyc
 __pycache__/
 bead/workspaces/
 shell_scripts/
+uv.lock
