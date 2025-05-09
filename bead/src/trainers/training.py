@@ -174,7 +174,7 @@ def train(
     device = helper.get_device()
 
     # Reshape tensors to pass to conv layers
-    if "ConvVAE" in config.model_name:
+    if "ConvVAE" in config.model_name or "ConvAE" in config.model_name:
         (
             events_train,
             jets_train,
@@ -184,6 +184,14 @@ def train(
             constituents_val,
         ) = [x.unsqueeze(1).float() for x in data]
 
+        data = (
+            events_train,
+            jets_train,
+            constituents_train,
+            events_val,
+            jets_val,
+            constituents_val,
+        )
     (
         events_train,
         jets_train,
@@ -249,6 +257,7 @@ def train(
 
     # Instantiate and Initialize the model
     if verbose:
+        print(f"Calculated input shape: {in_shape}")
         print(f"Intitalizing Model with Latent Size - {config.latent_space_size}")
     model = helper.model_init(in_shape, config)
     if verbose:
