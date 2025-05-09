@@ -21,7 +21,7 @@ def set_config(c):
     c.optimizer                    = "adamw"
     c.epochs                       = 4
     c.lr                           = 0.001
-    c.batch_size                   = 512
+    c.batch_size                   = 2
     c.early_stopping               = True
     c.lr_scheduler                 = True
     c.latent_space_plot_style      = "trimap"
@@ -40,4 +40,3 @@ def set_config(c):
     c.activation_extraction        = False
     c.deterministic_algorithm      = False
     c.separate_model_saving        = False
-
