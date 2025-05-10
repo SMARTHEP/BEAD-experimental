@@ -657,7 +657,7 @@ def run_plots(paths, config, train_metrics: bool = False, verbose: bool = False)
     except ValueError as e:
         print(e)
         sys.exit(1)
-    if !train_metrics:
+    if not train_metrics:
         try:
             plotting.plot_roc_curve(config, paths, verbose)
         except ValueError as e:
