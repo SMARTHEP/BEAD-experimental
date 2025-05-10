@@ -631,7 +631,7 @@ def run_inference(paths, config, verbose: bool = False):
 def run_plots(paths, config, verbose: bool):
     """
     Main function calling the two plotting functions, ran when --mode=plot is selected.
-    The two main functions this calls are: `ggl.plotter` and `ggl.loss_plotter`
+    The main functions this calls are: `plotting.plot_losses`, `plotting.plot_latent_variables`, plotting.plot_mu_logvar and `plotting.plot_roc_curve`.
 
     Args:
         paths (dictionary): Dictionary of common paths used in the pipeline
