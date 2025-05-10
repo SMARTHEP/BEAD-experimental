@@ -81,6 +81,11 @@ def main():
     if options == "h5" or options == "npy":
         config.file_type = options
 
+    # Check if the options flag is set to "train_metrics"
+    train_metrics = False
+    if options == "train_metrics":
+        train_metrics = True
+
     # Call the appropriate ggl function based on the mode
     if mode == "new_project":
         ggl.create_new_project(workspace_name, project_name, verbose)
@@ -93,7 +98,7 @@ def main():
     elif mode == "detect":
         ggl.run_inference(paths, config, verbose)
     elif mode == "plot":
-        ggl.run_plots(paths, config, verbose)
+        ggl.run_plots(paths, config, train_metrics, verbose)
     elif mode == "diagnostics":
         ggl.run_diagnostics(paths, config, verbose)
     elif mode == "chain":
