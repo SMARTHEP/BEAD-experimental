@@ -22,18 +22,11 @@ pipeline from data preparation to model training, inference, and result visualiz
 
 import os
 
-from .src.utils import ggl
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp  # May not be strictly needed if using torchrun
 
-# __all__ = (
-#     "create_new_project",  # noqa: F822
-#     "convert_csv",  # noqa: F822
-#     "prepare_inputs",  # noqa: F822
-#     "run_training",  # noqa: F822
-#     "run_inference",  # noqa: F822
-#     "run_plots",  # noqa: F822
-#     "run_full_chain",  # noqa: F822
-#     "run_diagnostics",  # noqa: F822
-# )
+from .src.utils import ggl
 
 
 def main():
@@ -66,6 +59,63 @@ def main():
         project_name,
         verbose,
     ) = ggl.get_arguments()
+
+    # Initialize DDP if configured and multiple GPUs are available
+    local_rank = 0
+    world_size = 1
+    is_ddp_active = False
+
+    if (
+        config
+        and hasattr(config, "use_ddp")
+        and config.use_ddp
+        and torch.cuda.is_available()
+        and torch.cuda.device_count() > 1
+    ):
+        try:
+            # LOCAL_RANK and WORLD_SIZE are set by torchrun or torch.distributed.launch
+            local_rank = int(os.environ.get("LOCAL_RANK", 0))
+            world_size = int(os.environ.get("WORLD_SIZE", 1))
+
+            if (
+                world_size > 1
+            ):  # Proceed with DDP only if world_size indicates multiple processes
+                print(
+                    f"Initializing DDP: RANK {os.environ.get('RANK')}, LOCAL_RANK {local_rank}, WORLD_SIZE {world_size}"
+                )
+                torch.cuda.set_device(local_rank)
+                dist.init_process_group(backend="nccl", init_method="env://")
+                is_ddp_active = True
+                if local_rank == 0 and verbose:
+                    print(
+                        f"DDP initialized. World size: {world_size}. Running on {torch.cuda.device_count()} GPUs."
+                    )
+            else:
+                if verbose:
+                    print(
+                        "DDP use_ddp is True, but world_size is 1. Running in non-DDP mode."
+                    )
+                # Fallback to non-DDP if world_size is 1 (e.g. launched without torchrun on single GPU)
+                config.use_ddp = False
+
+        except KeyError:
+            print(
+                "DDP environment variables (LOCAL_RANK, WORLD_SIZE) not set. Running in non-DDP mode."
+            )
+            config.use_ddp = False  # Fallback if env vars are missing
+        except Exception as e:
+            print(f"Error initializing DDP: {e}. Running in non-DDP mode.")
+            config.use_ddp = False  # Fallback on any other DDP init error
+
+    # Pass DDP status and ranks to helper functions if needed, or store in config
+    if config:  # Ensure config is not None (e.g. for new_project mode)
+        config.is_ddp_active = is_ddp_active
+        config.local_rank = local_rank
+        config.world_size = world_size
+
+    # Set CUDNN benchmark for potential speedup if input sizes are consistent
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True
 
     # Define paths dict for the different paths used frequently in the pipeline
     paths = {
@@ -111,6 +161,10 @@ def main():
             + mode
             + " not recognised. Use < bead --help > to see available modes."
         )
+
+    # Cleanup DDP
+    if is_ddp_active:
+        dist.destroy_process_group()
 
 
 if __name__ == "__main__":
