@@ -24,7 +24,7 @@ import os
 
 import torch
 import torch.distributed as dist
-import torch.multiprocessing as mp  # May not be strictly needed if using torchrun
+import torch.multiprocessing as mp  # May not be strictly needed if using torchrun  # noqa: F401
 
 from .src.utils import ggl
 
