@@ -175,6 +175,8 @@ class Config:
     latent_space_plot_style: str
     subsample_plot: bool
 
+    use_ddp: bool  # To toggle torch Distributed Data Parallel
+    use_amp: bool  # To toggle torch Automatic Mixed Precision
     min_delta: int
     reg_param: float
     intermittent_model_saving: bool
@@ -229,6 +231,8 @@ def set_config(c):
 
 # === Additional configuration options ===
 
+    c.use_ddp                      = False
+    c.use_amp                      = False
     c.early_stopping_patience      = 100
     c.min_delta                    = 0
     c.lr_scheduler_patience        = 50
