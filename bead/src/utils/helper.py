@@ -20,22 +20,29 @@ from ..models import models
 from . import loss
 
 
-def get_device():
+def get_device(config=None):
     """
-    Returns the appropriate processing device. IF cuda is available it returns "cuda:0"
-    Otherwise it returns "cpu"
+    Returns the appropriate processing device.
+    If DDP is active, uses the local_rank.
+    Otherwise, uses cuda:0 if available, else cpu.
+
+    Args:
+        config (dataClass): Base class selecting user inputs.
 
     Returns:
-        _type_: Device string, either "cpu" or "cuda:0"
+        torch.device: The device to be used for processing.
+
     """
-    device = None
+    if (
+        config
+        and hasattr(config, "is_ddp_active")
+        and config.is_ddp_active
+        and torch.cuda.is_available()
+    ):
+        return torch.device(f"cuda:{config.local_rank}")
     if torch.cuda.is_available():
-        dev = "cuda:0"
-        device = torch.device(dev)
-    else:
-        dev = "cpu"
-        device = torch.device(dev)
-    return device
+        return torch.device("cuda:0")
+    return torch.device("cpu")
 
 
 def detach_device(tensor):
@@ -77,23 +84,29 @@ def numpy_to_tensor(data):
     return torch.from_numpy(data)
 
 
-def save_model(model, model_path: str) -> None:
+def save_model(model, model_path: str, config=None) -> None:
     """
     Saves the models state dictionary as a `.pt` file to the given path.
+    Handles DDP model saving.
 
     Args:
         model (nn.Module): The PyTorch model to save.
         model_path (str): String defining the models save path.
+        config (dataClass): Base class selecting user inputs. Used to check if DDP is active.
 
     Returns:
         None: Saved model state dictionary as `.pt` file.
     """
-    torch.save(model.state_dict(), model_path)
+    if config and hasattr(config, "is_ddp_active") and config.is_ddp_active:
+        if config.local_rank == 0:  # Only save from rank 0
+            torch.save(model.module.state_dict(), model_path)
+    else:
+        torch.save(model.state_dict(), model_path)
 
 
 def encoder_saver(model, model_path: str) -> None:
     """
-    Saves the Encoder state dictionary as a `.pt` file to the given path
+    Saves the Encoder state dictionary as a `.pt` file to the given path. DDP not supported yet.
 
     Args:
         model (nn.Module): The PyTorch model to save.
@@ -107,7 +120,7 @@ def encoder_saver(model, model_path: str) -> None:
 
 def decoder_saver(model, model_path: str) -> None:
     """
-    Saves the Decoder state dictionary as a `.pt` file to the given path
+    Saves the Decoder state dictionary as a `.pt` file to the given path. DDP not supported yet.
 
     Args:
         model (nn.Module): The PyTorch model to save.
@@ -1048,6 +1061,36 @@ def load_model(model_path: str, in_shape, config):
         torch.load(str(model_path), map_location=device), strict=False
     )
     return model
+
+
+# def load_model(model_path: str, in_shape, config):
+#     """
+#     Loads the state dictionary of the trained model into a model variable.
+#     """
+#     # device = get_device(config) # Pass config to get_device
+#     # The device is determined later in training/inference scripts before model.to(device)
+
+#     model_object = getattr(models, config.model_name)
+
+#     if config.model_name == "pj_custom": # This seems to be a typo in original, should be pj_ensemble?
+#                                        # Or a specific model name. Assuming it's a conditional model init.
+#         model = model_object(*in_shape, z_dim=config.latent_space_size)
+#     else:
+#         model = model_object(in_shape, z_dim=config.latent_space_size)
+
+#     # model.to(device) # Device assignment happens in trainer/inferer
+
+#     # Loading the state_dict into the model
+#     # Ensure map_location is set appropriately if loading on a different device setup than saving
+#     # For DDP, each process loads the full model, then DDP shards it.
+#     # So, loading on CPU first then moving to GPU local_rank is a safe pattern.
+#     state_dict = torch.load(str(model_path), map_location='cpu')
+
+#     # If the model was saved as model.module.state_dict(), it's clean.
+#     # If it was saved directly from a DDP model, keys might have 'module.' prefix.
+#     # This is generally handled by saving model.module.state_dict().
+#     model.load_state_dict(state_dict, strict=False) # strict=False can be risky, but might be needed if there are minor mismatches.
+#     return model
 
 
 def save_loss_components(loss_data, component_names, suffix, save_dir="loss_outputs"):
