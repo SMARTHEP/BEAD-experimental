@@ -530,6 +530,8 @@ def run_training(paths, config, verbose: bool = False):
 
     print("Training complete")
 
+    # remove separate model saving
+
     if config.separate_model_saving:
         helper.encoder_saver(
             trained_model, os.path.join(output_path, "models", "encoder.pt")
@@ -546,10 +548,10 @@ def run_training(paths, config, verbose: bool = False):
                 f"Decoder saved to {os.path.join(output_path, 'models', 'decoder.pt')}"
             )
 
-    else:
-        helper.save_model(
-            trained_model, os.path.join(output_path, "models", "model.pt")
-        )
+    # else:
+    #     helper.save_model(
+    #         trained_model, os.path.join(output_path, "models", "model.pt"), config
+    #     )
     end = time.time()
     if verbose:
         # Print model save path
