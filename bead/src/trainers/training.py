@@ -19,6 +19,7 @@ import warnings
 
 import numpy as np
 import torch
+import torch.amp
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
@@ -61,8 +62,7 @@ def fit(
     Returns:
         list, model object: Training losses, Epoch_loss and trained model
     """
-    # Extract model parameters
-    parameters = model.parameters()  # DDP model handles this correctly
+    model = model.module if is_ddp_active else model
     model.train()
     running_loss = 0.0
 
@@ -79,8 +79,10 @@ def fit(
         )  # non_blocking=True only if pin_memory=True
         optimizer.zero_grad(set_to_none=True)
 
-        with torch.cuda.amp.autocast(
-            enabled=(config.use_amp and torch.cuda.is_available())
+        with torch.amp.autocast(
+            device_type="cuda",
+            dtype=torch.float16 if config.use_amp else torch.float32,
+            enabled=(config.use_amp and torch.cuda.is_available()),
         ):
             out = helper.call_forward(model, inputs)
             recon, mu, logvar, ldj, z0, zk = out
@@ -89,8 +91,10 @@ def fit(
                 target=inputs,
                 mu=mu,
                 logvar=logvar,
-                parameters=parameters,
-                log_det_jacobian=ldj if hasattr(ldj, "item") else 0,
+                parameters=model.parameters(),
+                log_det_jacobian=ldj
+                if hasattr(ldj, "item")
+                else torch.tensor(0.0, device=device),
             )
         loss, *_ = losses
 
@@ -134,8 +138,7 @@ def validate(
     Returns:
         float: Validation loss
     """
-    # Extract model parameters
-    parameters = model.parameters()
+    model = model.module if is_ddp_active else model
     model.eval()
     running_loss = 0.0
 
@@ -148,8 +151,10 @@ def validate(
         for idx, batch in enumerate(pbar):
             inputs, labels = batch
             inputs = inputs.to(device, non_blocking=True)
-            with torch.cuda.amp.autocast(
-                enabled=(config.use_amp and torch.cuda.is_available())
+            with torch.amp.autocast(
+                device_type="cuda",
+                dtype=torch.float16 if config.use_amp else torch.float32,
+                enabled=(config.use_amp and torch.cuda.is_available()),
             ):
                 out = helper.call_forward(model, inputs)
                 recon, mu, logvar, ldj, z0, zk = out
@@ -158,8 +163,10 @@ def validate(
                     target=inputs,
                     mu=mu,
                     logvar=logvar,
-                    parameters=parameters,
-                    log_det_jacobian=ldj if hasattr(ldj, "item") else 0,
+                    parameters=model.parameters(),
+                    log_det_jacobian=ldj
+                    if hasattr(ldj, "item")
+                    else torch.tensor(0.0, device=device),
                 )
             loss, *_ = losses
             running_loss += loss.item()
@@ -405,8 +412,8 @@ def train(
         print(e)
 
     # AMP GradScaler
-    amp_scaler = torch.cuda.amp.GradScaler(
-        enabled=(config.use_amp and torch.cuda.is_available())
+    amp_scaler = torch.amp.GradScaler(
+        device_type="cuda", enabled=(config.use_amp and torch.cuda.is_available())
     )
 
     # Activate early stopping
@@ -436,7 +443,7 @@ def train(
     val_loss_data = []
     train_loss = []
     val_loss = []
-    start = time.time()
+    start_time = time.time()
 
     # Registering hooks for activation extraction
     if config.activation_extraction and not is_ddp_active:
@@ -523,9 +530,9 @@ def train(
                     )
                 break  # Other ranks break
 
-    end = time.time()
+    end_time = time.time()
     if verbose and (not is_ddp_active or local_rank == 0):
-        print(f"Training the model took {(end - start) / 60:.3} minutes")
+        print(f"Training the model took {(end_time - start_time) / 60:.3} minutes")
 
     if not is_ddp_active or local_rank == 0:
         # Save the final model
@@ -544,13 +551,21 @@ def train(
         zk_data = []
         log_det_jacobian_data = []
 
+        # Run a forward pass on the training data to get the latent space representation
+        model = model.module if is_ddp_active else model
+        model.eval()
         with torch.no_grad():
             for idx, batch in enumerate(tqdm(train_dl)):
                 inputs, labels = batch
                 inputs = inputs.to(device)
 
-                out = helper.call_forward(model, inputs)
-                recon, mu, logvar, ldj, z0, zk = out
+                with torch.amp.autocast(
+                    device_type="cuda",
+                    enabled=(config.use_amp and torch.cuda.is_available()),
+                ):
+                    # Forward pass
+                    out = helper.call_forward(model, inputs)
+                    recon, mu, logvar, ldj, z0, zk = out
 
                 mu_data.append(mu.detach().cpu().numpy())
                 logvar_data.append(logvar.detach().cpu().numpy())

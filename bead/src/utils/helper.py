@@ -1016,8 +1016,6 @@ def load_model(model_path: str, in_shape, config):
 
     Returns: nn.Module: Returns a model object with the attributes of the model class, with the selected state dictionary loaded into it.
     """
-    device = get_device()
-
     model_object = getattr(models, config.model_name)
 
     if config.model_name == "pj_custom":
@@ -1026,43 +1024,24 @@ def load_model(model_path: str, in_shape, config):
     else:
         model = model_object(in_shape, z_dim=config.latent_space_size)
 
-    model.to(device)
+    # Load state_dict to CPU first to avoid device mismatches,
+    # especially if saved from a specific GPU or DDP setup.
+    state_dict = torch.load(str(model_path), map_location="cpu")
 
-    # Loading the state_dict into the model
-    model.load_state_dict(
-        torch.load(str(model_path), map_location=device), strict=False
-    )
+    new_state_dict = {}
+    is_ddp_checkpoint = any(key.startswith("module.") for key in state_dict.keys())
+
+    if is_ddp_checkpoint:
+        for k, v in state_dict.items():
+            name = k[7:] if k.startswith("module.") else k  # remove `module.`
+            new_state_dict[name] = v
+        model.load_state_dict(
+            new_state_dict, strict=True
+        )  # Be strict if we've cleaned keys
+    else:
+        model.load_state_dict(state_dict, strict=True)
+
     return model
-
-
-# def load_model(model_path: str, in_shape, config):
-#     """
-#     Loads the state dictionary of the trained model into a model variable.
-#     """
-#     # device = get_device(config) # Pass config to get_device
-#     # The device is determined later in training/inference scripts before model.to(device)
-
-#     model_object = getattr(models, config.model_name)
-
-#     if config.model_name == "pj_custom": # This seems to be a typo in original, should be pj_ensemble?
-#                                        # Or a specific model name. Assuming it's a conditional model init.
-#         model = model_object(*in_shape, z_dim=config.latent_space_size)
-#     else:
-#         model = model_object(in_shape, z_dim=config.latent_space_size)
-
-#     # model.to(device) # Device assignment happens in trainer/inferer
-
-#     # Loading the state_dict into the model
-#     # Ensure map_location is set appropriately if loading on a different device setup than saving
-#     # For DDP, each process loads the full model, then DDP shards it.
-#     # So, loading on CPU first then moving to GPU local_rank is a safe pattern.
-#     state_dict = torch.load(str(model_path), map_location='cpu')
-
-#     # If the model was saved as model.module.state_dict(), it's clean.
-#     # If it was saved directly from a DDP model, keys might have 'module.' prefix.
-#     # This is generally handled by saving model.module.state_dict().
-#     model.load_state_dict(state_dict, strict=False) # strict=False can be risky, but might be needed if there are minor mismatches.
-#     return model
 
 
 def save_loss_components(loss_data, component_names, suffix, save_dir="loss_outputs"):
