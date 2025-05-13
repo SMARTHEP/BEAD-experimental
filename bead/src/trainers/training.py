@@ -491,17 +491,114 @@ def train(
                 break  # Other ranks break
 
     end = time.time()
+    if verbose:
+        print(f"Training the model took {(end - start) / 60:.3} minutes")
 
     if not is_ddp_active or local_rank == 0:
+        # Save the final model
         helper.save_model(
             model, os.path.join(output_path, "models", "model.pt"), config
         )
-        # ... save other results like loss arrays ...
+        if verbose:
+            print(
+                f"Model saved to path: {os.path.join(output_path, 'models', 'model.pt')}"
+            )
+        # Run a final forward pass on training data to get final latent space representation
+        # Output Lists
+        mu_data = []
+        logvar_data = []
+        z0_data = []
+        zk_data = []
+        log_det_jacobian_data = []
+
+        with torch.no_grad():
+            for idx, batch in enumerate(tqdm(train_dl)):
+                inputs, labels = batch
+                inputs = inputs.to(device)
+
+                out = helper.call_forward(model, inputs)
+                recon, mu, logvar, ldj, z0, zk = out
+
+                mu_data.append(mu.detach().cpu().numpy())
+                logvar_data.append(logvar.detach().cpu().numpy())
+                log_det_jacobian_data.append(ldj.detach().cpu().numpy())
+                z0_data.append(z0.detach().cpu().numpy())
+                zk_data.append(zk.detach().cpu().numpy())
+
+        # Save loss data
+        save_dir = os.path.join(output_path, "results")
         np.save(
-            os.path.join(save_dir, "train_epoch_loss_data.npy"), np.array(train_loss)
+            os.path.join(save_dir, "train_epoch_loss_data.npy"),
+            np.array(train_loss),
         )
-        np.save(os.path.join(save_dir, "val_epoch_loss_data.npy"), np.array(val_loss))
-        # ... (saving mu_data, etc. - if these are collected per epoch, ensure DDP handling)
+        np.save(
+            os.path.join(save_dir, "val_epoch_loss_data.npy"),
+            np.array(val_loss),
+        )
+
+        # Convert all the data to numpy arrays
+        (
+            mu_data,
+            logvar_data,
+            z0_data,
+            zk_data,
+            log_det_jacobian_data,
+        ) = [
+            np.array(x)
+            for x in [
+                mu_data,
+                logvar_data,
+                z0_data,
+                zk_data,
+                log_det_jacobian_data,
+            ]
+        ]
+
+        # Reshape the data if conv-models were used
+        if "ConvVAE" in config.model_name or "ConvAE" in config.model_name:
+            (mu_data, logvar_data, z0_data, zk_data) = [
+                x.reshape(x.shape[0] * x.shape[1], *x.shape[2:])
+                for x in [mu_data, logvar_data, z0_data, zk_data]
+            ]
+
+        # Save all the data
+        save_dir = os.path.join(output_path, "results")
+        np.save(
+            os.path.join(save_dir, "train_mu_data.npy"),
+            mu_data,
+        )
+        np.save(
+            os.path.join(save_dir, "train_logvar_data.npy"),
+            logvar_data,
+        )
+        np.save(
+            os.path.join(save_dir, "train_z0_data.npy"),
+            z0_data,
+        )
+        np.save(
+            os.path.join(save_dir, "train_zk_data.npy"),
+            zk_data,
+        )
+        np.save(
+            os.path.join(save_dir, "train_log_det_jacobian_data.npy"),
+            log_det_jacobian_data,
+        )
+
+        helper.save_loss_components(
+            loss_data=train_loss_data,
+            component_names=loss_fn.component_names,
+            suffix="train",
+            save_dir=save_dir,
+        )
+        helper.save_loss_components(
+            loss_data=val_loss_data,
+            component_names=loss_fn.component_names,
+            suffix="val",
+            save_dir=save_dir,
+        )
+
+        if verbose:
+            print("Loss data saved to path: ", save_dir)
 
     # If activations are extracted, this needs to be DDP aware or run post-training on a single GPU
     if config.activation_extraction and (not is_ddp_active or local_rank == 0):
@@ -510,106 +607,5 @@ def train(
         activations = diagnostics.dict_to_square_matrix(actual_model.get_activations())
         model.detach_hooks(hooks)
         np.save(os.path.join(output_path, "models", "activations.npy"), activations)
-
-    return model  # Return the DDP model or base model
-
-    # Run a final forward pass on training data to get final latent space representation
-    # Output Lists
-    mu_data = []
-    logvar_data = []
-    z0_data = []
-    zk_data = []
-    log_det_jacobian_data = []
-
-    with torch.no_grad():
-        for idx, batch in enumerate(tqdm(train_dl)):
-            inputs, labels = batch
-            inputs = inputs.to(device)
-
-            out = helper.call_forward(model, inputs)
-            recon, mu, logvar, ldj, z0, zk = out
-
-            mu_data.append(mu.detach().cpu().numpy())
-            logvar_data.append(logvar.detach().cpu().numpy())
-            log_det_jacobian_data.append(ldj.detach().cpu().numpy())
-            z0_data.append(z0.detach().cpu().numpy())
-            zk_data.append(zk.detach().cpu().numpy())
-
-    if verbose:
-        print(f"Training the model took {(end - start) / 60:.3} minutes")
-
-    # Save loss data
-    save_dir = os.path.join(output_path, "results")
-    np.save(
-        os.path.join(save_dir, "train_epoch_loss_data.npy"),
-        np.array(train_loss),
-    )
-    np.save(
-        os.path.join(save_dir, "val_epoch_loss_data.npy"),
-        np.array(val_loss),
-    )
-
-    # Convert all the data to numpy arrays
-    (
-        mu_data,
-        logvar_data,
-        z0_data,
-        zk_data,
-        log_det_jacobian_data,
-    ) = [
-        np.array(x)
-        for x in [
-            mu_data,
-            logvar_data,
-            z0_data,
-            zk_data,
-            log_det_jacobian_data,
-        ]
-    ]
-
-    # Reshape the data
-    (mu_data, logvar_data, z0_data, zk_data) = [
-        x.reshape(x.shape[0] * x.shape[1], *x.shape[2:])
-        for x in [mu_data, logvar_data, z0_data, zk_data]
-    ]
-
-    # Save all the data
-    save_dir = os.path.join(output_path, "results")
-    np.save(
-        os.path.join(save_dir, "train_mu_data.npy"),
-        mu_data,
-    )
-    np.save(
-        os.path.join(save_dir, "train_logvar_data.npy"),
-        logvar_data,
-    )
-    np.save(
-        os.path.join(save_dir, "train_z0_data.npy"),
-        z0_data,
-    )
-    np.save(
-        os.path.join(save_dir, "train_zk_data.npy"),
-        zk_data,
-    )
-    np.save(
-        os.path.join(save_dir, "train_log_det_jacobian_data.npy"),
-        log_det_jacobian_data,
-    )
-
-    helper.save_loss_components(
-        loss_data=train_loss_data,
-        component_names=loss_fn.component_names,
-        suffix="train",
-        save_dir=save_dir,
-    )
-    helper.save_loss_components(
-        loss_data=val_loss_data,
-        component_names=loss_fn.component_names,
-        suffix="val",
-        save_dir=save_dir,
-    )
-
-    if verbose:
-        print("Loss data saved to path: ", save_dir)
 
     return model
