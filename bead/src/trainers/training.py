@@ -62,7 +62,7 @@ def fit(
     Returns:
         list, model object: Training losses, Epoch_loss and trained model
     """
-    model = model.module if is_ddp_active else model
+    model = model.module if isinstance(model, DDP) else model
     model.train()
     running_loss = 0.0
 
@@ -138,7 +138,8 @@ def validate(
     Returns:
         float: Validation loss
     """
-    model = model.module if is_ddp_active else model
+    model = model.module if isinstance(model, DDP) else model
+
     model.eval()
     running_loss = 0.0
 
