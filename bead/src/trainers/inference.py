@@ -61,7 +61,7 @@ def infer(
         verbose (bool): Verbose mode, default is False
 
     Returns:
-        modelObject: fully trained model ready to perform compression and decompression
+        bool: True if inference was successful, False otherwise
     """
 
     # Get the device and move tensors to the device
