@@ -31,108 +31,149 @@ from ..utils import diagnostics, helper
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 
-def fit(config, model, dataloader, loss_fn, reg_param, optimizer, device):
-    """This function trains the model on the train set. It computes the losses and does the backwards propagation, and updates the optimizer as well.
+def fit(
+    config,
+    model,
+    dataloader,
+    loss_fn,
+    reg_param,
+    optimizer,
+    device,
+    scaler,
+    is_ddp_active,
+    local_rank,
+):
+    """
+    This function trains the model on the train set. It computes the losses and does the backwards propagation, and updates the optimizer as well.
 
     Args:
         config (dataClass): Base class selecting user inputs
         model (modelObject): The model you wish to train
-        train_dl (torch.DataLoader): Defines the batched data which the model is trained on
-        loss (lossObject): Defines the loss function used to train the model
+        dataloader (torch.DataLoader): Defines the batched data which the model is trained on
+        loss_fn (lossObject): Defines the loss function used to train the model
         reg_param (float): Determines proportionality constant to balance different components of the loss.
         optimizer (torch.optim): Chooses optimizer for gradient descent.
         device (torch.device): Chooses which device to use with torch
+        scaler (torch.cuda.amp.GradScaler): Scaler for mixed precision training
+        is_ddp_active (bool): Flag indicating if DDP is active
+        local_rank (int): Local rank of the process in DDP
 
     Returns:
         list, model object: Training losses, Epoch_loss and trained model
     """
     # Extract model parameters
-    parameters = model.parameters()
-
+    parameters = model.parameters()  # DDP model handles this correctly
     model.train()
-
     running_loss = 0.0
 
-    for idx, batch in enumerate(tqdm(dataloader)):
+    # Use tqdm only on rank 0 to avoid multiple progress bars
+    if not is_ddp_active or local_rank == 0:
+        pbar = tqdm(dataloader, desc="Training Batch")
+    else:
+        pbar = dataloader
+
+    for idx, batch in enumerate(pbar):
         inputs, labels = batch
-        inputs = inputs.to(device)
-        # Set previous gradients to zero
-        optimizer.zero_grad()
+        inputs = inputs.to(
+            device, non_blocking=True
+        )  # non_blocking=True only if pin_memory=True
+        optimizer.zero_grad(set_to_none=True)
 
-        # Compute the predicted outputs from the input data
-        out = helper.call_forward(model, inputs)
-        recon, mu, logvar, ldj, z0, zk = out
-
-        # Compute the loss
-        losses = loss_fn.calculate(
-            recon=recon,
-            target=inputs,
-            mu=mu,
-            logvar=logvar,
-            parameters=parameters,
-            log_det_jacobian=0,
-        )
-
-        loss, *_ = losses
-
-        # Compute the loss-gradient with
-        loss.backward()
-
-        # Update the optimizer
-        optimizer.step()
-
-        running_loss += loss
-
-    epoch_loss = running_loss / (idx + 1)
-    print(f"# Training Loss: {epoch_loss:.6f}")
-    return losses, epoch_loss, model
-
-
-def validate(config, model, dataloader, loss_fn, reg_param, device):
-    """Function used to validate the training. Not necessary for doing compression, but gives a good indication of wether the model selected is a good fit or not.
-
-    Args:
-        model (modelObject): Defines the model one wants to validate. The model used here is passed directly from `fit()`.
-        test_dl (torch.DataLoader): Defines the batched data which the model is validated on
-        model_children (list): List of model parameters
-        reg_param (float): Determines proportionality constant to balance different components of the loss.
-        device (torch.device): Chooses which device to use with torch
-
-    Returns:
-        float: Validation loss
-    """
-    # Extract model parameters
-    parameters = model.parameters()
-
-    model.eval()
-
-    running_loss = 0.0
-
-    with torch.no_grad():
-        for idx, batch in enumerate(tqdm(dataloader)):
-            inputs, labels = batch
-            inputs = inputs.to(device)
-
+        with torch.cuda.amp.autocast(
+            enabled=(config.use_amp and torch.cuda.is_available())
+        ):
             out = helper.call_forward(model, inputs)
             recon, mu, logvar, ldj, z0, zk = out
-
-            # Compute the loss
             losses = loss_fn.calculate(
                 recon=recon,
                 target=inputs,
                 mu=mu,
                 logvar=logvar,
                 parameters=parameters,
-                log_det_jacobian=0,
+                log_det_jacobian=ldj if hasattr(ldj, "item") else 0,
             )
+        loss, *_ = losses
 
+        scaler.scale(loss).backward()
+        # Optional: Gradient clipping for faster training - performance TBD
+        # scaler.unscale_(optimizer) # Unscale before clipping
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        scaler.step(optimizer)
+        scaler.update()
+
+        running_loss += loss.item()
+
+    epoch_loss_train = running_loss / (idx + 1)
+    epoch_loss_tensor = torch.tensor(epoch_loss_train, device=device)
+
+    if is_ddp_active:  # Average loss across all processes
+        dist.all_reduce(epoch_loss_tensor, op=dist.ReduceOp.AVG)
+
+    if not is_ddp_active or local_rank == 0:
+        print(f"# Training Loss: {epoch_loss_tensor.item():.6f}")
+
+    return losses, epoch_loss_tensor, model
+
+
+def validate(
+    config, model, dataloader, loss_fn, reg_param, device, is_ddp_active, local_rank
+):
+    """
+    Function used to validate the training. Not necessary for doing compression, but gives a good indication of wether the model selected is a good fit or not.
+
+    Args:
+        config (dataClass): Base class selecting user inputs
+        model (modelObject): Defines the model one wants to validate. The model used here is passed directly from `fit()`.
+        dataloader (torch.DataLoader): Defines the batched data which the model is validated on
+        loss_fn (lossObject): Defines the loss function used to train the model
+        reg_param (float): Determines proportionality constant to balance different components of the loss.
+        device (torch.device): Chooses which device to use with torch
+        is_ddp_active (bool): Flag indicating if DDP is active
+        local_rank (int): Local rank of the process in DDP
+
+    Returns:
+        float: Validation loss
+    """
+    # Extract model parameters
+    parameters = model.parameters()
+    model.eval()
+    running_loss = 0.0
+
+    if not is_ddp_active or local_rank == 0:
+        pbar = tqdm(dataloader, desc="Validation Batch")
+    else:
+        pbar = dataloader
+
+    with torch.no_grad():
+        for idx, batch in enumerate(pbar):
+            inputs, labels = batch
+            inputs = inputs.to(device, non_blocking=True)
+            with torch.cuda.amp.autocast(
+                enabled=(config.use_amp and torch.cuda.is_available())
+            ):
+                out = helper.call_forward(model, inputs)
+                recon, mu, logvar, ldj, z0, zk = out
+                losses = loss_fn.calculate(
+                    recon=recon,
+                    target=inputs,
+                    mu=mu,
+                    logvar=logvar,
+                    parameters=parameters,
+                    log_det_jacobian=ldj if hasattr(ldj, "item") else 0,
+                )
             loss, *_ = losses
+            running_loss += loss.item()
 
-            running_loss += loss
+    epoch_loss_val = running_loss / (idx + 1)
+    epoch_loss_tensor = torch.tensor(epoch_loss_val, device=device)
 
-        epoch_loss = running_loss / (idx + 1)
-        print(f"# Validation Loss: {epoch_loss:.6f}")
-    return losses, epoch_loss
+    if is_ddp_active:
+        dist.all_reduce(epoch_loss_tensor, op=dist.ReduceOp.AVG)
+
+    if not is_ddp_active or local_rank == 0:
+        print(f"# Validation Loss: {epoch_loss_tensor.item():.6f}")
+
+    return losses, epoch_loss_tensor
 
 
 def seed_worker(worker_id):
@@ -261,8 +302,7 @@ def train(
     model = model.to(device)
 
     if is_ddp_active:
-        # find_unused_parameters can be True if parts of the model aren't used in forward pass
-        # which can happen with complex models or conditional execution paths.
+        # find_unused_parameters can be True if parts of the model aren't used in forward pass which can happen with complex models or conditional execution paths.
         model = DDP(
             model,
             device_ids=[local_rank],
@@ -278,8 +318,6 @@ def train(
         print(f"Device used for training: {device}")
         print("Model moved to device")
 
-    # Pushing input data into the torch-DataLoader object and combines into one DataLoader object (a basic wrapper
-    # around several DataLoader objects).
     if verbose:
         print(
             "Loading data into DataLoader and using batch size of ", config.batch_size
@@ -380,7 +418,7 @@ def train(
             )
         early_stopper = helper.EarlyStopping(
             patience=config.early_stopping_patience, min_delta=config.min_delta
-        )  # Changes to patience & min_delta can be made in configs
+        )
 
     # Activate LR Scheduler
     if config.lr_scheduler:
@@ -411,10 +449,9 @@ def train(
         if is_ddp_active and train_sampler is not None:
             train_sampler.set_epoch(epoch)
 
-        if not is_ddp_active or local_rank == 0:  # Only rank 0 prints epoch info
+        if not is_ddp_active or local_rank == 0:  # Using only rank 0 for logging
             print(f"Epoch {epoch + 1} / {config.epochs}")
 
-        # Call fit (ensure fit is adapted for AMP and DDP verbosity)
         train_losses, train_epoch_loss, model = fit(
             config=config,
             model=model,
@@ -428,19 +465,15 @@ def train(
             local_rank=local_rank,
         )
 
-        # For simplicity, we'll let rank 0 do most of the logging and state updates like early stopping.
+        # For simplicity, rank 0 does most of the logging and state updates
         if not is_ddp_active or local_rank == 0:
-            train_loss.append(
-                train_epoch_loss.detach().cpu().numpy()
-            )  # Ensure this is from rank 0 or averaged
-            train_loss_data.append(
-                train_losses
-            )  # This might need care with DDP if losses are tensors
+            train_loss.append(train_epoch_loss.detach().cpu().numpy())
+            train_loss_data.append(train_losses)
 
-            if 1 - config.train_size > 0:  # If there's a validation set
+            if 1 - config.train_size > 0:
                 val_losses, val_epoch_loss = validate(
                     config=config,
-                    model=model,  # Pass the DDP model if active
+                    model=model,
                     dataloader=valid_dl,
                     loss_fn=loss_fn,
                     reg_param=config.reg_param,
@@ -450,7 +483,7 @@ def train(
                 )
                 val_loss.append(val_epoch_loss.detach().cpu().numpy())
                 val_loss_data.append(val_losses)
-            else:  # No validation set, use training loss for schedulers/stopping
+            else:
                 val_epoch_loss = train_epoch_loss
                 val_loss.append(val_epoch_loss.detach().cpu().numpy())
                 val_loss_data.append(train_losses)
