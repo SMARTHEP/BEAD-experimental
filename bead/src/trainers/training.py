@@ -307,7 +307,7 @@ def train(
             model,
             device_ids=[local_rank],
             output_device=local_rank,
-            find_unused_parameters=False,
+            find_unused_parameters=True,
         )
         if verbose and (not is_ddp_active or local_rank == 0):
             print(
