@@ -262,7 +262,7 @@ def train(
     # Create datasets
     ds = helper.create_datasets(*data, *labels)
 
-    if verbose:
+    if verbose and (not is_ddp_active or local_rank == 0):
         # Print input shapes
         print("Events - Training set shape:         ", events_train.shape)
         print("Events - Validation set shape:       ", events_val.shape)
@@ -288,11 +288,11 @@ def train(
     in_shape = helper.calculate_in_shape(data, config)
 
     # Instantiate and Initialize the model
-    if verbose:
+    if verbose and (not is_ddp_active or local_rank == 0):
         print(f"Calculated input shape: {in_shape}")
         print(f"Intitalizing Model with Latent Size - {config.latent_space_size}")
     model = helper.model_init(in_shape, config)
-    if verbose:
+    if verbose and (not is_ddp_active or local_rank == 0):
         if config.model_init == "xavier":
             print("Model initialized using Xavier initialization")
         else:
@@ -309,16 +309,16 @@ def train(
             output_device=local_rank,
             find_unused_parameters=False,
         )
-        if verbose:
+        if verbose and (not is_ddp_active or local_rank == 0):
             print(
                 f"Distributed Data Parallel (DDP) initialized. Running on {world_size} GPUs."
             )
 
-    if verbose:
+    if verbose and (not is_ddp_active or local_rank == 0):
         print(f"Device used for training: {device}")
         print("Model moved to device")
 
-    if verbose:
+    if verbose and (not is_ddp_active or local_rank == 0):
         print(
             "Loading data into DataLoader and using batch size of ", config.batch_size
         )
@@ -338,7 +338,7 @@ def train(
     train_ds_selected = train_dataset_map[config.input_level]
     val_ds_selected = val_dataset_map[config.input_level]
 
-    if verbose:
+    if verbose and (not is_ddp_active or local_rank == 0):
         print(f"Input data is of {config.input_level} level")
 
     train_sampler = None
@@ -389,7 +389,7 @@ def train(
     try:
         loss_object = helper.get_loss(config.loss_function)
         loss_fn = loss_object(config=config)
-        if verbose:
+        if verbose and (not is_ddp_active or local_rank == 0):
             print(f"Loss Function: {config.loss_function}")
     except ValueError as e:
         print(e)
@@ -399,7 +399,7 @@ def train(
         optimizer = helper.get_optimizer(
             config.optimizer, model.parameters(), lr=config.lr
         )
-        if verbose:
+        if verbose and (not is_ddp_active or local_rank == 0):
             print(f"Optimizer: {config.optimizer}")
     except ValueError as e:
         print(e)
@@ -411,7 +411,7 @@ def train(
 
     # Activate early stopping
     if config.early_stopping:
-        if verbose:
+        if verbose and (not is_ddp_active or local_rank == 0):
             print(
                 "Early stopping is activated with patience of ",
                 config.early_stopping_patience,
@@ -422,7 +422,7 @@ def train(
 
     # Activate LR Scheduler
     if config.lr_scheduler:
-        if verbose:
+        if verbose and (not is_ddp_active or local_rank == 0):
             print(
                 "Learning rate scheduler is activated with patience of ",
                 config.lr_scheduler_patience,
@@ -442,7 +442,7 @@ def train(
     if config.activation_extraction and not is_ddp_active:
         hooks = model.store_hooks()
 
-    if verbose:
+    if verbose and (not is_ddp_active or local_rank == 0):
         print(f"Beginning training for {config.epochs} epochs")
 
     for epoch in range(config.epochs):
@@ -503,7 +503,7 @@ def train(
             if config.early_stopping:
                 early_stopper(val_epoch_loss)
                 if early_stopper.early_stop:
-                    if verbose:
+                    if verbose and (not is_ddp_active or local_rank == 0):
                         print(
                             f"Rank {local_rank}: Early stopping activated at epoch {epoch}"
                         )
@@ -524,7 +524,7 @@ def train(
                 break  # Other ranks break
 
     end = time.time()
-    if verbose:
+    if verbose and (not is_ddp_active or local_rank == 0):
         print(f"Training the model took {(end - start) / 60:.3} minutes")
 
     if not is_ddp_active or local_rank == 0:
@@ -532,7 +532,7 @@ def train(
         helper.save_model(
             model, os.path.join(output_path, "models", "model.pt"), config
         )
-        if verbose:
+        if verbose and (not is_ddp_active or local_rank == 0):
             print(
                 f"Model saved to path: {os.path.join(output_path, 'models', 'model.pt')}"
             )
@@ -630,7 +630,7 @@ def train(
             save_dir=save_dir,
         )
 
-        if verbose:
+        if verbose and (not is_ddp_active or local_rank == 0):
             print("Loss data saved to path: ", save_dir)
 
     # If activations are extracted, this needs to be DDP aware or run post-training on a single GPU
