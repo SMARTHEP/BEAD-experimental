@@ -45,11 +45,12 @@ def infer(
     config,
     verbose: bool = False,
 ):
-    """Does the entire training loop by calling the `fit()` and `validate()`. Appart from this, this is the main function where the data is converted
-       to the correct type for it to be trained, via `torch.Tensor()`. Furthermore, the batching is also done here, based on `config.batch_size`,
-       and it is the `torch.utils.data.DataLoader` doing the splitting.
-       Applying either `EarlyStopping` or `LR Scheduler` is also done here, all based on their respective `config` arguments.
-       For reproducibility, the seeds can also be fixed in this function.
+    """
+    Does the entire training loop by calling the `fit()` and `validate()`. Appart from this, this is the main function where the data is converted
+    to the correct type for it to be trained, via `torch.Tensor()`. Furthermore, the batching is also done here, based on `config.batch_size`,
+    and it is the `torch.utils.data.DataLoader` doing the splitting.
+    Applying either `EarlyStopping` or `LR Scheduler` is also done here, all based on their respective `config` arguments.
+    For reproducibility, the seeds can also be fixed in this function.
 
     Args:
         model (modelObject): The model you wish to train
