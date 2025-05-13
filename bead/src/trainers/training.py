@@ -210,7 +210,7 @@ def train(
         verbose (bool): If True, prints additional information during training
 
     Returns:
-        modelObject: fully trained model ready to perform compression and decompression
+        modelObject: fully trained model ready to perform inference
     """
 
     # Get DDP parameters from config
