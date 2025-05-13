@@ -314,7 +314,6 @@ def train(
         model = DDP(
             model,
             device_ids=[local_rank],
-            output_device=local_rank,
             find_unused_parameters=True,
         )
         if verbose and (not is_ddp_active or local_rank == 0):
@@ -473,6 +472,8 @@ def train(
             local_rank=local_rank,
         )
 
+        # Flag used to signal early stopping
+        current_stop_signal_val = 0.0
         # For simplicity, rank 0 does most of the logging and state updates
         if not is_ddp_active or local_rank == 0:
             train_loss.append(train_epoch_loss.detach().cpu().numpy())
@@ -497,7 +498,7 @@ def train(
                 val_loss_data.append(train_losses)
 
             if config.lr_scheduler:
-                lr_scheduler(val_epoch_loss)
+                lr_scheduler(val_epoch_loss.item())
 
             if config.intermittent_model_saving:
                 if epoch % config.intermittent_saving_patience == 0:
@@ -509,18 +510,29 @@ def train(
                     )  # Pass config for DDP awareness
 
             if config.early_stopping:
-                early_stopper(val_epoch_loss)
+                early_stopper(val_epoch_loss.item())
                 if early_stopper.early_stop:
-                    if verbose and (not is_ddp_active or local_rank == 0):
+                    if verbose:
                         print(
-                            f"Rank {local_rank}: Early stopping activated at epoch {epoch}"
+                            f"Rank {local_rank}: Early stopping at epoch {epoch + 1}; will signal other ranks."
                         )
-                    # Need to signal other processes to stop if DDP is active
-                    if is_ddp_active:
-                        stop_signal = torch.tensor([1.0], device=device)
-                    break  # Rank 0 breaks
+                    current_stop_signal_val = 1.0  # Rank 0 decides to stop
+
         # DDP: check for stop signal from rank 0
         if is_ddp_active:
+            stop_signal_tensor = torch.tensor(
+                [current_stop_signal_val], dtype=torch.float32, device=device
+            )
+            dist.broadcast(stop_signal_tensor, src=0)
+            if stop_signal_tensor.item() == 1.0:
+                if verbose and local_rank != 0:
+                    print(
+                        f"Rank {local_rank}: Received early stop signal at epoch {epoch + 1}. Breaking loop."
+                    )
+                break  # All ranks break if stop signal is 1.0
+            elif current_stop_signal_val == 1.0:
+                break
+
             if "stop_signal" not in locals():  # Initialize if not set by rank 0
                 stop_signal = torch.tensor([0.0], device=device)
             dist.broadcast(stop_signal, src=0)  # Rank 0 broadcasts its stop_signal
@@ -553,7 +565,7 @@ def train(
         log_det_jacobian_data = []
 
         # Run a forward pass on the training data to get the latent space representation
-        model = model.module if is_ddp_active else model
+        model = model.module if isinstance(model, DDP) else model
         model.eval()
         with torch.no_grad():
             for idx, batch in enumerate(tqdm(train_dl)):
