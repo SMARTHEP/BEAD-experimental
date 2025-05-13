@@ -507,9 +507,9 @@ def train(
     if config.activation_extraction and (not is_ddp_active or local_rank == 0):
         # model.module if DDP, else model
         actual_model = model.module if is_ddp_active else model
-        # hooks = actual_model.store_hooks() # Assuming store_hooks is on base model
-        # ... run a pass to get activations ...
-        # actual_model.detach_hooks(hooks)
+        activations = diagnostics.dict_to_square_matrix(actual_model.get_activations())
+        model.detach_hooks(hooks)
+        np.save(os.path.join(output_path, "models", "activations.npy"), activations)
 
     return model  # Return the DDP model or base model
 
@@ -534,12 +534,6 @@ def train(
             log_det_jacobian_data.append(ldj.detach().cpu().numpy())
             z0_data.append(z0.detach().cpu().numpy())
             zk_data.append(zk.detach().cpu().numpy())
-
-    # Saving activations values
-    if config.activation_extraction:
-        activations = diagnostics.dict_to_square_matrix(model.get_activations())
-        model.detach_hooks(hooks)
-        np.save(os.path.join(output_path, "models", "activations.npy"), activations)
 
     if verbose:
         print(f"Training the model took {(end - start) / 60:.3} minutes")
