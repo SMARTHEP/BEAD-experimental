@@ -53,11 +53,12 @@ def infer(
     For reproducibility, the seeds can also be fixed in this function.
 
     Args:
-        model (modelObject): The model you wish to train
         data_bkg (Tuple): Tuple containing the background data
         data_sig (Tuple): Tuple containing the signal data
-        project_path (string): Path to the project directory
+        model_path (string): Path to the model directory
+        output_path (string): Path to the output directory
         config (dataClass): Base class selecting user inputs
+        verbose (bool): Verbose mode, default is False
 
     Returns:
         modelObject: fully trained model ready to perform compression and decompression
