@@ -413,7 +413,7 @@ def train(
 
     # AMP GradScaler
     amp_scaler = torch.amp.GradScaler(
-        device_type="cuda", enabled=(config.use_amp and torch.cuda.is_available())
+        enabled=(config.use_amp and torch.cuda.is_available())
     )
 
     # Activate early stopping
