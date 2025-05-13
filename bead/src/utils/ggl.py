@@ -530,11 +530,8 @@ def run_training(paths, config, verbose: bool = False):
 
     print("Training complete")
 
-    # else:
-    #     helper.save_model(
-    #         trained_model, os.path.join(output_path, "models", "model.pt"), config
-    #     )
     end = time.time()
+
     if verbose:
         # Print model save path
         print(f"Model saved to {os.path.join(output_path, 'models', 'model.pt')}")
