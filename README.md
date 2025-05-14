@@ -14,7 +14,7 @@
 
 
 
-BEAD is a Python package that uses deep learning based methods for anomaly detection in HEP data for new physics searches. BEAD has been designed with modularity in mind, to enable usage of various unsupervised latent variable models for any task. Bead has several versions each targetting different operating conditions (local or HPC cluster; CPU or GPU or multi-CPU-GPU distributed runs etc.). After the first full release, we will add a list mapping each stable version with the computing environment it was desinged for. For now, `prod_local` is the stable branch for running on a low compute device for e.g. the lame laptop your Univeristy gave you :P.
+BEAD is a Python package that uses deep learning based methods for anomaly detection in HEP data for new physics searches. BEAD has been designed with modularity in mind, to enable usage of various unsupervised latent variable models for any task. 
 
 BEAD has five main running modes:
 
@@ -33,6 +33,8 @@ For more information, follow the install instructions below go to the directory 
 <img width="1140" alt="Screenshot 2025-02-21 at 13 12 38" src="https://github.com/user-attachments/assets/f26f21a6-0ba3-4ba6-89e8-8ce147cc9d06" />
 
 For a full chain example, look [below](#example)!
+
+Bead has several versions each targetting different operating conditions (local or HPC cluster; CPU or GPU or multi-CPU-GPU distributed runs etc.). After the first full release, we will add a list mapping each stable version with the computing environment it was desinged for. For now, `prod_local` is the stable branch for running on a low compute device for e.g. the lame laptop your Univeristy gave you :P.
 
 
 
