@@ -327,7 +327,6 @@ def train(
             local_rank,
         )
 
-        current_stop_signal_val = 0.0
         if not is_ddp_active or local_rank == 0:
             train_avg_epoch_losses.append(
                 current_train_epoch_loss_avg.item()
@@ -360,21 +359,25 @@ def train(
             if early_stopper:
                 early_stopper(current_val_epoch_loss_avg.item())
                 if early_stopper.early_stop:
-                    if verbose:
-                        print(f"Rank {local_rank}: Early stopping at epoch {epoch + 1}")
-                    current_stop_signal_val = 1.0
+                    if verbose: print(f"Rank {local_rank}: Early stopping condition met at epoch {epoch + 1}")
+                    stop_now = 1.0
 
+        # Synchronize early stopping decision
         if is_ddp_active:
-            stop_signal_tensor = torch.tensor(
-                [current_stop_signal_val], dtype=torch.float32, device=device
-            )
+            # Rank 0 prepares the decision, other ranks prepare to receive
+            if local_rank == 0:
+                stop_signal_tensor = torch.tensor([stop_now], dtype=torch.float32, device=device)
+            else:
+                stop_signal_tensor = torch.empty(1, dtype=torch.float32, device=device)
+
+            # All ranks participate in this broadcast. Rank 0 sends its decision.
             dist.broadcast(stop_signal_tensor, src=0)
+
+            # All ranks check the received signal
             if stop_signal_tensor.item() == 1.0:
-                if verbose and local_rank != 0:
-                    print(
-                        f"Rank {local_rank}: Early stopping signal received at epoch {epoch + 1}."
-                    )
-                break
+                if verbose: # Log on all ranks that are stopping
+                    print(f"Rank {local_rank}: Early stopping signal received at epoch {epoch + 1}. Breaking training loop.")
+                break # All ranks break out of the epoch loop
 
     end_time = time.time()
     if verbose and (not is_ddp_active or local_rank == 0):
