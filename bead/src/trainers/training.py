@@ -360,13 +360,15 @@ def train(
                 early_stopper(current_val_epoch_loss_avg.item())
                 if early_stopper.early_stop:
                     if verbose: print(f"Rank {local_rank}: Early stopping condition met at epoch {epoch + 1}")
-                    stop_now = 1.0
 
         # Synchronize early stopping decision
         if is_ddp_active:
             # Rank 0 prepares the decision, other ranks prepare to receive
             if local_rank == 0:
-                stop_signal_tensor = torch.tensor([stop_now], dtype=torch.float32, device=device)
+                stop_signal = (
+                                1.0 if config.early_stopping and early_stopper.early_stop else 0.0
+                            )
+                stop_signal_tensor = torch.tensor([stop_signal], dtype=torch.float32, device=device)
             else:
                 stop_signal_tensor = torch.empty(1, dtype=torch.float32, device=device)
 
