@@ -43,19 +43,17 @@ Bead has several versions each targetting different operating conditions (local 
 
 2. Trimap is a visualization tool that is used in the package but is currently problematic to install via uv due to `llvmlite==0.34.0` version issue on Mac M1. As a workaround to this either `uv pip install trimap` or if you are running inside a `conda` env, install trimap with BioConda as described [here](https://bioconda.github.io/recipes/trimap/README.html), before moving to the next step.
 
-   Alternatively, if you would like to skip using trimap, please comment out all the code chunks that use trimap in `.../utils/plotting.py`, after cloning the repo in the next step.
-
 3. After installing uv, clone this repository to your working directory.
 
 4. Make sure you are on the same directory level as this `README.md` file
 
 5. Install the BEAD package using:
 
-      uv pip install -e . # alternatively you can also use `uv sync`
+         uv pip install -e . # alternatively you can also use `uv sync`
 
 6. You are now ready to start running the package! As a first step try the following command:
 
-      uv run bead -h
+         uv run bead -h
 
   This should bring up the help window that explains all the various running modes of bead.
 
