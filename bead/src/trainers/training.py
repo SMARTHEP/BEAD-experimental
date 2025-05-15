@@ -472,8 +472,6 @@ def train(
             local_rank=local_rank,
         )
 
-        # Flag used to signal early stopping
-        current_stop_signal_val = 0.0
         # For simplicity, rank 0 does most of the logging and state updates
         if not is_ddp_active or local_rank == 0:
             train_loss.append(train_epoch_loss.detach().cpu().numpy())
@@ -516,46 +514,43 @@ def train(
                         print(
                             f"Rank {local_rank}: Early stopping at epoch {epoch + 1}; will signal other ranks."
                         )
-                    current_stop_signal_val = 1.0  # Rank 0 decides to stop
 
-        # DDP: check for stop signal from rank 0
-        if is_ddp_active:
-            stop_signal_tensor = torch.tensor(
-                [current_stop_signal_val], dtype=torch.float32, device=device
+        # Rank 0 determines if stopping is needed
+        if local_rank == 0:
+            stop_signal = (
+                1.0 if config.early_stopping and early_stopper.early_stop else 0.0
             )
-            dist.broadcast(stop_signal_tensor, src=0)
-            if stop_signal_tensor.item() == 1.0:
-                if verbose and local_rank != 0:
-                    print(
-                        f"Rank {local_rank}: Received early stop signal at epoch {epoch + 1}. Breaking loop."
-                    )
-                break  # All ranks break if stop signal is 1.0
-            elif current_stop_signal_val == 1.0:
-                break
+            stop_signal_tensor = torch.tensor(
+                [stop_signal], dtype=torch.float32, device=device
+            )
+        else:
+            # Other ranks prepare a tensor to receive the broadcast
+            stop_signal_tensor = torch.empty(1, dtype=torch.float32, device=device)
 
-            if "stop_signal" not in locals():  # Initialize if not set by rank 0
-                stop_signal = torch.tensor([0.0], device=device)
-            dist.broadcast(stop_signal, src=0)  # Rank 0 broadcasts its stop_signal
-            if stop_signal.item() == 1.0:
-                if verbose and local_rank != 0:
-                    print(
-                        f"Rank {local_rank}: Received early stop signal at epoch {epoch}."
-                    )
-                break  # Other ranks break
+        # All ranks participate in this broadcast. Rank 0 sends, others receive.
+        dist.broadcast(stop_signal_tensor, src=0)
 
-    end_time = time.time()
-    if verbose and (not is_ddp_active or local_rank == 0):
-        print(f"Training the model took {(end_time - start_time) / 60:.3} minutes")
+        # All ranks check the signal and break if needed
+        if stop_signal_tensor.item() == 1.0:
+            if verbose:  # Log on all ranks that are stopping
+                print(
+                    f"Rank {local_rank}: Early stopping signal received at epoch {epoch + 1}. Breaking training loop."
+                )
+            break  # All ranks break out of the epoch loop
+
+    # model_to_save should be the DDP-wrapped model if DDP is active
+    model_to_save = model
 
     if not is_ddp_active or local_rank == 0:
-        # Save the final model
-        helper.save_model(
-            model, os.path.join(output_path, "models", "model.pt"), config
+        final_model_for_eval = model.module if isinstance(model, DDP) else model
+        final_model_for_eval.eval()  # Set the specific model for eval
+        # Running final pass on full training data
+        train_dl_final = DataLoader(
+            train_ds_selected,
+            sampler=None,
+            shuffle=shuffle_train,
+            **common_loader_args,
         )
-        if verbose and (not is_ddp_active or local_rank == 0):
-            print(
-                f"Model saved to path: {os.path.join(output_path, 'models', 'model.pt')}"
-            )
         # Run a final forward pass on training data to get final latent space representation
         # Output Lists
         mu_data = []
@@ -564,11 +559,8 @@ def train(
         zk_data = []
         log_det_jacobian_data = []
 
-        # Run a forward pass on the training data to get the latent space representation
-        model = model.module if isinstance(model, DDP) else model
-        model.eval()
         with torch.no_grad():
-            for idx, batch in enumerate(tqdm(train_dl)):
+            for idx, batch in enumerate(tqdm(train_dl_final, desc="Final Pass")):
                 inputs, labels = batch
                 inputs = inputs.to(device)
 
@@ -577,15 +569,29 @@ def train(
                     enabled=(config.use_amp and torch.cuda.is_available()),
                 ):
                     # Forward pass
-                    out = helper.call_forward(model, inputs)
+                    out = helper.call_forward(final_model_for_eval, inputs)
                     recon, mu, logvar, ldj, z0, zk = out
 
                 mu_data.append(mu.detach().cpu().numpy())
                 logvar_data.append(logvar.detach().cpu().numpy())
-                log_det_jacobian_data.append(ldj.detach().cpu().numpy())
+                # Handling ldj extra carefully
+                if hasattr(ldj, "detach"):
+                    log_det_jacobian_data.append(ldj.detach().cpu().numpy())
+                elif isinstance(ldj, (float, int, np.number)):
+                    log_det_jacobian_data.append(np.array(ldj))
+                else:  # Fallback for unexpected types
+                    log_det_jacobian_data.append(np.array(0.0))
                 z0_data.append(z0.detach().cpu().numpy())
                 zk_data.append(zk.detach().cpu().numpy())
 
+        # Save the final model using model_to_save
+        helper.save_model(
+            model_to_save, os.path.join(output_path, "models", "model.pt"), config
+        )
+        if verbose and (not is_ddp_active or local_rank == 0):
+            print(
+                f"Model saved to path: {os.path.join(output_path, 'models', 'model.pt')}"
+            )
         # Save loss data
         save_dir = os.path.join(output_path, "results")
         np.save(
@@ -668,5 +674,9 @@ def train(
         activations = diagnostics.dict_to_square_matrix(actual_model.get_activations())
         model.detach_hooks(hooks)
         np.save(os.path.join(output_path, "models", "activations.npy"), activations)
+
+    end_time = time.time()
+    if verbose and (not is_ddp_active or local_rank == 0):
+        print(f"Training the model took {(end_time - start_time) / 60:.3} minutes")
 
     return model
