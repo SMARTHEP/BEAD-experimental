@@ -250,8 +250,8 @@ def train(
         if verbose and local_rank == 0:
             print(f"DDP initialized. Model wrapped. Running on {world_size} GPUs.")
 
-    train_ds_selected = ds[f"{config.input_level}_train"]
-    val_ds_selected = ds[f"{config.input_level}_val"]
+    train_ds_selected = ds[f"{config.input_level}s_train"]
+    val_ds_selected = ds[f"{config.input_level}s_val"]
 
     train_sampler, val_sampler = None, None
     # shuffle_train is True if not DDP, False if DDP (sampler handles shuffle)
