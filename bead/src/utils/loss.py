@@ -273,17 +273,35 @@ class VAEFlowLoss(BaseLoss):
     def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
         recon_loss = self.recon_loss_fn.calculate(
             recon, target, mu, logvar, parameters, log_det_jacobian=0
-        )
+        )[0]
         kl_loss = self.kl_loss_fn.calculate(
             recon, target, mu, logvar, parameters, log_det_jacobian=0
-        )
-        # Subtract the log-det term (maximizing likelihood).
+        )[0]
+        # Ensure log_det_jacobian is a tensor
+        if not isinstance(log_det_jacobian, torch.Tensor):
+            # If it's a scalar (like the default 0), convert to a tensor
+            # Use target's device and dtype for consistency
+            log_det_jacobian_tensor = torch.tensor(
+                log_det_jacobian, device=target.device, dtype=target.dtype
+            )
+        else:
+            log_det_jacobian_tensor = log_det_jacobian
+
+        # If log_det_jacobian_tensor is a multi-element tensor (e.g., per-sample), average it.
+        # If it's already a scalar tensor, .mean() will return itself.
+        mean_log_det_jacobian = log_det_jacobian_tensor.mean()
+
+        # Ensure weights are on the same device
+        kl_weight_device = self.kl_weight.to(recon_loss.device)
+        flow_weight_device = self.flow_weight.to(recon_loss.device)
+
         total_loss = (
-            recon_loss[0]
-            + self.kl_weight * kl_loss[0]
-            - self.flow_weight * log_det_jacobian
+            recon_loss
+            + kl_weight_device * kl_loss
+            - flow_weight_device
+            * mean_log_det_jacobian  # Maximize likelihood = minimize negative log_det_j
         )
-        return total_loss, recon_loss[0], kl_loss[0]
+        return total_loss, recon_loss, kl_loss
 
 
 # ---------------------------
