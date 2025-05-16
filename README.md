@@ -161,8 +161,47 @@ followed by.. ofc, the mandatory snooze!
 
 # Making the most of multi-GPU setups on HPCs
 
-Bead now supports multi-GPU training via torch DDP! As a bonus we've also added optional torch AMP wrappers as well as gradient clipping for even faster training of large models on massive datasets! Here's how you use it:
+Bead now supports multi-GPU training via torch DDP! As a bonus we've also added optional torch AMP wrappers as well as gradient clipping for even faster training of large models on massive datasets! 
+While AMP works just as well with the set of instructions above (managed by uv), DDP is a different ballgame.
+Here's how you use it:
 
-** TBC **
+Assuming you plan to use DDP in an HPC setting, you most likely have job schedulers you use that come with their own submit scripts. Given that DDP cannot run with the previous commands and requires special attential via the `torchrun` command, we will have to make the environment that `uv` creates and manages with every call.
+
+1. So first create a venv directory somewhere using `mkdir` and install all BEAD's dependencies like so:
+
+```
+uv pip install -e <PATH_TO_VENV>
+```
+
+3. Then source the venv using:
+
+```
+source <PATH_TO_ENV>/bin/activate
+```
+
+   Optionally you can use this block in a shell script to make sure the venv
+```
+# --- Activate the uv-created Virtual Environment ---
+echo "Activating Python virtual environment: $VENV_PATH"
+if [ -f "$VENV_PATH/bin/activate" ]; then
+    source "$VENV_PATH/bin/activate"
+    echo "Virtual environment activated."
+    echo "Python executable: $(which python)"
+    # Optional: Verify 'art' can be imported by the Python in the venv
+    # python -c "import art; print('Successfully imported art in Slurm script')"
+else
+    echo "ERROR: Virtual environment activation script not found at $VENV_PATH/bin/activate"
+    exit 1
+fi 
+```
+
+3. Collect information on all the GPUs you have available (the current codebase has only been tested for multiple instances of the same GPU (eg. 3 V100s); cross-chip performance is unknown and thereby unsupported currently - keep a check on the torch DDP website for updates on this, and make a PR here when ready ;-) ). You will need to know how many nodes you are planning to run on and how many GPUs you have available per node.
+
+4. Once you have all this info, you can start training using DDP like so (this example is for 1 node with 3 V100 GPUs):
+
+```
+torchrun --standalone --nnodes=1 --nproc_per_node=3 -m bead.bead -m chain -p $WORKSPACE_NAME $PROJECT_NAME -o $OPTIONS -v
+```
+
 
 *Happy hunting!*
