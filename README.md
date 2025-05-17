@@ -73,7 +73,7 @@ Bead has several versions each targetting different operating conditions (local 
    but create a new project with a different `'project_name'`. On doing this, your data will already be ready from the previous project in that workspace so you can skip directly to the 
    subsequent steps.
 
-8. After creating a new workspace, it is essential to move the `*_input_data.csv` files to the `BEAD/bead/workspaces/WORKSPACE_NAME/data/csv/` directory
+8. After creating a new workspace, it is essential to move the `<FLAG>_*.csv` files to the `BEAD/bead/workspaces/WORKSPACE_NAME/data/csv/` directory. As a naming convention for simpler data processing, the package currently expects the file names to start with either of these `<FLAG>` options: `[bkg_train, bkg_test, sig_test]`. Note, that all csv files starting with a specific flag will be concatenated into a single `h5 Dataset` by the next steps, such that after preprocessing you are left with the 3 corresponding Datasets. The names of the file trailing the `<FLAG>` can be descriptive and these names are stored and used later while making plots.
 
 9. After making sure the input files are in the right location, you can start converting the `csv` files to the file type specified in the `BEAD/bead/workspaces/<WORKSPACE_NAME>/<PROJECT_NAME>/config/<PROJECT_NAME>_config.py` file. `h5` is the default and preferred method. To run the conversion mode, use:
 
