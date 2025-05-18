@@ -67,8 +67,59 @@ def infer(
     # Get the device and move tensors to the device
     device = helper.get_device()
 
+    # Split data and labels
+    if verbose:
+        print("Splitting data and labels")
+    data_bkg, labels_bkg = helper.data_label_split(data_bkg)
+    data_sig, labels_sig = helper.data_label_split(data_sig)
+
+    # Unpack data and labels
+    (
+        events_bkg,
+        jets_bkg,
+        constituents_bkg,
+        events_sig,
+        jets_sig,
+        constituents_sig,
+    ) = data_bkg + data_sig
+
+    (
+        events_bkg_label,
+        jets_bkg_label,
+        constituents_bkg_label,
+        events_sig_label,
+        jets_sig_label,
+        constituents_sig_label,
+    ) = labels_bkg + labels_sig
+
+    if verbose:
+        print("Data and labels split")
+        # Print shapes after splitting
+        print("Events - bkg shape:         ", events_bkg.shape)
+        print("Jets - bkg shape:           ", jets_bkg.shape)
+        print("Constituents - bkg shape:   ", constituents_bkg.shape)
+        print("Events - sig shape:         ", events_sig.shape)
+        print("Jets - sig shape:           ", jets_sig.shape)
+        print("Constituents - sig shape:   ", constituents_sig.shape)
+
+    # Save labels
+    np.save(
+        os.path.join(output_path, "results", "test_event_label.npy"),
+        np.concatenate([events_bkg_label, events_sig_label]),
+    )
+    np.save(
+        os.path.join(output_path, "results", "test_jet_label.npy"),
+        np.concatenate([jets_bkg_label, jets_sig_label]),
+    )
+    np.save(
+        os.path.join(output_path, "results", "test_constituent_label.npy"),
+        np.concatenate([constituents_bkg_label, constituents_sig_label]),
+    )
+
     # Reshape tensors to pass to conv layers
     if "ConvVAE" in config.model_name or "ConvAE" in config.model_name:
+        if verbose:
+            print("Reshaping data to pass to conv layers")
         (
             events_bkg,
             jets_bkg,
@@ -90,73 +141,9 @@ def infer(
             constituents_sig,
         )
 
-    (
-        events_bkg,
-        jets_bkg,
-        constituents_bkg,
-    ) = data_bkg
+    data = data_bkg + data_sig
 
-    (
-        events_sig,
-        jets_sig,
-        constituents_sig,
-    ) = data_sig
-
-    # Split data and labels
-    if verbose:
-        print("Splitting data and labels")
-    data_bkg, labels_bkg = helper.data_label_split(data_bkg)
-    data_sig, labels_sig = helper.data_label_split(data_sig)
-
-    (
-        events_bkg,
-        jets_bkg,
-        constituents_bkg,
-        events_sig,
-        jets_sig,
-        constituents_sig,
-    ) = data_bkg + data_sig
-
-    (
-        events_bkg_label,
-        jets_bkg_label,
-        constituents_bkg_label,
-        events_sig_label,
-        jets_sig_label,
-        constituents_sig_label,
-    ) = labels_bkg + labels_sig
-
-    # Save labels
-    np.save(
-        os.path.join(output_path, "results", "test_event_label.npy"),
-        np.concatenate([events_bkg_label, events_sig_label]),
-    )
-    np.save(
-        os.path.join(output_path, "results", "test_jet_label.npy"),
-        np.concatenate([jets_bkg_label, jets_sig_label]),
-    )
-    np.save(
-        os.path.join(output_path, "results", "test_constituent_label.npy"),
-        np.concatenate([constituents_bkg_label, constituents_sig_label]),
-    )
-
-    data = (
-        events_bkg,
-        jets_bkg,
-        constituents_bkg,
-        events_sig,
-        jets_sig,
-        constituents_sig,
-    )
-
-    labels = (
-        events_bkg_label,
-        jets_bkg_label,
-        constituents_bkg_label,
-        events_sig_label,
-        jets_sig_label,
-        constituents_sig_label,
-    )
+    labels = labels_bkg + labels_sig
 
     # Create datasets
     ds = helper.create_datasets(*data, *labels)
