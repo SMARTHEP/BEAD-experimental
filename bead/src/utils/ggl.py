@@ -584,6 +584,8 @@ def run_inference(paths, config, verbose: bool = False):
         os.path.join(labels_path, "test_gen_label_constituent.npy"),
         gen_label_constituents.detach().cpu().numpy(),
     )
+    if verbose:
+        print("Generator labels saved")
 
     # Create bkg-sig labels
     data_bkg = helper.add_sig_bkg_label(data_bkg, label="bkg")
