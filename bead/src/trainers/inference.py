@@ -193,6 +193,7 @@ def infer(
 
     # Load the model and set to eval mode for inference
     model = helper.load_model(model_path=model_path, in_shape=in_shape, config=config)
+    model = model.to(device)
     model.eval()
 
     if verbose:
