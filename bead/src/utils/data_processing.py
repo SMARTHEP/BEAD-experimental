@@ -233,6 +233,13 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
         events_tensor, jets_tensor, constituents_tensor = helper.load_tensors(
             input_path, keyword
         )
+        if verbose:
+            print(
+                f"Loaded tensors from {input_path}/{keyword}_events.pt, {keyword}_jets.pt and {keyword}_constituents.pt"
+            )
+            print(
+                f"Events tensor shape: {events_tensor.shape}\nJets tensor shape: {jets_tensor.shape}\nConstituents tensor shape: {constituents_tensor.shape}"
+            )
     except ValueError as e:
         print(e)
         sys.exit(1)
