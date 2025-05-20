@@ -615,7 +615,7 @@ def run_inference(paths, config, verbose: bool = False):
         print("Inference failed")
 
 
-def run_plots(paths, config, train_metrics: bool = False, verbose: bool = False):
+def run_plots(paths, config, verbose: bool = False):
     """
     Main function calling the two plotting functions, ran when --mode=plot is selected.
     The main functions this calls are: `plotting.plot_losses`, `plotting.plot_latent_variables`, plotting.plot_mu_logvar and `plotting.plot_roc_curve`.
@@ -623,7 +623,6 @@ def run_plots(paths, config, train_metrics: bool = False, verbose: bool = False)
     Args:
         paths (dictionary): Dictionary of common paths used in the pipeline
         config (dataClass): Base class selecting user inputs
-        train_metrics (bool): If True, plots the training metrics only
         verbose (bool): If True, prints out more information
     """
     input_path = os.path.join(paths["output_path"], "results")
@@ -633,23 +632,18 @@ def run_plots(paths, config, train_metrics: bool = False, verbose: bool = False)
         plotting.plot_losses(input_path, output_path, config, verbose)
     except FileNotFoundError as e:
         print(e)
-        sys.exit(1)
     try:
         plotting.plot_latent_variables(config, paths, verbose)
     except ValueError as e:
         print(e)
-        sys.exit(1)
     try:
         plotting.plot_mu_logvar(config, paths, verbose)
     except ValueError as e:
         print(e)
-        sys.exit(1)
-    if not train_metrics:
-        try:
-            plotting.plot_roc_curve(config, paths, verbose)
-        except ValueError as e:
-            print(e)
-            sys.exit(1)
+    try:
+        plotting.plot_roc_curve(config, paths, verbose)
+    except ValueError as e:
+        print(e)
 
     print("Plotting complete")
 
