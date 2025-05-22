@@ -638,7 +638,7 @@ def plot_roc_curve(config, paths, verbose: bool = False):
     """
     # Load ground truth binary labels from 'label.npy'
     label_path = os.path.join(
-        paths["output_path"], "results", config.input_level + "_label.npy"
+        paths["output_path"], "results", "test_" + config.input_level + "_label.npy"
     )
     output_dir = os.path.join(paths["output_path"], "results")
     # check if the label file exists
