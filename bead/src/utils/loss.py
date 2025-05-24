@@ -27,6 +27,11 @@ Classes:
 import torch
 from torch.nn import functional as F
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.distributed as dist
+
 
 class BaseLoss:
     """
@@ -307,28 +312,85 @@ class VAEFlowLoss(BaseLoss):
 # ---------------------------
 # Contrastive Loss
 # ---------------------------
-class ContrastiveLoss(BaseLoss):
+class SupervisedContrastiveLoss(BaseLoss):
     """
-    Contrastive loss to cluster latent vectors by event generator.
-
-    Config parameters:
-      - margin: minimum distance desired between dissimilar pairs (default: 1.0)
+    Supervised Contrastive Learning loss function.
+    Based on: https://arxiv.org/abs/2004.11362
     """
-
     def __init__(self, config):
-        super(ContrastiveLoss, self).__init__(config)
-        self.margin = 1.0
-        self.component_names = ["contrastive"]
+        super(SupervisedContrastiveLoss, self).__init__(config)
+        self.temperature = config.contrastive_temperature if hasattr(config, 'contrastive_temperature') else 0.07
+        self.component_names = ["supcon"]
+        # DDP related attributes
+        self.is_ddp_active = config.is_ddp_active if hasattr(config, 'is_ddp_active') else False
+        self.world_size = config.world_size if hasattr(config, 'world_size') else 1
 
-    def calculate(self, latent, generator_flags):
-        batch_size = latent.size(0)
-        distances = torch.cdist(latent, latent, p=2)
-        generator_flags = generator_flags.view(-1, 1)
-        same_generator = (generator_flags == generator_flags.t()).float()
-        pos_loss = same_generator * distances.pow(2)
-        neg_loss = (1 - same_generator) * F.relu(self.margin - distances).pow(2)
-        num_pairs = batch_size * (batch_size - 1)
-        loss = (pos_loss.sum() + neg_loss.sum()) / num_pairs
+    def calculate(self, features, labels):
+        """
+        Args:
+            features (torch.Tensor): Latent vectors (e.g., zk), shape [batch_size, feature_dim].
+                                     Assumed to be L2-normalized.
+            labels (torch.Tensor): Ground truth labels (generator_ids), shape [batch_size].
+        Returns:
+            torch.Tensor: Supervised contrastive loss.
+        """
+        device = features.device
+
+        if self.is_ddp_active and self.world_size > 1:
+            # Gather features and labels from all GPUs
+            gathered_features_list = [torch.zeros_like(features) for _ in range(self.world_size)]
+            gathered_labels_list = [torch.zeros_like(labels) for _ in range(self.world_size)]
+
+            dist.all_gather(gathered_features_list, features)
+            dist.all_gather(gathered_labels_list, labels)
+
+            features = torch.cat(gathered_features_list, dim=0)
+            labels = torch.cat(gathered_labels_list, dim=0)
+
+        batch_size = features.shape
+        labels = labels.contiguous().view(-1, 1)
+
+        # Mask to identify positive pairs (samples with the same label)
+        # anchor_dot_contrast defines similarity between all pairs
+        # logit_mask is an identity matrix to exclude self-comparisons
+        mask = torch.eq(labels, labels.T).float().to(device)
+
+        # Compute logits
+        anchor_dot_contrast = torch.div(
+            torch.matmul(features, features.T),
+            self.temperature
+        )
+        # For numerical stability
+        logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
+        logits = anchor_dot_contrast - logits_max.detach() # Subtract max for stability
+
+        # Mask-out self-contrast cases
+        logits_mask = torch.scatter(
+            torch.ones_like(mask),
+            1,
+            torch.arange(batch_size).view(-1, 1).to(device),
+            0
+        )
+        mask = mask * logits_mask # Positive pairs, excluding self
+
+        # Compute log_prob
+        exp_logits = torch.exp(logits) * logits_mask
+        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True) + 1e-9) # Add epsilon for stability
+
+        # Compute mean of log-likelihood over positive pairs
+        # mask.sum(1) gives the number of positive pairs for each anchor
+        # Handle cases where there are no positive pairs for an anchor (mask.sum(1) == 0)
+        # to avoid division by zero.
+        num_pos_per_anchor = mask.sum(1)
+        # Add a small epsilon to num_pos_per_anchor to prevent division by zero if an anchor has no positives
+        # (though with DDP and multiple generators, this should be rare for reasonable batch sizes)
+        mean_log_prob_pos = (mask * log_prob).sum(1) / (num_pos_per_anchor + 1e-9)
+
+
+        # Loss is negative of the mean log-likelihood
+        loss = -mean_log_prob_pos
+        loss = loss.view(1, batch_size).mean() # Average over the batch
+
         return (loss,)
 
 
