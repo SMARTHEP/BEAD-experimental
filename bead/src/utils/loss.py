@@ -331,8 +331,7 @@ class SupervisedContrastiveLoss(BaseLoss):
     def calculate(self, features, labels):
         """
         Args:
-            features (torch.Tensor): Latent vectors (e.g., zk), shape [batch_size, feature_dim].
-                                     Assumed to be L2-normalized.
+            features (torch.Tensor): Latent vectors (e.g., zk), shape [batch_size, feature_dim].Assumed to be L2-normalized.
             labels (torch.Tensor): Ground truth labels (generator_ids), shape [batch_size].
         Returns:
             torch.Tensor: Supervised contrastive loss.
@@ -357,18 +356,18 @@ class SupervisedContrastiveLoss(BaseLoss):
         batch_size = features.shape
         labels = labels.contiguous().view(-1, 1)
 
-        # Mask to identify positive pairs (samples with the same label)
-        # anchor_dot_contrast defines similarity between all pairs
-        # logit_mask is an identity matrix to exclude self-comparisons
+        # Mask to identify positive pairs
         mask = torch.eq(labels, labels.T).float().to(device)
 
-        # Compute logits
+        # Similarity definition
         anchor_dot_contrast = torch.div(
             torch.matmul(features, features.T), self.temperature
         )
         # For numerical stability
         logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
-        logits = anchor_dot_contrast - logits_max.detach()  # Subtract max for stability
+        logits = (
+            anchor_dot_contrast - logits_max.detach()
+        )  # Detach to avoid gradients through max
 
         # Mask-out self-contrast cases
         logits_mask = torch.scatter(
@@ -378,20 +377,13 @@ class SupervisedContrastiveLoss(BaseLoss):
 
         # Compute log_prob
         exp_logits = torch.exp(logits) * logits_mask
-        log_prob = logits - torch.log(
-            exp_logits.sum(1, keepdim=True) + 1e-9
-        )  # Add epsilon for stability
+        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True) + 1e-9)
 
         # Compute mean of log-likelihood over positive pairs
-        # mask.sum(1) gives the number of positive pairs for each anchor
-        # Handle cases where there are no positive pairs for an anchor (mask.sum(1) == 0)
-        # to avoid division by zero.
         num_pos_per_anchor = mask.sum(1)
-        # Add a small epsilon to num_pos_per_anchor to prevent division by zero if an anchor has no positives
-        # (though with DDP and multiple generators, this should be rare for reasonable batch sizes)
         mean_log_prob_pos = (mask * log_prob).sum(1) / (num_pos_per_anchor + 1e-9)
 
-        # Loss is negative of the mean log-likelihood
+        # NLL
         loss = -mean_log_prob_pos
         loss = loss.view(1, batch_size).mean()  # Average over the batch
 
