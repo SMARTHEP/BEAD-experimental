@@ -25,12 +25,8 @@ Classes:
 """
 
 import torch
-from torch.nn import functional as F
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.distributed as dist
+from torch.nn import functional as F
 
 
 class BaseLoss:
@@ -310,20 +306,27 @@ class VAEFlowLoss(BaseLoss):
 
 
 # ---------------------------
-# Contrastive Loss
+# SupCon Loss
 # ---------------------------
 class SupervisedContrastiveLoss(BaseLoss):
     """
     Supervised Contrastive Learning loss function.
     Based on: https://arxiv.org/abs/2004.11362
     """
+
     def __init__(self, config):
         super(SupervisedContrastiveLoss, self).__init__(config)
-        self.temperature = config.contrastive_temperature if hasattr(config, 'contrastive_temperature') else 0.07
+        self.temperature = (
+            config.contrastive_temperature
+            if hasattr(config, "contrastive_temperature")
+            else 0.07
+        )
         self.component_names = ["supcon"]
         # DDP related attributes
-        self.is_ddp_active = config.is_ddp_active if hasattr(config, 'is_ddp_active') else False
-        self.world_size = config.world_size if hasattr(config, 'world_size') else 1
+        self.is_ddp_active = (
+            config.is_ddp_active if hasattr(config, "is_ddp_active") else False
+        )
+        self.world_size = config.world_size if hasattr(config, "world_size") else 1
 
     def calculate(self, features, labels):
         """
@@ -338,8 +341,12 @@ class SupervisedContrastiveLoss(BaseLoss):
 
         if self.is_ddp_active and self.world_size > 1:
             # Gather features and labels from all GPUs
-            gathered_features_list = [torch.zeros_like(features) for _ in range(self.world_size)]
-            gathered_labels_list = [torch.zeros_like(labels) for _ in range(self.world_size)]
+            gathered_features_list = [
+                torch.zeros_like(features) for _ in range(self.world_size)
+            ]
+            gathered_labels_list = [
+                torch.zeros_like(labels) for _ in range(self.world_size)
+            ]
 
             dist.all_gather(gathered_features_list, features)
             dist.all_gather(gathered_labels_list, labels)
@@ -357,25 +364,23 @@ class SupervisedContrastiveLoss(BaseLoss):
 
         # Compute logits
         anchor_dot_contrast = torch.div(
-            torch.matmul(features, features.T),
-            self.temperature
+            torch.matmul(features, features.T), self.temperature
         )
         # For numerical stability
         logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
-        logits = anchor_dot_contrast - logits_max.detach() # Subtract max for stability
+        logits = anchor_dot_contrast - logits_max.detach()  # Subtract max for stability
 
         # Mask-out self-contrast cases
         logits_mask = torch.scatter(
-            torch.ones_like(mask),
-            1,
-            torch.arange(batch_size).view(-1, 1).to(device),
-            0
+            torch.ones_like(mask), 1, torch.arange(batch_size).view(-1, 1).to(device), 0
         )
-        mask = mask * logits_mask # Positive pairs, excluding self
+        mask = mask * logits_mask  # Positive pairs, excluding self
 
         # Compute log_prob
         exp_logits = torch.exp(logits) * logits_mask
-        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True) + 1e-9) # Add epsilon for stability
+        log_prob = logits - torch.log(
+            exp_logits.sum(1, keepdim=True) + 1e-9
+        )  # Add epsilon for stability
 
         # Compute mean of log-likelihood over positive pairs
         # mask.sum(1) gives the number of positive pairs for each anchor
@@ -386,10 +391,9 @@ class SupervisedContrastiveLoss(BaseLoss):
         # (though with DDP and multiple generators, this should be rare for reasonable batch sizes)
         mean_log_prob_pos = (mask * log_prob).sum(1) / (num_pos_per_anchor + 1e-9)
 
-
         # Loss is negative of the mean log-likelihood
         loss = -mean_log_prob_pos
-        loss = loss.view(1, batch_size).mean() # Average over the batch
+        loss = loss.view(1, batch_size).mean()  # Average over the batch
 
         return (loss,)
 
