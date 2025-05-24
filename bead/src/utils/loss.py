@@ -535,7 +535,16 @@ class VAELossEMD(VAELoss):
         self.emd_loss_fn = WassersteinLoss(config)
         self.component_names = ["loss", "vae_loss", "reco", "kl", "emd"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        parameters,
+        generator_labels=None,
+        log_det_jacobian=0,
+    ):
         """
         In addition to the standard VAE inputs, this loss requires:
           - emd_p: first distribution tensor (e.g. a predicted histogram)
@@ -568,7 +577,16 @@ class VAELossL1(VAELoss):
         self.l1_reg_fn = L1Regularization(config)
         self.component_names = ["loss", "vae_loss", "reco", "kl", "l1"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        parameters,
+        generator_labels=None,
+        log_det_jacobian=0,
+    ):
         """
         'parameters' should be a list of model parameters to regularize.
         """
@@ -595,7 +613,16 @@ class VAELossL2(VAELoss):
         self.l2_reg_fn = L2Regularization(config)
         self.component_names = ["loss", "vae_loss", "reco", "kl", "l2"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        parameters,
+        generator_labels=None,
+        log_det_jacobian=0,
+    ):
         """
         'parameters' should be a list of model parameters to regularize.
         """
@@ -626,7 +653,16 @@ class VAEFlowLossEMD(VAEFlowLoss):
         self.emd_loss_fn = WassersteinLoss(config)
         self.component_names = ["loss", "vae_flow_loss", "reco", "kl", "emd"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        parameters,
+        generator_labels=None,
+        log_det_jacobian=0,
+    ):
         """
         In addition to the standard VAE inputs, this loss requires:
           - emd_p: first distribution tensor (e.g. a predicted histogram)
@@ -659,7 +695,16 @@ class VAEFlowLossL1(VAEFlowLoss):
         self.l1_reg_fn = L1Regularization(config)
         self.component_names = ["loss", "vae_flow_loss", "reco", "kl", "l1"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        parameters,
+        generator_labels=None,
+        log_det_jacobian=0,
+    ):
         """
         'parameters' should be a list of model parameters to regularize.
         """
@@ -686,7 +731,16 @@ class VAEFlowLossL2(VAEFlowLoss):
         self.l2_reg_fn = L2Regularization(config)
         self.component_names = ["loss", "vae_flow_loss", "reco", "kl", "l2"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        parameters,
+        generator_labels=None,
+        log_det_jacobian=0,
+    ):
         """
         'parameters' should be a list of model parameters to regularize.
         """
