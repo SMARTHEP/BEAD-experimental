@@ -327,8 +327,8 @@ class VAELoss(BaseLoss):
         mu,
         logvar,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         recon_loss = self.recon_loss_fn.calculate(
             recon, target, mu, logvar, parameters, log_det_jacobian=0
@@ -372,8 +372,8 @@ class VAEFlowLoss(BaseLoss):
         mu,
         logvar,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         recon_loss = self.recon_loss_fn.calculate(
             recon, target, mu, logvar, parameters, log_det_jacobian=0
@@ -440,8 +440,8 @@ class VAESupConLoss(BaseLoss):
         logvar,
         zk,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         # Calculate VAE loss components
         vae_loss, reco_loss, kl_loss = self.vae_loss_fn.calculate(
@@ -494,8 +494,8 @@ class VAEFlowSupConLoss(BaseLoss):
         logvar,
         zk,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         # Calculate VAEFlow loss components
         vaeflow_loss, reco_loss, kl_loss = self.vaeflow_loss_fn.calculate(
@@ -542,8 +542,8 @@ class VAELossEMD(VAELoss):
         mu,
         logvar,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         """
         In addition to the standard VAE inputs, this loss requires:
@@ -584,8 +584,8 @@ class VAELossL1(VAELoss):
         mu,
         logvar,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         """
         'parameters' should be a list of model parameters to regularize.
@@ -620,8 +620,8 @@ class VAELossL2(VAELoss):
         mu,
         logvar,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         """
         'parameters' should be a list of model parameters to regularize.
@@ -660,8 +660,8 @@ class VAEFlowLossEMD(VAEFlowLoss):
         mu,
         logvar,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         """
         In addition to the standard VAE inputs, this loss requires:
@@ -702,8 +702,8 @@ class VAEFlowLossL1(VAEFlowLoss):
         mu,
         logvar,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         """
         'parameters' should be a list of model parameters to regularize.
@@ -738,8 +738,8 @@ class VAEFlowLossL2(VAEFlowLoss):
         mu,
         logvar,
         parameters,
-        generator_labels=None,
         log_det_jacobian=0,
+        generator_labels=None,
     ):
         """
         'parameters' should be a list of model parameters to regularize.
