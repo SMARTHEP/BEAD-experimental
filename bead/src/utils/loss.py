@@ -465,8 +465,8 @@ class VAESupConLoss(BaseLoss):
 
         # Make sure 'contrastive_weight_variable' below is the actual variable used in the failing line
         contrastive_weight_variable = (
-            self.contrastive_weight_device
-        )  # Or self.contrastive_weight, etc.
+            contrastive_weight_device  # Or self.contrastive_weight, etc.
+        )
         print(
             f"Debug: contrastive_weight_variable = {contrastive_weight_variable}, type = {type(contrastive_weight_variable)}, shape = {contrastive_weight_variable.shape if hasattr(contrastive_weight_variable, 'shape') else 'N/A'}, requires_grad = {contrastive_weight_variable.requires_grad if hasattr(contrastive_weight_variable, 'requires_grad') else 'N/A'}"
         )
