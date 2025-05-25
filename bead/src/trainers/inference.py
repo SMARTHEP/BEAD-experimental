@@ -290,8 +290,10 @@ def infer(
                 target=inputs,
                 mu=mu,
                 logvar=logvar,
+                zk=zk,
                 parameters=parameters,
                 log_det_jacobian=0,
+                generator_labels=None,
             )
 
             test_loss_data.append(losses)
