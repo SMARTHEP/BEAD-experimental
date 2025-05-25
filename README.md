@@ -8,9 +8,8 @@
 
 
 
-# CRVSTAL BEAD
-***C*ontrastive *R*epresentations in *V*AE *S*tructures for *T*agging *A*nomalies in the *L*atent *S*pace**
-***B*ackground *E*nrichment for *A*nomaly *D*etection**
+# BEAD
+**Background Enrichment for Anomaly Detection**
 || *{Background Enrichis pour (la Détection d'Anomalies) Anomalie Détection}*
 
 
@@ -204,5 +203,15 @@ fi
 torchrun --standalone --nnodes=1 --nproc_per_node=3 -m bead.bead -m chain -p $WORKSPACE_NAME $PROJECT_NAME -o $OPTIONS -v
 ```
 
-
 *Happy hunting!*
+
+
+# CRVSTAL
+***C*ontrastive *R*epresentations in *V*AE *S*tructures for *T*agging *A*nomalies in the *L*atent *S*pace**
+
+
+# News
+* [x] *25 May* - BEAD now supports a new class of models (losses) called CRVSTAL with one stable variant!
+* [ ] *TBD* - New CRVSTAL losses to follow!
+* [ ] *16 June* - BEAD talk and poster at EuCAIFCon '25 @ Cagliari, Sardinia!
+
