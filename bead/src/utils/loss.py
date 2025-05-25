@@ -317,7 +317,7 @@ class VAELoss(BaseLoss):
         self.loss_type = "mse"
         self.reduction = "mean"
         self.kl_loss_fn = KLDivergenceLoss(config)
-        self.kl_weight = torch.tensor(self.config.reg_param, requires_grad=True)
+        self.kl_weight = torch.tensor(self.config.reg_param)
         self.component_names = ["loss", "reco", "kl"]
 
     def calculate(
@@ -362,8 +362,8 @@ class VAEFlowLoss(BaseLoss):
         self.loss_type = "mse"
         self.reduction = "mean"
         self.kl_loss_fn = KLDivergenceLoss(config)
-        self.kl_weight = torch.tensor(self.config.reg_param, requires_grad=True)
-        self.flow_weight = torch.tensor(self.config.reg_param, requires_grad=True)
+        self.kl_weight = torch.tensor(self.config.reg_param)
+        self.flow_weight = torch.tensor(self.config.reg_param)
         self.component_names = ["loss", "reco", "kl"]
 
     def calculate(
@@ -422,12 +422,8 @@ class VAESupConLoss(BaseLoss):
         super(VAESupConLoss, self).__init__(config)
         self.vae_loss_fn = VAELoss(config)
         self.supcon_loss_fn = SupervisedContrastiveLoss(config)
-        self.reg_param = torch.tensor(config.reg_param, requires_grad=True)
-        self.contrastive_weight = (
-            torch.tensor(config.contrastive_weight, requires_grad=True)
-            if hasattr(config, "contrastive_weight")
-            else self.reg_param
-        )
+        self.reg_param = torch.tensor(config.reg_param)
+        self.contrastive_weight = torch.tensor(config.contrastive_weight)
         self.component_names = [
             "loss",
             "vae_loss",
@@ -463,6 +459,22 @@ class VAESupConLoss(BaseLoss):
         # Ensure weights are on the same device
         contrastive_weight_device = self.contrastive_weight.to(vae_loss.device)
 
+        print(
+            f"Debug: vae_loss = {vae_loss}, type = {type(vae_loss)}, shape = {vae_loss.shape if hasattr(vae_loss, 'shape') else 'N/A'}, requires_grad = {vae_loss.requires_grad if hasattr(vae_loss, 'requires_grad') else 'N/A'}"
+        )
+
+        # Make sure 'contrastive_weight_variable' below is the actual variable used in the failing line
+        contrastive_weight_variable = (
+            self.contrastive_weight_device
+        )  # Or self.contrastive_weight, etc.
+        print(
+            f"Debug: contrastive_weight_variable = {contrastive_weight_variable}, type = {type(contrastive_weight_variable)}, shape = {contrastive_weight_variable.shape if hasattr(contrastive_weight_variable, 'shape') else 'N/A'}, requires_grad = {contrastive_weight_variable.requires_grad if hasattr(contrastive_weight_variable, 'requires_grad') else 'N/A'}"
+        )
+
+        print(
+            f"Debug: supcon_loss = {supcon_loss}, type = {type(supcon_loss)}, shape = {supcon_loss.shape if hasattr(supcon_loss, 'shape') else 'N/A'}, requires_grad = {supcon_loss.requires_grad if hasattr(supcon_loss, 'requires_grad') else 'N/A'}"
+        )
+
         # Combine losses
         loss = vae_loss + contrastive_weight_device * supcon_loss
 
@@ -481,9 +493,7 @@ class VAEFlowSupConLoss(BaseLoss):
         super(VAEFlowSupConLoss, self).__init__(config)
         self.vaeflow_loss_fn = VAEFlowLoss(config)
         self.supcon_loss_fn = SupervisedContrastiveLoss(config)
-        self.contrastive_weight = (
-            config.contrastive_weight if hasattr(config, "contrastive_weight") else 0.1
-        )
+        self.contrastive_weight = torch.tensor(config.contrastive_weight)
         self.component_names = [
             "loss",
             "vaeflow_loss",
