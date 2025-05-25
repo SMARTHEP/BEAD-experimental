@@ -450,30 +450,10 @@ class VAESupConLoss(BaseLoss):
 
         # L2 normalize zk for SupCon loss
         zk_normalized = F.normalize(zk, p=2, dim=1)
-
         # Calculate Supervised Contrastive loss
-        supcon_loss_tuple = self.supcon_loss_fn.calculate(
-            zk_normalized, generator_labels
-        )
-        supcon_loss = supcon_loss_tuple
+        supcon_loss = self.supcon_loss_fn.calculate(zk_normalized, generator_labels)[0]
         # Ensure weights are on the same device
         contrastive_weight_device = self.contrastive_weight.to(vae_loss.device)
-
-        print(
-            f"Debug: vae_loss = {vae_loss}, type = {type(vae_loss)}, shape = {vae_loss.shape if hasattr(vae_loss, 'shape') else 'N/A'}, requires_grad = {vae_loss.requires_grad if hasattr(vae_loss, 'requires_grad') else 'N/A'}"
-        )
-
-        # Make sure 'contrastive_weight_variable' below is the actual variable used in the failing line
-        contrastive_weight_variable = (
-            contrastive_weight_device  # Or self.contrastive_weight, etc.
-        )
-        print(
-            f"Debug: contrastive_weight_variable = {contrastive_weight_variable}, type = {type(contrastive_weight_variable)}, shape = {contrastive_weight_variable.shape if hasattr(contrastive_weight_variable, 'shape') else 'N/A'}, requires_grad = {contrastive_weight_variable.requires_grad if hasattr(contrastive_weight_variable, 'requires_grad') else 'N/A'}"
-        )
-
-        print(
-            f"Debug: supcon_loss = {supcon_loss}, type = {type(supcon_loss)}, shape = {supcon_loss.shape if hasattr(supcon_loss, 'shape') else 'N/A'}, requires_grad = {supcon_loss.requires_grad if hasattr(supcon_loss, 'requires_grad') else 'N/A'}"
-        )
 
         # Combine losses
         loss = vae_loss + contrastive_weight_device * supcon_loss
@@ -520,15 +500,13 @@ class VAEFlowSupConLoss(BaseLoss):
 
         # L2 normalize zk for SupCon loss
         zk_normalized = F.normalize(zk, p=2, dim=1)
-
         # Calculate Supervised Contrastive loss
-        supcon_loss_tuple = self.supcon_loss_fn.calculate(
-            zk_normalized, generator_labels
-        )
-        supcon_loss = supcon_loss_tuple
+        supcon_loss = self.supcon_loss_fn.calculate(zk_normalized, generator_labels)[0]
+        # Ensure weights are on the same device
+        contrastive_weight_device = self.contrastive_weight.to(vaeflow_loss.device)
 
         # Combine losses
-        loss = vaeflow_loss + self.contrastive_weight * supcon_loss
+        loss = vaeflow_loss + contrastive_weight_device * supcon_loss
 
         return loss, vaeflow_loss, reco_loss, kl_loss, supcon_loss
 
