@@ -422,9 +422,11 @@ class VAESupConLoss(BaseLoss):
         super(VAESupConLoss, self).__init__(config)
         self.vae_loss_fn = VAELoss(config)
         self.supcon_loss_fn = SupervisedContrastiveLoss(config)
-
+        self.reg_param = torch.tensor(config.reg_param, requires_grad=True)
         self.contrastive_weight = (
-            config.contrastive_weight if hasattr(config, "contrastive_weight") else 0.1
+            torch.tensor(config.contrastive_weight, requires_grad=True)
+            if hasattr(config, "contrastive_weight")
+            else self.reg_param
         )
         self.component_names = [
             "loss",
@@ -458,9 +460,11 @@ class VAESupConLoss(BaseLoss):
             zk_normalized, generator_labels
         )
         supcon_loss = supcon_loss_tuple
-
+        # Ensure weights are on the same device
+        contrastive_weight_device = self.contrastive_weight.to(vae_loss.device)
+        supcon_loss_device = supcon_loss.to(vae_loss.device)
         # Combine losses
-        loss = vae_loss + self.contrastive_weight * supcon_loss
+        loss = vae_loss + contrastive_weight_device * supcon_loss_device
 
         return loss, vae_loss, reco_loss, kl_loss, supcon_loss
 
