@@ -86,6 +86,7 @@ def fit(
     for idx, batch in enumerate(pbar):
         inputs, gen_labels = batch
         inputs = inputs.to(device, non_blocking=True)
+        gen_labels = gen_labels.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
 
         with torch.amp.autocast(
@@ -192,8 +193,9 @@ def validate(
 
     with torch.no_grad():
         for idx, batch in enumerate(pbar):
-            inputs, _ = batch
+            inputs, gen_labels = batch
             inputs = inputs.to(device, non_blocking=True)
+            gen_labels = gen_labels.to(device, non_blocking=True)
 
             with torch.amp.autocast(
                 device_type=device.type,
@@ -214,7 +216,7 @@ def validate(
                     log_det_jacobian=ldj
                     if hasattr(ldj, "item")
                     else torch.tensor(0.0, device=device),
-                    generator_labels=None,  # No generator labels in validation
+                    generator_labels=gen_labels,
                 )
             loss, *_ = losses
             running_loss += loss.item()
