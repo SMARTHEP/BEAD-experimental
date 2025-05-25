@@ -25,6 +25,7 @@ Classes:
 """
 
 import torch
+import torch.distributed as dist
 from torch.nn import functional as F
 
 
@@ -91,6 +92,91 @@ class KLDivergenceLoss(BaseLoss):
         kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         batch_size = mu.size(0)
         return (kl_loss / batch_size,)
+
+
+# ---------------------------
+# SupCon Loss
+# ---------------------------
+class SupervisedContrastiveLoss(BaseLoss):
+    """
+    Supervised Contrastive Learning loss function.
+    Based on: https://arxiv.org/abs/2004.11362
+    """
+
+    def __init__(self, config):
+        super(SupervisedContrastiveLoss, self).__init__(config)
+        self.temperature = (
+            config.contrastive_temperature
+            if hasattr(config, "contrastive_temperature")
+            else 0.07
+        )
+        self.component_names = ["supcon"]
+        # DDP related attributes
+        self.is_ddp_active = (
+            config.is_ddp_active if hasattr(config, "is_ddp_active") else False
+        )
+        self.world_size = config.world_size if hasattr(config, "world_size") else 1
+
+    def calculate(self, features, labels):
+        """
+        Args:
+            features (torch.Tensor): Latent vectors (e.g., zk), shape [batch_size, feature_dim].Assumed to be L2-normalized.
+            labels (torch.Tensor): Ground truth labels (generator_ids), shape [batch_size].
+        Returns:
+            torch.Tensor: Supervised contrastive loss.
+        """
+        device = features.device
+
+        if self.is_ddp_active and self.world_size > 1:
+            # Gather features and labels from all GPUs
+            gathered_features_list = [
+                torch.zeros_like(features) for _ in range(self.world_size)
+            ]
+            gathered_labels_list = [
+                torch.zeros_like(labels) for _ in range(self.world_size)
+            ]
+
+            dist.all_gather(gathered_features_list, features)
+            dist.all_gather(gathered_labels_list, labels)
+
+            features = torch.cat(gathered_features_list, dim=0)
+            labels = torch.cat(gathered_labels_list, dim=0)
+
+        batch_size = features.shape[0]
+        labels = labels.contiguous().view(-1, 1)
+
+        # Mask to identify positive pairs
+        mask = torch.eq(labels, labels.T).float().to(device)
+
+        # Similarity definition
+        anchor_dot_contrast = torch.div(
+            torch.matmul(features, features.T), self.temperature
+        )
+        # For numerical stability
+        logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
+        logits = (
+            anchor_dot_contrast - logits_max.detach()
+        )  # Detach to avoid gradients through max
+
+        # Mask-out self-contrast cases
+        logits_mask = torch.scatter(
+            torch.ones_like(mask), 1, torch.arange(batch_size).view(-1, 1).to(device), 0
+        )
+        mask = mask * logits_mask  # Positive pairs, excluding self
+
+        # Compute log_prob
+        exp_logits = torch.exp(logits) * logits_mask
+        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True) + 1e-9)
+
+        # Compute mean of log-likelihood over positive pairs
+        num_pos_per_anchor = mask.sum(1)
+        mean_log_prob_pos = (mask * log_prob).sum(1) / (num_pos_per_anchor + 1e-9)
+
+        # NLL
+        loss = -mean_log_prob_pos
+        loss = loss.view(1, batch_size).mean()  # Average over the batch
+
+        return (loss,)
 
 
 # ---------------------------
@@ -231,10 +317,20 @@ class VAELoss(BaseLoss):
         self.loss_type = "mse"
         self.reduction = "mean"
         self.kl_loss_fn = KLDivergenceLoss(config)
-        self.kl_weight = torch.tensor(self.config.reg_param, requires_grad=True)
+        self.kl_weight = torch.tensor(self.config.reg_param)
         self.component_names = ["loss", "reco", "kl"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
         recon_loss = self.recon_loss_fn.calculate(
             recon, target, mu, logvar, parameters, log_det_jacobian=0
         )
@@ -246,7 +342,7 @@ class VAELoss(BaseLoss):
 
 
 # ---------------------------
-# Advanced VAE+Flow Loss
+# VAE+Flow Loss
 # ---------------------------
 class VAEFlowLoss(BaseLoss):
     """
@@ -266,11 +362,21 @@ class VAEFlowLoss(BaseLoss):
         self.loss_type = "mse"
         self.reduction = "mean"
         self.kl_loss_fn = KLDivergenceLoss(config)
-        self.kl_weight = torch.tensor(self.config.reg_param, requires_grad=True)
-        self.flow_weight = torch.tensor(self.config.reg_param, requires_grad=True)
+        self.kl_weight = torch.tensor(self.config.reg_param)
+        self.flow_weight = torch.tensor(self.config.reg_param)
         self.component_names = ["loss", "reco", "kl"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
         recon_loss = self.recon_loss_fn.calculate(
             recon, target, mu, logvar, parameters, log_det_jacobian=0
         )[0]
@@ -305,31 +411,104 @@ class VAEFlowLoss(BaseLoss):
 
 
 # ---------------------------
-# Contrastive Loss
+# VAE+SupCon Loss
 # ---------------------------
-class ContrastiveLoss(BaseLoss):
+class VAESupConLoss(BaseLoss):
     """
-    Contrastive loss to cluster latent vectors by event generator.
-
-    Config parameters:
-      - margin: minimum distance desired between dissimilar pairs (default: 1.0)
+    Combined loss for VAE with Supervised Contrastive Learning.
     """
 
     def __init__(self, config):
-        super(ContrastiveLoss, self).__init__(config)
-        self.margin = 1.0
-        self.component_names = ["contrastive"]
+        super(VAESupConLoss, self).__init__(config)
+        self.vae_loss_fn = VAELoss(config)
+        self.supcon_loss_fn = SupervisedContrastiveLoss(config)
+        self.reg_param = torch.tensor(config.reg_param)
+        self.contrastive_weight = torch.tensor(config.contrastive_weight)
+        self.component_names = [
+            "loss",
+            "vae_loss",
+            "reco_loss",
+            "kl_loss",
+            "supcon_loss",
+        ]
 
-    def calculate(self, latent, generator_flags):
-        batch_size = latent.size(0)
-        distances = torch.cdist(latent, latent, p=2)
-        generator_flags = generator_flags.view(-1, 1)
-        same_generator = (generator_flags == generator_flags.t()).float()
-        pos_loss = same_generator * distances.pow(2)
-        neg_loss = (1 - same_generator) * F.relu(self.margin - distances).pow(2)
-        num_pairs = batch_size * (batch_size - 1)
-        loss = (pos_loss.sum() + neg_loss.sum()) / num_pairs
-        return (loss,)
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
+        # Calculate VAE loss components
+        vae_loss, reco_loss, kl_loss = self.vae_loss_fn.calculate(
+            recon, target, mu, logvar, parameters, log_det_jacobian
+        )
+
+        # L2 normalize zk for SupCon loss
+        zk_normalized = F.normalize(zk, p=2, dim=1)
+        # Calculate Supervised Contrastive loss
+        supcon_loss = self.supcon_loss_fn.calculate(zk_normalized, generator_labels)[0]
+        # Ensure weights are on the same device
+        contrastive_weight_device = self.contrastive_weight.to(vae_loss.device)
+
+        # Combine losses
+        loss = vae_loss + contrastive_weight_device * supcon_loss
+
+        return loss, vae_loss, reco_loss, kl_loss, supcon_loss
+
+
+# ---------------------------
+# VAE+Flow+SupCon Loss
+# ---------------------------
+class VAEFlowSupConLoss(BaseLoss):
+    """
+    Combined loss for VAE with Normalizing Flows and Supervised Contrastive Learning.
+    """
+
+    def __init__(self, config):
+        super(VAEFlowSupConLoss, self).__init__(config)
+        self.vaeflow_loss_fn = VAEFlowLoss(config)
+        self.supcon_loss_fn = SupervisedContrastiveLoss(config)
+        self.contrastive_weight = torch.tensor(config.contrastive_weight)
+        self.component_names = [
+            "loss",
+            "vaeflow_loss",
+            "reco_loss",
+            "kl_loss",
+            "supcon_loss",
+        ]
+
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
+        # Calculate VAEFlow loss components
+        vaeflow_loss, reco_loss, kl_loss = self.vaeflow_loss_fn.calculate(
+            recon, target, mu, logvar, parameters, log_det_jacobian
+        )
+
+        # L2 normalize zk for SupCon loss
+        zk_normalized = F.normalize(zk, p=2, dim=1)
+        # Calculate Supervised Contrastive loss
+        supcon_loss = self.supcon_loss_fn.calculate(zk_normalized, generator_labels)[0]
+        # Ensure weights are on the same device
+        contrastive_weight_device = self.contrastive_weight.to(vaeflow_loss.device)
+
+        # Combine losses
+        loss = vaeflow_loss + contrastive_weight_device * supcon_loss
+
+        return loss, vaeflow_loss, reco_loss, kl_loss, supcon_loss
 
 
 # ---------------------------
@@ -350,7 +529,17 @@ class VAELossEMD(VAELoss):
         self.emd_loss_fn = WassersteinLoss(config)
         self.component_names = ["loss", "vae_loss", "reco", "kl", "emd"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
         """
         In addition to the standard VAE inputs, this loss requires:
           - emd_p: first distribution tensor (e.g. a predicted histogram)
@@ -383,7 +572,17 @@ class VAELossL1(VAELoss):
         self.l1_reg_fn = L1Regularization(config)
         self.component_names = ["loss", "vae_loss", "reco", "kl", "l1"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
         """
         'parameters' should be a list of model parameters to regularize.
         """
@@ -410,7 +609,17 @@ class VAELossL2(VAELoss):
         self.l2_reg_fn = L2Regularization(config)
         self.component_names = ["loss", "vae_loss", "reco", "kl", "l2"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
         """
         'parameters' should be a list of model parameters to regularize.
         """
@@ -441,7 +650,17 @@ class VAEFlowLossEMD(VAEFlowLoss):
         self.emd_loss_fn = WassersteinLoss(config)
         self.component_names = ["loss", "vae_flow_loss", "reco", "kl", "emd"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
         """
         In addition to the standard VAE inputs, this loss requires:
           - emd_p: first distribution tensor (e.g. a predicted histogram)
@@ -474,7 +693,17 @@ class VAEFlowLossL1(VAEFlowLoss):
         self.l1_reg_fn = L1Regularization(config)
         self.component_names = ["loss", "vae_flow_loss", "reco", "kl", "l1"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
         """
         'parameters' should be a list of model parameters to regularize.
         """
@@ -501,7 +730,17 @@ class VAEFlowLossL2(VAEFlowLoss):
         self.l2_reg_fn = L2Regularization(config)
         self.component_names = ["loss", "vae_flow_loss", "reco", "kl", "l2"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        zk,
+        parameters,
+        log_det_jacobian=0,
+        generator_labels=None,
+    ):
         """
         'parameters' should be a list of model parameters to regularize.
         """

@@ -8,8 +8,9 @@
 
 
 
-# BEAD
-**Background Enrichment for Anomaly Detection**
+# CRVSTAL BEAD
+***C*ontrastive *R*epresentations in *V*AE *S*tructures for *T*agging *A*nomalies in the *L*atent *S*pace**
+***B*ackground *E*nrichment for *A*nomaly *D*etection**
 || *{Background Enrichis pour (la Détection d'Anomalies) Anomalie Détection}*
 
 

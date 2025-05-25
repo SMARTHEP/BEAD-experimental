@@ -185,6 +185,8 @@ class Config:
     deterministic_algorithm: bool
     separate_model_saving: bool
     subsample_size: int
+    contrastive_temperature: float
+    contrastive_weight: float
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
@@ -243,6 +245,8 @@ def set_config(c):
     c.deterministic_algorithm      = False
     c.separate_model_saving        = False
     c.subsample_size               = 300000
+    c.contrastive_temperature      = 0.1
+    c.contrastive_weight           = 0.1
 
 """
 
