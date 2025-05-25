@@ -462,9 +462,9 @@ class VAESupConLoss(BaseLoss):
         supcon_loss = supcon_loss_tuple
         # Ensure weights are on the same device
         contrastive_weight_device = self.contrastive_weight.to(vae_loss.device)
-        supcon_loss_device = supcon_loss.to(vae_loss.device)
+
         # Combine losses
-        loss = vae_loss + contrastive_weight_device * supcon_loss_device
+        loss = vae_loss + contrastive_weight_device * supcon_loss
 
         return loss, vae_loss, reco_loss, kl_loss, supcon_loss
 
