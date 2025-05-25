@@ -109,7 +109,7 @@ def fit(
                 log_det_jacobian=ldj
                 if hasattr(ldj, "item")
                 else torch.tensor(0.0, device=device),  # ldj gets extra love
-                generator_labels=gen_labels if gen_labels else None,
+                generator_labels=gen_labels,
             )
         loss, *_ = losses
 
