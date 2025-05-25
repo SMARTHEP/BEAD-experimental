@@ -142,7 +142,7 @@ class SupervisedContrastiveLoss(BaseLoss):
             features = torch.cat(gathered_features_list, dim=0)
             labels = torch.cat(gathered_labels_list, dim=0)
 
-        batch_size = features.shape
+        batch_size = features.shape[0]
         labels = labels.contiguous().view(-1, 1)
 
         # Mask to identify positive pairs
