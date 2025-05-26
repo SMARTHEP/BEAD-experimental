@@ -245,8 +245,8 @@ def set_config(c):
     c.deterministic_algorithm      = False
     c.separate_model_saving        = False
     c.subsample_size               = 300000
-    c.contrastive_temperature      = 0.1
-    c.contrastive_weight           = 0.1
+    c.contrastive_temperature      = 0.07
+    c.contrastive_weight           = 0.005
 
 """
 
