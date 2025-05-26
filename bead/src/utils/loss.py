@@ -448,17 +448,23 @@ class VAESupConLoss(BaseLoss):
             recon, target, mu, logvar, parameters, log_det_jacobian
         )
 
-        # L2 normalize zk for SupCon loss
-        zk_normalized = F.normalize(zk, p=2, dim=1)
-        # Calculate Supervised Contrastive loss
-        supcon_loss = self.supcon_loss_fn.calculate(zk_normalized, generator_labels)[0]
-        # Ensure weights are on the same device
-        contrastive_weight_device = self.contrastive_weight.to(vae_loss.device)
+        # Calculate Supervised Contrastive loss only if generator_labels are provided; if not, fallback to ELBO loss
+        if generator_labels is None:
+            return vae_loss, vae_loss, reco_loss, kl_loss, torch.tensor(0.0)
+        else:
+            # L2 normalize zk for SupCon loss
+            zk_normalized = F.normalize(zk, p=2, dim=1)
+            # Calculate Supervised Contrastive loss
+            supcon_loss = self.supcon_loss_fn.calculate(
+                zk_normalized, generator_labels
+            )[0]
+            # Ensure weights are on the same device
+            contrastive_weight_device = self.contrastive_weight.to(vae_loss.device)
 
-        # Combine losses
-        loss = vae_loss + contrastive_weight_device * supcon_loss
+            # Combine losses
+            loss = vae_loss + contrastive_weight_device * supcon_loss
 
-        return loss, vae_loss, reco_loss, kl_loss, supcon_loss
+            return loss, vae_loss, reco_loss, kl_loss, supcon_loss
 
 
 # ---------------------------
@@ -498,17 +504,23 @@ class VAEFlowSupConLoss(BaseLoss):
             recon, target, mu, logvar, parameters, log_det_jacobian
         )
 
-        # L2 normalize zk for SupCon loss
-        zk_normalized = F.normalize(zk, p=2, dim=1)
-        # Calculate Supervised Contrastive loss
-        supcon_loss = self.supcon_loss_fn.calculate(zk_normalized, generator_labels)[0]
-        # Ensure weights are on the same device
-        contrastive_weight_device = self.contrastive_weight.to(vaeflow_loss.device)
+        # Calculate Supervised Contrastive loss only if generator_labels are provided; if not, fallback to ELBO loss
+        if generator_labels is None:
+            return vaeflow_loss, vaeflow_loss, reco_loss, kl_loss, torch.tensor(0.0)
+        else:
+            # L2 normalize zk for SupCon loss
+            zk_normalized = F.normalize(zk, p=2, dim=1)
+            # Calculate Supervised Contrastive loss
+            supcon_loss = self.supcon_loss_fn.calculate(
+                zk_normalized, generator_labels
+            )[0]
+            # Ensure weights are on the same device
+            contrastive_weight_device = self.contrastive_weight.to(vaeflow_loss.device)
 
-        # Combine losses
-        loss = vaeflow_loss + contrastive_weight_device * supcon_loss
+            # Combine losses
+            loss = vaeflow_loss + contrastive_weight_device * supcon_loss
 
-        return loss, vaeflow_loss, reco_loss, kl_loss, supcon_loss
+            return loss, vaeflow_loss, reco_loss, kl_loss, supcon_loss
 
 
 # ---------------------------
