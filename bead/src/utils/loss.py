@@ -416,6 +416,11 @@ class VAEFlowLoss(BaseLoss):
 class VAESupConLoss(BaseLoss):
     """
     Combined loss for VAE with Supervised Contrastive Learning.
+
+    Config parameters:
+        - vae: dict for VAELoss config.
+        - supcon: dict for SupervisedContrastiveLoss config.
+        - contrastive_weight: weight for the contrastive loss term.
     """
 
     def __init__(self, config):
@@ -473,6 +478,11 @@ class VAESupConLoss(BaseLoss):
 class VAEFlowSupConLoss(BaseLoss):
     """
     Combined loss for VAE with Normalizing Flows and Supervised Contrastive Learning.
+
+    Config parameters:
+        - vaeflow: dict for VAEFlowLoss config.
+        - supcon: dict for SupervisedContrastiveLoss config.
+        - contrastive_weight: weight for the contrastive loss term.
     """
 
     def __init__(self, config):
