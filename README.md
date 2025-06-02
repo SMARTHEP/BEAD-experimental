@@ -32,6 +32,68 @@ For more information, follow the install instructions below go to the directory 
 
 <img width="1140" alt="Screenshot 2025-02-21 at 13 12 38" src="https://github.com/user-attachments/assets/f26f21a6-0ba3-4ba6-89e8-8ce147cc9d06" />
 
+# Package Workflow:
+
+```mermaid
+flowchart TD
+ subgraph Model_Definition["Model_Definition"]
+        Model1["models.py"]
+        Model2["flows.py"]
+        Model3["layers.py"]
+  end
+ subgraph Model_Training["Model_Training"]
+        Model_Definition
+        Training_Module["Training Module"]
+  end
+    CLI_Controller["CLI Controller"] -- triggers --> CSV_Conversion["CSV Conversion"]
+    CSV_Conversion -- "converts CSV to H5/.pt" --> Data_Pre_processing["Data Pre-processing"]
+    Data_Pre_processing -- normalizes & segments data --> Workspace_Configuration["Workspace & Configuration"]
+    Workspace_Configuration -- provides configs --> Training_Module
+    Model1 --> Training_Module
+    Model2 --> Training_Module
+    Model3 --> Training_Module
+    Training_Module -- trains DL models (PyTorch) --> Inference_Module["Inference Module"]
+    Inference_Module -- evaluates predictions --> Plotting_Module["Plotting Module"] & Diagnostics_Module["Diagnostics Module"]
+    CLI_Controller -- chain mode option --> Chain_Mode["Chain Mode\n(Bundle: Conversion, Pre-processing, Training, Inference)"]
+    Chain_Mode -. invokes .-> CSV_Conversion
+    Chain_Mode -.-> Data_Pre_processing & Training_Module & Inference_Module
+    Workspace_Configuration -- publishes configs --> Documentation["Documentation (Sphinx)"] & CI_Integration["CI Integration (GitHub Workflows)"]
+     Model1:::model
+     Model2:::model
+     Model3:::model
+     Training_Module:::model
+     CLI_Controller:::cli
+     CSV_Conversion:::data
+     Data_Pre_processing:::data
+     Workspace_Configuration:::data
+     Inference_Module:::inference
+     Plotting_Module:::inference
+     Diagnostics_Module:::inference
+     Chain_Mode:::extra
+     Documentation:::external
+     CI_Integration:::external
+    classDef cli fill:#f9c,stroke:#333,stroke-width:2px
+    classDef data fill:#9f6,stroke:#333,stroke-width:2px
+    classDef model fill:#ccf,stroke:#333,stroke-width:2px
+    classDef inference fill:#cff,stroke:#333,stroke-width:2px
+    classDef extra fill:#fcf,stroke:#333,stroke-width:2px
+    classDef external fill:#ffd,stroke:#333,stroke-width:2px,stroke-dasharray:5,5
+    style Chain_Mode color:#000000
+    click CLI_Controller "https://github.com/praktikal24/bead/blob/main/bead/bead.py"
+    click CSV_Conversion "https://github.com/praktikal24/bead/blob/main/bead/src/utils/conversion.py"
+    click Data_Pre_processing "https://github.com/praktikal24/bead/blob/main/bead/src/utils/data_processing.py"
+    click Workspace_Configuration "https://github.com/praktikal24/bead/blob/main/bead/workspaces"
+    click Model1 "https://github.com/praktikal24/bead/blob/main/bead/src/models/models.py"
+    click Model2 "https://github.com/praktikal24/bead/blob/main/bead/src/models/flows.py"
+    click Model3 "https://github.com/praktikal24/bead/blob/main/bead/src/models/layers.py"
+    click Training_Module "https://github.com/praktikal24/bead/blob/main/bead/src/trainers/training.py"
+    click Inference_Module "https://github.com/praktikal24/bead/blob/main/bead/src/trainers/inference.py"
+    click Plotting_Module "https://github.com/praktikal24/bead/blob/main/bead/src/utils/plotting.py"
+    click Diagnostics_Module "https://github.com/praktikal24/bead/blob/main/bead/src/utils/diagnostics.py"
+    click Documentation "https://praktikal24.github.io/BEAD/index.html"
+    click CI_Integration "https://github.com/praktikal24/bead/blob/main/.github/workflows"
+```
+
 For a full chain example, look [below](#example)!
 
 Bead has several versions each targetting different operating conditions (local or HPC cluster; CPU or GPU or multi-CPU-GPU distributed runs etc.). After the first full release, we will add a list mapping each stable version with the computing environment it was desinged for. For now, `prod_local` is the stable branch for running on a low compute device for e.g. the lame laptop your Univeristy gave you :P.
