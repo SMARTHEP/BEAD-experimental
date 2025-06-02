@@ -14,7 +14,7 @@
 
 
 
-BEAD is a Python package that uses deep learning based methods for anomaly detection in HEP data for new physics searches. BEAD has been designed with modularity in mind, to enable usage of various unsupervised latent variable models for any task. 
+BEAD is a Python package that uses deep learning based methods for anomaly detection in HEP data for new physics searches. BEAD has been designed with modularity in mind, to enable usage of various unsupervised latent variable models for anomaly detection by design, but any tasks beyond this scope as well with easily customizable modules. 
 
 BEAD has five main running modes:
 
