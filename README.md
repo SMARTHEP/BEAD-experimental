@@ -28,6 +28,10 @@ BEAD has five main running modes:
 
 - Diagnostics: Enabling this mode allows running profilers that measure a host of metrics connected to the usage of the compute node you run on to help you optimize the code if needed(using CPU-GPU metrics).
 
+For a full chain example, look [below](#example)!
+
+Bead has several versions each targetting different operating conditions (local or HPC cluster; CPU or GPU or multi-CPU-GPU distributed runs etc.). After the first full release, we will add a list mapping each stable version with the computing environment it was desinged for. For now, `prod_local` is the stable branch for running on a low compute device for e.g. the lame laptop your Univeristy gave you :P.
+
 
 # Package Workflow:
 
@@ -90,11 +94,6 @@ flowchart TD
     click Documentation "https://praktikal24.github.io/BEAD/index.html"
     click CI_Integration "https://github.com/praktikal24/bead/blob/main/.github/workflows"
 ```
-
-For a full chain example, look [below](#example)!
-
-Bead has several versions each targetting different operating conditions (local or HPC cluster; CPU or GPU or multi-CPU-GPU distributed runs etc.). After the first full release, we will add a list mapping each stable version with the computing environment it was desinged for. For now, `prod_local` is the stable branch for running on a low compute device for e.g. the lame laptop your Univeristy gave you :P.
-
 
 
 # Installing and Test Driving the package
