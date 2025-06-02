@@ -178,7 +178,7 @@ Bead has several versions each targetting different operating conditions (local 
 
 15. Chaining modes to avoid repetitive running of commands is facilitated by the `-m chain` mode, which **requires** the `-o` flag to determine which modes need to be chained and in what order. Look at the example below.
 
-# Example
+# Fullchain Example
 
 Say I created a new workspace that tests `SVJ` samples with `rinv=0.3` and a new project that runs the `ConvVAE` model for `500 epochs` with a learning rate of `1e-4` like so:
 
