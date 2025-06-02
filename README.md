@@ -28,9 +28,6 @@ BEAD has five main running modes:
 
 - Diagnostics: Enabling this mode allows running profilers that measure a host of metrics connected to the usage of the compute node you run on to help you optimize the code if needed(using CPU-GPU metrics).
 
-For more information, follow the install instructions below go to the directory `./BEAD/bead/` and then run the command ```poetry run bead -h``` to get detailed instructions on running the package and the available customizations.
-
-<img width="1140" alt="Screenshot 2025-02-21 at 13 12 38" src="https://github.com/user-attachments/assets/f26f21a6-0ba3-4ba6-89e8-8ce147cc9d06" />
 
 # Package Workflow:
 
@@ -117,7 +114,9 @@ Bead has several versions each targetting different operating conditions (local 
 
          uv run bead -h
 
-  This should bring up the help window that explains all the various running modes of bead.
+  This should bring up the help window that explains all the various running modes of bead:
+  <img width="1140" alt="Screenshot 2025-02-21 at 13 12 38" src="https://github.com/user-attachments/assets/f26f21a6-0ba3-4ba6-89e8-8ce147cc9d06" />
+
 
 7. Start with creating a new workspace and project like so:
 
