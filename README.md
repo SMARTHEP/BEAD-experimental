@@ -33,6 +33,12 @@ For a full chain example, look [below](#example)!
 Bead has several versions each targetting different operating conditions (local or HPC cluster; CPU or GPU or multi-CPU-GPU distributed runs etc.). After the first full release, we will add a list mapping each stable version with the computing environment it was desinged for. For now, `prod_local` is the stable branch for running on a low compute device for e.g. the lame laptop your Univeristy gave you :P.
 
 
+# News
+* [x] *25 May* - BEAD now supports a new class of models (losses) called CRVSTAL with one stable variant!
+* [ ] *TBD* - New CRVSTAL losses to follow!
+* [ ] *16 June* - BEAD talk and poster at EuCAIFCon '25 @ Cagliari, Sardinia!
+
+
 # Package Workflow:
 
 ```mermaid
@@ -269,9 +275,4 @@ torchrun --standalone --nnodes=1 --nproc_per_node=3 -m bead.bead -m chain -p $WO
 # CRVSTAL
 ***C*ontrastive *R*epresentations in *V*AE *S*tructures for *T*agging *A*nomalies in the *L*atent *S*pace**
 
-
-# News
-* [x] *25 May* - BEAD now supports a new class of models (losses) called CRVSTAL with one stable variant!
-* [ ] *TBD* - New CRVSTAL losses to follow!
-* [ ] *16 June* - BEAD talk and poster at EuCAIFCon '25 @ Cagliari, Sardinia!
 
