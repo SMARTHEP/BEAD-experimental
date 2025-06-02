@@ -54,7 +54,7 @@ flowchart TD
     Model3 --> Training_Module
     Training_Module -- trains DL models (PyTorch) --> Inference_Module["Inference Module"]
     Inference_Module -- evaluates predictions --> Plotting_Module["Plotting Module"] & Diagnostics_Module["Diagnostics Module"]
-    CLI_Controller -- chain mode option --> Chain_Mode["Chain Mode\n(Bundle: Conversion, Pre-processing, Training, Inference)"]
+    CLI_Controller -- chain mode option --> Chain_Mode["Chain Mode (Any combination: Conversion, Pre-processing, Training, Inference, Plotting, Diagnostics)"]
     Chain_Mode -. invokes .-> CSV_Conversion
     Chain_Mode -.-> Data_Pre_processing & Training_Module & Inference_Module
     Workspace_Configuration -- publishes configs --> Documentation["Documentation (Sphinx)"] & CI_Integration["CI Integration (GitHub Workflows)"]
