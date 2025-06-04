@@ -26,6 +26,7 @@ from tqdm import TqdmExperimentalWarning
 from tqdm.rich import tqdm
 
 from ..utils import helper
+from ..utils.annealing import AnnealingManager
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -441,6 +442,9 @@ def train(
         if config.lr_scheduler
         else None
     )
+    
+    # Initialize hyperparameter annealing manager if configured
+    annealing_manager = AnnealingManager(config) if hasattr(config, "annealing_params") else None
 
     # Containers for loss data
     train_loss_components_per_epoch = []
@@ -497,6 +501,18 @@ def train(
 
         if lr_scheduler:
             lr_scheduler(current_validation_epoch_loss_for_schedulers.item())
+            
+        # Apply hyperparameter annealing if configured
+        annealing_metrics = {}
+        if lr_scheduler and hasattr(lr_scheduler, "triggered"):
+            annealing_metrics["lr_scheduler_triggered"] = lr_scheduler.triggered
+        if early_stopper and hasattr(early_stopper, "counter"):
+            annealing_metrics["early_stopper_counter"] = early_stopper.counter
+            
+        if annealing_manager:
+            annealed_params = annealing_manager.step(epoch=epoch, metrics=annealing_metrics)
+            if annealed_params and (not is_ddp_active or local_rank == 0) and verbose:
+                print(f"Annealed parameters for epoch {epoch + 1}: {annealed_params}")
 
         # Using only rank 0 to log and broadcast decisions when using DDP
         if not is_ddp_active or local_rank == 0:
