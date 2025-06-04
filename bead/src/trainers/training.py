@@ -502,18 +502,6 @@ def train(
         if lr_scheduler:
             lr_scheduler(current_validation_epoch_loss_for_schedulers.item())
             
-        # Apply hyperparameter annealing if configured
-        annealing_metrics = {}
-        if lr_scheduler and hasattr(lr_scheduler, "triggered"):
-            annealing_metrics["lr_scheduler_triggered"] = lr_scheduler.triggered
-        if early_stopper and hasattr(early_stopper, "counter"):
-            annealing_metrics["early_stopper_counter"] = early_stopper.counter
-            
-        if annealing_manager:
-            annealed_params = annealing_manager.step(epoch=epoch, metrics=annealing_metrics)
-            if annealed_params and (not is_ddp_active or local_rank == 0) and verbose:
-                print(f"Annealed parameters for epoch {epoch + 1}: {annealed_params}")
-
         # Using only rank 0 to log and broadcast decisions when using DDP
         if not is_ddp_active or local_rank == 0:
             train_avg_epoch_losses.append(current_train_epoch_loss_avg.item())
@@ -540,6 +528,25 @@ def train(
                     print(
                         f"Rank {local_rank}: Early stopping condition met at epoch {epoch + 1}. Will signal other ranks."
                     )
+                    
+        # Apply hyperparameter annealing if configured
+        # Note: This is placed after early_stopper updates so the most recent counter is used
+        annealing_metrics = {}
+        if lr_scheduler and hasattr(lr_scheduler, "triggered"):
+            annealing_metrics["lr_scheduler_triggered"] = lr_scheduler.triggered
+        if early_stopper and hasattr(early_stopper, "counter"):
+            annealing_metrics["early_stopper_counter"] = early_stopper.counter
+            # Check if early stopper counter has reached half of patience
+            # and add as a trigger signal
+            if early_stopper.counter >= early_stopper.patience / 2:
+                annealing_metrics["early_stopper_half_patience"] = True
+            else:
+                annealing_metrics["early_stopper_half_patience"] = False
+            
+        if annealing_manager:
+            annealed_params = annealing_manager.step(epoch=epoch, metrics=annealing_metrics)
+            if annealed_params and (not is_ddp_active or local_rank == 0) and verbose:
+                print(f"Annealed parameters for epoch {epoch + 1}: {annealed_params}")
 
         # Synchronize early stopping signal and stop across all ranks based on decision from rank 0
         if is_ddp_active:

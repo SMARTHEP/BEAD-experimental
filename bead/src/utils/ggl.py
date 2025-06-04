@@ -248,6 +248,25 @@ def set_config(c):
     c.contrastive_temperature      = 0.07
     c.contrastive_weight           = 0.005
 
+    # Parameter annealing configuration
+    c.annealing_params = {
+        # Anneal reg_param based on early stopper counter reaching half patience
+        "reg_param": {
+            "strategy": "TRIGGER_BASED",
+            "values": [0.001, 0.005, 0.01, 0.05],  # Values to cycle through
+            "trigger_source": "early_stopper_half_patience",  # Triggers when counter reaches half of patience
+            "current_index": 0
+        },
+        
+        # Anneal contrastive_weight based on early stopper counter reaching half patience
+        "contrastive_weight": {
+            "strategy": "TRIGGER_BASED",
+            "values": [0.005, 0.01, 0.02, 0.03],  # Values to cycle through
+            "trigger_source": "early_stopper_half_patience",  # Triggers when counter reaches half of patience
+            "current_index": 0
+        }
+    }
+
 """
 
 
