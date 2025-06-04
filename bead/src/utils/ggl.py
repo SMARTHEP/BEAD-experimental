@@ -255,8 +255,8 @@ def set_config(c):
             "current_index": 0
         },
         "contrastive_weight": {"strategy": "TRIGGER_BASED",
-            "values": [0.005, 0.01, 0.02, 0.03],  # Values to cycle through
-            "trigger_source": "early_stopper_third_patience",  # Triggers when counter reaches one-third of patience
+            "values": [0.005, 0.01, 0.02, 0.03],
+            "trigger_source": "early_stopper_third_patience",
             "current_index": 0
         }
     }
