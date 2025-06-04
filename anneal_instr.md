@@ -58,6 +58,7 @@ Changes parameter values when triggered by signals like early stopping or learni
 
 Supported trigger sources:
 - `early_stopper_counter`: Triggers when early stopper counter increases
+- `early_stopper_third_patience`: Triggers when early stopper counter reaches one-third of its patience value
 - `early_stopper_half_patience`: Triggers when early stopper counter reaches half of its patience value
 - `early_stopper_triggered`: Triggers when early stopping is activated
 - `lr_scheduler_triggered`: Triggers when learning rate scheduler reduces learning rate

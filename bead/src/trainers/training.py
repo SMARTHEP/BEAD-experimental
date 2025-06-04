@@ -542,6 +542,13 @@ def train(
                 annealing_metrics["early_stopper_half_patience"] = True
             else:
                 annealing_metrics["early_stopper_half_patience"] = False
+                
+            # Check if early stopper counter has reached one-third of patience
+            # and add as a trigger signal
+            if early_stopper.counter >= early_stopper.patience / 3:
+                annealing_metrics["early_stopper_third_patience"] = True
+            else:
+                annealing_metrics["early_stopper_third_patience"] = False
             
         if annealing_manager:
             annealed_params = annealing_manager.step(epoch=epoch, metrics=annealing_metrics)

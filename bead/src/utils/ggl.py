@@ -258,11 +258,11 @@ def set_config(c):
             "current_index": 0
         },
         
-        # Anneal contrastive_weight based on early stopper counter reaching half patience
+        # Anneal contrastive_weight based on early stopper counter reaching one-third patience
         "contrastive_weight": {
             "strategy": "TRIGGER_BASED",
             "values": [0.005, 0.01, 0.02, 0.03],  # Values to cycle through
-            "trigger_source": "early_stopper_half_patience",  # Triggers when counter reaches half of patience
+            "trigger_source": "early_stopper_third_patience",  # Triggers when counter reaches one-third of patience
             "current_index": 0
         }
     }
