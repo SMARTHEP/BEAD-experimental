@@ -398,11 +398,12 @@ class VAEFlowLoss(BaseLoss):
         kl_weight_device = self.kl_weight.to(recon_loss.device)
         flow_weight_device = self.flow_weight.to(recon_loss.device)
 
-        total_loss = torch.abs(
+        total_loss = (
             recon_loss
             + kl_weight_device * kl_loss
             - flow_weight_device * mean_log_det_jacobian
         )
+
         return total_loss, recon_loss, kl_loss
 
 
