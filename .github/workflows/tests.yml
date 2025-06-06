@@ -35,7 +35,7 @@ jobs:
 
       - name: Create virtual environment
         run: |
-          uv venv create || uv venv --system
+          uv venv || { echo "Failed to create a virtual environment. Falling back to system environment."; exit 1; }
 
       - name: Install dependencies
         run: |
