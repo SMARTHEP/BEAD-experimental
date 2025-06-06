@@ -28,6 +28,7 @@ jobs:
 
       - name: Verify uv installation
         run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
           if ! command -v uv &> /dev/null; then
             echo "uv could not be found, installation failed."
             exit 1
@@ -39,7 +40,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install -e ".[test]" || uv pip install pytest
+          uv pip install -e ".[test]" || pip install pytest
 
       - name: Run tests
         run: |
