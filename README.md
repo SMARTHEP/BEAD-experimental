@@ -1,10 +1,14 @@
 ![GitHub Release Date](https://img.shields.io/github/release-date-pre/PRAkTIKal24/BEAD?style=flat&color=blue)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14888114.svg)](https://doi.org/10.5281/zenodo.14888114)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-
-[![example event workflow](https://github.com/PRAkTIKal24/BEAD/actions/workflows/docs.yaml/badge.svg?event=push)](https://github.com/PRAkTIKal24/BEAD/actions)
 ![GitHub repo size](https://img.shields.io/github/repo-size/PRAkTIKal24/BEAD)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![GitHub forks](https://img.shields.io/github/forks/PRAkTIKal24/BEAD?style=flat&color=blue)
+
+[![Docs](https://github.com/PRAkTIKal24/BEAD/actions/workflows/docs.yaml/badge.svg?event=push)](https://github.com/PRAkTIKal24/BEAD/actions)
+[![Tests](https://github.com/PRAkTIKal24/BEAD/actions/workflows/tests.yml/badge.svg?event=push)](https://github.com/PRAkTIKal24/BEAD/actions)
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/PRAkTIKal24/BEAD)
+![Codecov](https://img.shields.io/codecov/c/github/PRAkTIKal24/BEAD)
+
 
 
 
