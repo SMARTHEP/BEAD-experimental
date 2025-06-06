@@ -248,6 +248,22 @@ def set_config(c):
     c.contrastive_temperature      = 0.07
     c.contrastive_weight           = 0.005
 
+    # Parameter annealing configuration
+    c.annealing_params = {{
+        "reg_param": {{
+            "strategy": "TRIGGER_BASED",
+            "values": [0.001, 0.005, 0.01, 0.05],
+            "trigger_source": "early_stopper_half_patience",
+            "current_index": 0
+        }},
+        "contrastive_weight": {{
+            "strategy": "TRIGGER_BASED",
+            "values": [0.005, 0.01, 0.02, 0.03],
+            "trigger_source": "early_stopper_third_patience",
+            "current_index": 0
+        }}
+    }}
+
 """
 
 

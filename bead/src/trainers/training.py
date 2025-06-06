@@ -26,6 +26,7 @@ from tqdm import TqdmExperimentalWarning
 from tqdm.rich import tqdm
 
 from ..utils import helper
+from ..utils.annealing import AnnealingManager
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -83,7 +84,7 @@ def fit(
     else:
         pbar = dataloader
 
-    for idx, batch in enumerate(pbar):
+    for _idx, batch in enumerate(pbar):
         inputs, gen_labels = batch
         inputs = inputs.to(device, non_blocking=True)
         gen_labels = gen_labels.to(device, non_blocking=True)
@@ -192,7 +193,7 @@ def validate(
         pbar = dataloader
 
     with torch.no_grad():
-        for idx, batch in enumerate(pbar):
+        for _idx, batch in enumerate(pbar):
             inputs, gen_labels = batch
             inputs = inputs.to(device, non_blocking=True)
             gen_labels = gen_labels.to(device, non_blocking=True)
@@ -442,6 +443,11 @@ def train(
         else None
     )
 
+    # Initialize hyperparameter annealing manager if configured
+    annealing_manager = (
+        AnnealingManager(config) if hasattr(config, "annealing_params") else None
+    )
+
     # Containers for loss data
     train_loss_components_per_epoch = []
     validation_loss_components_per_epoch = []
@@ -525,6 +531,34 @@ def train(
                         f"Rank {local_rank}: Early stopping condition met at epoch {epoch + 1}. Will signal other ranks."
                     )
 
+        # Apply hyperparameter annealing if configured
+        # Note: This is placed after early_stopper updates so the most recent counter is used
+        annealing_metrics = {}
+        if lr_scheduler and hasattr(lr_scheduler, "triggered"):
+            annealing_metrics["lr_scheduler_triggered"] = lr_scheduler.triggered
+        if early_stopper and hasattr(early_stopper, "counter"):
+            annealing_metrics["early_stopper_counter"] = early_stopper.counter
+            # Check if early stopper counter has reached half of patience
+            # and add as a trigger signal
+            if early_stopper.counter >= early_stopper.patience / 2:
+                annealing_metrics["early_stopper_half_patience"] = True
+            else:
+                annealing_metrics["early_stopper_half_patience"] = False
+
+            # Check if early stopper counter has reached one-third of patience
+            # and add as a trigger signal
+            if early_stopper.counter >= early_stopper.patience / 3:
+                annealing_metrics["early_stopper_third_patience"] = True
+            else:
+                annealing_metrics["early_stopper_third_patience"] = False
+
+        if annealing_manager:
+            annealed_params = annealing_manager.step(
+                epoch=epoch, metrics=annealing_metrics
+            )
+            if annealed_params and (not is_ddp_active or local_rank == 0) and verbose:
+                print(f"Annealed parameters for epoch {epoch + 1}: {annealed_params}")
+
         # Synchronize early stopping signal and stop across all ranks based on decision from rank 0
         if is_ddp_active:
             if local_rank == 0:
@@ -594,7 +628,7 @@ def train(
             )
 
             with torch.no_grad():
-                for idx, batch in enumerate(
+                for _idx, batch in enumerate(
                     tqdm(
                         final_pass_dataloader,
                         desc="Final data collection pass (Rank 0)",

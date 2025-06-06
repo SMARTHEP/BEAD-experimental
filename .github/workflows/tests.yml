@@ -1,0 +1,55 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          export PATH="$HOME/.cargo/bin:$PATH"
+
+      - name: Verify uv installation
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          if ! command -v uv &> /dev/null; then
+            echo "uv could not be found, installation failed."
+            exit 1
+          fi
+
+      - name: Create virtual environment
+        run: |
+          uv venv || { echo "Failed to create a virtual environment. Falling back to system environment."; exit 1; }
+
+      - name: Install dependencies
+        run: |
+          uv pip install -e ".[test]"
+
+      - name: Run tests
+        run: |
+          uv run pytest
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
