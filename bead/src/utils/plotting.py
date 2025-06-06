@@ -591,6 +591,7 @@ def plot_mu_logvar(config, paths, verbose=False):
                 uncertainty[gen_labels == 2],
                 uncertainty[len(gen_labels) :] if prefix == "test_" else [],
             ],
+            strict=False,
         ):
             if len(values) > 0:
                 plt.hist(values, bins=30, alpha=0.6, color=color)

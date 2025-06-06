@@ -274,7 +274,7 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
         except ValueError as e:
             print(e)
         # Unpack the list of tuples into two transposed tuples.
-        trains, vals = zip(*splits)
+        trains, vals = zip(*splits, strict=False)
         # Repack into a single tuple
         data = trains + vals
 
