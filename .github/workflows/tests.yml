@@ -26,9 +26,16 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           export PATH="$HOME/.cargo/bin:$PATH"
 
+      - name: Verify uv installation
+        run: |
+          if ! command -v uv &> /dev/null; then
+            echo "uv could not be found, installation failed."
+            exit 1
+          fi
+
       - name: Create virtual environment
         run: |
-          uv venv create
+          uv venv create || uv venv --system
 
       - name: Install dependencies
         run: |
