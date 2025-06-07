@@ -9,8 +9,9 @@
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/PRAkTIKal24/BEAD)
 ![Codecov](https://img.shields.io/codecov/c/github/PRAkTIKal24/BEAD)
 
-
-
+<p align="center">
+ <img width="285" alt="logo" src="https://github.com/user-attachments/assets/c0191ab9-9d52-4d4d-b5ea-6f3fbd00cda9" />
+</p>
 
 # BEAD
 **Background Enrichment for Anomaly Detection**
@@ -124,8 +125,10 @@ flowchart TD
          uv run bead -h
 
   This should bring up the help window that explains all the various running modes of bead:
-  <img width="1140" alt="Screenshot 2025-02-21 at 13 12 38" src="https://github.com/user-attachments/assets/f26f21a6-0ba3-4ba6-89e8-8ce147cc9d06" />
 
+<p align="center">  
+  <img width="570" alt="help" src="https://github.com/user-attachments/assets/f26f21a6-0ba3-4ba6-89e8-8ce147cc9d06" />
+</p>
 
 7. Start with creating a new workspace and project like so:
 
