@@ -10,7 +10,7 @@
 ![Codecov](https://img.shields.io/codecov/c/github/PRAkTIKal24/BEAD)
 
 <p align="center">
- <img width="285" alt="logo" src="https://github.com/user-attachments/assets/c0191ab9-9d52-4d4d-b5ea-6f3fbd00cda9" />
+ <img width="285" alt="logo" src="https://github.com/user-attachments/assets/a47c53f8-deff-4cde-9e2c-b21d910578f4" />
 </p>
 
 # BEAD
