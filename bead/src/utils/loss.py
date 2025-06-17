@@ -823,6 +823,6 @@ class DVAEFlowLoss(VAEFlowLoss):
     DVAEFlowLoss: Combines reconstruction loss and Dirichlet KL divergence loss.
     Inherits from VAEFlowLoss and overrides the KL loss function to use Dirichlet prior.
     """
-    def __init__(self,config):
-        super(DVAEFlowLoss,self).__init__(config)
+    def __init__(self, config):
+        super(DVAEFlowLoss, self).__init__(config)
         self.kl_loss_fn = KLDivergenceLoss(config, prior="dirichlet")
