@@ -782,7 +782,7 @@ def plot_roc_curve(config, paths, verbose: bool = False):
             }
 
         # Plot the ROC curve.
-        plt.plot(fpr, tpr, label=f"{component.capitalize()}) AUC = {roc_auc:.2f}", lw=2)
+        plt.plot(fpr, tpr, label=f"{component.capitalize()} AUC = {roc_auc:.2f}", lw=2)
 
     plt.plot([0, 1], [0, 1], "k--", lw=2, label="Random Guess")
     plt.xlabel("False Positive Rate")
