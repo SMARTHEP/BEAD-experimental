@@ -43,9 +43,11 @@ Bead has several versions each targetting different operating conditions (local 
 
 
 # News
-* [x] *25 May* - BEAD now supports a new class of models (losses) called CRVSTAL with one stable variant!
 * [ ] *TBD* - New CRVSTAL losses to follow!
-* [ ] *16 June* - BEAD talk and poster at EuCAIFCon '25 @ Cagliari, Sardinia!
+* [ ] *19 June* - New model update! Planned [DVAE](https://arxiv.org/abs/2104.08291) integration
+* [x] *17 June* - New pre-release, BEAD v0.12.7 - Now supports faster GPU-based plotting and overlaid ROCs for comparing across projects!
+* [x] *16 June* - ~BEAD talk and poster at EuCAIFCon '25 @ Cagliari, Sardinia!~ - Withdrawn due to visa issues :(
+* [x] *25 May* - BEAD now supports a new class of models (losses) called CRVSTAL with one stable variant!
 
 
 # Package Workflow:
