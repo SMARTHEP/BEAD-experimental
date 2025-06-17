@@ -35,6 +35,8 @@ BEAD has five main running modes:
 
 - **Diagnostics**: Enabling this mode allows running profilers that measure a host of metrics connected to the usage of the compute node you run on to help you optimize the code if needed(using CPU-GPU metrics).
 
+- **GPU Visualization**: GPU-accelerated plotting and dimensionality reduction for faster analysis and visualization of large datasets, with automatic fallback to CPU when GPU is unavailable.
+
 For a full chain example, look [below](#example)!
 
 Bead has several versions each targetting different operating conditions (local or HPC cluster; CPU or GPU or multi-CPU-GPU distributed runs etc.). After the first full release, we will add a list mapping each stable version with the computing environment it was desinged for. For now, `prod_local` is the stable branch for running on a low compute device for e.g. the lame laptop your Univeristy gave you :P.
@@ -132,8 +134,21 @@ uv pip install -e ".[gpu]"
 For enhanced CPU-based visualization without GPU:
 
 ```bash
-uv pip install ".[viz]"
+uv pip install -e ".[viz]"
 ```
+
+#### Running GPU Visualization Tests
+
+The GPU visualization functionality is thoroughly tested through unit tests that verify both GPU and CPU code paths work correctly.
+
+To run the GPU visualization tests specifically:
+
+```bash
+uv pip install -e ".[test,viz]"
+uv run pytest tests/unit/test_gpu_plotting.py -v
+```
+
+Note that these tests use mocking to simulate both GPU and CPU environments, so they can run successfully even on systems without GPU hardware. Some GPU-specific tests will be automatically skipped in environments without cuML installed or when no GPU is detected.
 
 3. After installing uv, clone this repository to your working directory.
 
