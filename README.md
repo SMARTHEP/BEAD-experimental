@@ -224,6 +224,18 @@ Note that these tests use mocking to simulate both GPU and CPU environments, so 
     If you only want plots from the inference, use:
 
          uv run bead -m plot -p WORKSPACE_NAME PROJECT_NAME -o test_metrics
+         
+    **ROC Overlay Feature**: You can now compare ROC curves from different projects by enabling the `overlay_roc` flag in your project's config file:
+    
+    ```python
+    # In your project config file
+    c.overlay_roc = True
+    c.overlay_roc_projects = ["workspace1/project1", "workspace2/project2"]
+    c.overlay_roc_save_location = "overlay_roc"
+    c.overlay_roc_filename = "comparison_roc.pdf"
+    ```
+    
+    This feature creates a combined ROC plot with logarithmic x-axis (range 1E-4 to 1E-1) showing ROC curves from the current project and other specified projects, displaying AUC values in the legend for easy comparison.
 
 15. Chaining modes to avoid repetitive running of commands is facilitated by the `-m chain` mode, which **requires** the `-o` flag to determine which modes need to be chained and in what order. Look at the example below.
 

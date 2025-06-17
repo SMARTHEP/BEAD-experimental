@@ -187,6 +187,10 @@ class Config:
     subsample_size: int
     contrastive_temperature: float
     contrastive_weight: float
+    overlay_roc: bool
+    overlay_roc_projects: list
+    overlay_roc_save_location: str
+    overlay_roc_filename: str
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
@@ -247,6 +251,10 @@ def set_config(c):
     c.subsample_size               = 300000
     c.contrastive_temperature      = 0.07
     c.contrastive_weight           = 0.005
+    c.overlay_roc                  = False
+    c.overlay_roc_projects         = ["workspace_name/project_name"]
+    c.overlay_roc_save_location    = "overlay_roc"
+    c.overlay_roc_filename         = "combined_roc.pdf"
 
     # Parameter annealing configuration
     c.annealing_params = {{
@@ -299,6 +307,7 @@ def create_new_project(
         os.path.join(project_path, "output", "results"),
         os.path.join(project_path, "output", "plots", "latent_space"),
         os.path.join(project_path, "output", "plots", "loss"),
+        os.path.join(project_path, "output", "plots", "overlay_roc"),
         os.path.join(project_path, "output", "models"),
     ]
 
@@ -637,8 +646,9 @@ def run_inference(paths, config, verbose: bool = False):
 
 def run_plots(paths, config, verbose: bool = False):
     """
-    Main function calling the two plotting functions, ran when --mode=plot is selected.
-    The main functions this calls are: `plotting.plot_losses`, `plotting.plot_latent_variables`, plotting.plot_mu_logvar and `plotting.plot_roc_curve`.
+    Main function calling the plotting functions, ran when --mode=plot is selected.
+    The main functions this calls are: `plotting.plot_losses`, `plotting.plot_latent_variables`, 
+    plotting.plot_mu_logvar and `plotting.plot_roc_curve`.
 
     Args:
         paths (dictionary): Dictionary of common paths used in the pipeline
@@ -656,14 +666,20 @@ def run_plots(paths, config, verbose: bool = False):
         plotting.plot_latent_variables(config, paths, verbose)
     except ValueError as e:
         print(e)
+    except Exception as e:
+        print(f"Error plotting latent variables: {e}")
     try:
         plotting.plot_mu_logvar(config, paths, verbose)
     except ValueError as e:
         print(e)
+    except Exception as e:
+        print(f"Error plotting mu/logvar: {e}")
     try:
         plotting.plot_roc_curve(config, paths, verbose)
     except ValueError as e:
         print(e)
+    except Exception as e:
+        print(f"Error plotting ROC curve: {e}")
 
     print("Plotting complete")
 
