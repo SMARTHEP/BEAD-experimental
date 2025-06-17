@@ -27,7 +27,7 @@ BEAD has five main running modes:
 
 - **Data handling**: Deals with handling file types, conversions between them and pre-processing the data to feed as inputs to the DL models.
 
-- **Training**: Train your model to learn implicit representations of your background data that may come from multiple sources/generators to get a single, encriched latent representation of it.
+- **Training**: Train your model to learn implicit representations of your background data that may come from multiple sources/generators to get a single, enriched latent representation of it.
 
 - **Inference**: Using a model trained on an enriched background, feed in samples you want to detect anomalies in and watch the magic happen.
 
