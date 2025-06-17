@@ -14,14 +14,54 @@ Functions:
 """
 
 import os
+import warnings
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
-import trimap
+import torch
+from sklearn.metrics import auc, roc_curve
+
+# Import GPU-accelerated algorithms if available, otherwise use CPU versions
+try:
+    import cuml
+    from cuml.manifold import TSNE as cuTSNE
+    from cuml.decomposition import PCA as cuPCA
+    CUML_AVAILABLE = True
+except ImportError:
+    CUML_AVAILABLE = False
+    warnings.warn("cuML not installed. Using sklearn CPU implementations instead.")
+
+# Import CPU implementations as fallback
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.metrics import auc, roc_curve
+
+# Try importing UMAP (both GPU and CPU versions)
+try:
+    if CUML_AVAILABLE:
+        from cuml.manifold import UMAP as cuUMAP
+        CUUMAP_AVAILABLE = True
+    else:
+        CUUMAP_AVAILABLE = False
+except ImportError:
+    CUUMAP_AVAILABLE = False
+
+try:
+    import umap
+    UMAP_AVAILABLE = True
+except ImportError:
+    UMAP_AVAILABLE = False
+
+# Import TriMap as an alternative
+try:
+    import trimap
+    TRIMAP_AVAILABLE = True
+except ImportError:
+    TRIMAP_AVAILABLE = False
+    warnings.warn("TriMap not installed. This dimensionality reduction method will not be available.")
+
+# Import utility function to check device availability
+from . import helper
 
 
 def plot_losses(output_dir, save_dir, config, verbose: bool = False):
@@ -146,16 +186,16 @@ def reduce_dim_subsampled(
     """
     Reduce dimensionality of data with optional subsampling for large datasets.
 
-    This function applies dimensionality reduction techniques (PCA, t-SNE, or TriMap)
+    This function applies dimensionality reduction techniques (PCA, t-SNE, TriMap, or UMAP)
     to high-dimensional data, with options for subsampling large datasets to improve
-    computational efficiency.
+    computational efficiency. It will use GPU-accelerated methods when available.
 
     Parameters
     ----------
     data : numpy.ndarray
         Input data of shape (n_samples, n_features)
     method : str, optional
-        Dimensionality reduction method to use: "pca", "tsne", or "trimap", default is "trimap"
+        Dimensionality reduction method to use: "pca", "tsne", "trimap", or "umap", default is "tsne"
     n_components : int, optional
         Number of dimensions to reduce to, default is 2
     n_samples : int, optional
@@ -177,6 +217,14 @@ def reduce_dim_subsampled(
     ValueError
         If an invalid dimensionality reduction method is specified
     """
+    # Convert to numpy array if it's a tensor
+    if isinstance(data, torch.Tensor):
+        data = data.cpu().numpy()
+
+    # Check device availability for GPU acceleration
+    device = helper.get_device()
+    use_gpu = CUML_AVAILABLE and device.type == 'cuda'
+
     # Subsampling for large datasets
     if n_samples is not None and data.shape[0] > n_samples:
         if verbose:
@@ -190,32 +238,84 @@ def reduce_dim_subsampled(
     if data.shape[1] > 50:
         if verbose:
             print(f"Applying PCA to reduce from {data.shape[1]} to 50 dimensions...")
-        data = PCA(n_components=50).fit_transform(data)
+        try:
+            if use_gpu:
+                data = cuPCA(n_components=50).fit_transform(data)
+            else:
+                data = PCA(n_components=50).fit_transform(data)
+        except Exception as e:
+            warnings.warn(f"Error in PCA preprocessing, using original data: {str(e)}")
 
     # Apply the selected dimensionality reduction method
     method = method.lower()
-    if method == "pca":
-        if verbose:
-            print("Reducing to 2 dimensions using PCA...")
-        reducer = PCA(n_components=n_components)
+    try:
+        if method == "pca":
+            if verbose:
+                print("Reducing to 2 dimensions using PCA...")
+            if use_gpu:
+                reducer = cuPCA(n_components=n_components)
+            else:
+                reducer = PCA(n_components=n_components)
+            reduced = reducer.fit_transform(data)
+            method_used = "pca"
+
+        elif method == "tsne":
+            if verbose:
+                print("Reducing to 2 dimensions using t-SNE...")
+            if use_gpu:
+                # cuML's T-SNE has different parameters
+                reducer = cuTSNE(n_components=n_components, random_state=42,
+                                learning_rate='auto', init='random')
+            else:
+                reducer = TSNE(n_components=n_components, random_state=42)
+            reduced = reducer.fit_transform(data)
+            method_used = "t-sne"
+
+        elif method == "trimap" and TRIMAP_AVAILABLE:
+            if verbose:
+                print("Reducing to 2 dimensions using TriMap...")
+            reducer = trimap.TRIMAP(n_dims=n_components)
+            reduced = reducer.fit_transform(data)
+            method_used = "trimap"
+
+        elif method == "umap":
+            if verbose:
+                print("Reducing to 2 dimensions using UMAP...")
+            if use_gpu and CUUMAP_AVAILABLE:
+                reducer = cuUMAP(n_components=n_components, random_state=42)
+            elif UMAP_AVAILABLE:
+                reducer = umap.UMAP(n_components=n_components, random_state=42)
+            else:
+                raise ImportError("UMAP is not available. Install 'umap-learn' package.")
+            reduced = reducer.fit_transform(data)
+            method_used = "umap"
+
+        else:
+            # Fall back to PCA if the specified method is not available
+            if method != "pca" and method != "tsne":
+                warnings.warn(
+                    f"Method '{method}' is not available. Falling back to t-SNE."
+                )
+
+            if use_gpu:
+                reducer = cuTSNE(n_components=n_components, random_state=42)
+            else:
+                reducer = TSNE(n_components=n_components, random_state=42)
+            reduced = reducer.fit_transform(data)
+            method_used = "t-sne"
+
+    except Exception as e:
+        warnings.warn(f"Error using {method}, falling back to PCA: {str(e)}")
+        if use_gpu:
+            reducer = cuPCA(n_components=n_components)
+        else:
+            reducer = PCA(n_components=n_components)
         reduced = reducer.fit_transform(data)
         method_used = "pca"
-    elif method == "tsne":
-        if verbose:
-            print("Reducing to 2 dimensions using t-SNE...")
-        reducer = TSNE(n_components=n_components, random_state=42)
-        reduced = reducer.fit_transform(data)
-        method_used = "t-sne"
-    elif method == "trimap":
-        if verbose:
-            print("Reducing to 2 dimensions using TriMap...")
-        reducer = trimap.TRIMAP(n_dims=n_components)
-        reduced = reducer.fit_transform(data)
-        method_used = "trimap"
-    else:
-        raise ValueError(
-            f"Invalid method: {method}. Must be 'pca', 'tsne', or 'trimap'."
-        )
+
+    # Convert to numpy array if it's a GPU array
+    if hasattr(reduced, 'to_numpy'):
+        reduced = reduced.to_numpy()
 
     return reduced, method_used, indices
 
@@ -225,7 +325,7 @@ def plot_latent_variables(config, paths, verbose=False):
     Visualize latent space embeddings from the model.
 
     This function creates 2D projections of the latent space using dimensionality
-    reduction techniques (PCA, t-SNE, or TriMap) for both initial (z0) and final (zk)
+    reduction techniques (PCA, t-SNE, UMap or TriMap) for both initial (z0) and final (zk)
     latent variables, color-coded by class.
 
     Parameters
@@ -247,31 +347,15 @@ def plot_latent_variables(config, paths, verbose=False):
     prefixes = ["train_", "test_"]
 
     def reduce_dim(data):
-        if config.latent_space_size > 50:
-            if verbose:
-                print(
-                    f"Applying PCA to reduce latent space from {config.latent_space_size} to 50 dimensions..."
-                )
-            data = PCA(n_components=50).fit_transform(data)
-
-        style = config.latent_space_plot_style.lower()
-        if style == "pca":
-            reducer = PCA(n_components=2)
-            method = "pca"
-        elif style == "tsne":
-            reducer = TSNE(n_components=2, random_state=42)
-            method = "t-sne"
-        elif style == "trimap":
-            reducer = trimap.TRIMAP(n_dims=2)
-            method = "trimap"
-        else:
-            raise ValueError(
-                f"Invalid latent_space_plot_style: {style}. Must be 'pca', 'tsne', or 'trimap'."
-            )
-
-        if verbose:
-            print(f"Reducing to 2 dimensions using {method.upper()}...")
-        return reducer.fit_transform(data), method
+        # Use our improved dimensionality reduction function
+        reduced, method, _ = reduce_dim_subsampled(
+            data=data,
+            method=config.latent_space_plot_style,
+            n_components=2,
+            n_samples=None,
+            verbose=verbose
+        )
+        return reduced, method
 
     for prefix in prefixes:
         # Construct file paths
@@ -436,17 +520,15 @@ def plot_mu_logvar(config, paths, verbose=False):
     prefixes = ["train_", "test_"]
 
     def reduce_dim(data):
-        if config.latent_space_size > 50:
-            data = PCA(n_components=50).fit_transform(data)
-        style = config.latent_space_plot_style.lower()
-        if style == "pca":
-            return PCA(n_components=2).fit_transform(data), "pca"
-        elif style == "tsne":
-            return TSNE(n_components=2, random_state=42).fit_transform(data), "t-sne"
-        elif style == "trimap":
-            return trimap.TRIMAP(n_dims=2).fit_transform(data), "trimap"
-        else:
-            raise ValueError("Invalid reduction method")
+        # Use our improved dimensionality reduction function
+        reduced, method, _ = reduce_dim_subsampled(
+            data=data,
+            method=config.latent_space_plot_style,
+            n_components=2,
+            n_samples=None,
+            verbose=verbose
+        )
+        return reduced, method
 
     for prefix in prefixes:
         mu_path = os.path.join(paths["output_path"], "results", f"{prefix}mu_data.npy")
