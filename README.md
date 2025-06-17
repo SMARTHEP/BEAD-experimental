@@ -21,17 +21,19 @@
 
 BEAD is a Python package that uses deep learning based methods for anomaly detection in HEP data for new physics searches. BEAD has been designed with modularity in mind, to enable usage of various unsupervised latent variable models for anomaly detection by design, but any tasks beyond this scope as well with easily customizable modules. 
 
+## Features
+
 BEAD has five main running modes:
 
-- Data handling: Deals with handling file types, conversions between them and pre-processing the data to feed as inputs to the DL models.
+- **Data handling**: Deals with handling file types, conversions between them and pre-processing the data to feed as inputs to the DL models.
 
-- Training: Train your model to learn implicit representations of your background data that may come from multiple sources/generators to get a single, encriched latent representation of it.
+- **Training**: Train your model to learn implicit representations of your background data that may come from multiple sources/generators to get a single, encriched latent representation of it.
 
-- Inference: Using a model trained on an enriched background, feed in samples you want to detect anomalies in and watch the magic happen.
+- **Inference**: Using a model trained on an enriched background, feed in samples you want to detect anomalies in and watch the magic happen.
 
-- Plotting: After running Inference, or Training you can generate plots similar towhat is shown in the paper. These include performance plots as well as different visualizations of the learned data.
+- **Plotting**: After running Inference, or Training you can generate plots similar to what is shown in the paper. These include performance plots as well as different visualizations of the learned data.
 
-- Diagnostics: Enabling this mode allows running profilers that measure a host of metrics connected to the usage of the compute node you run on to help you optimize the code if needed(using CPU-GPU metrics).
+- **Diagnostics**: Enabling this mode allows running profilers that measure a host of metrics connected to the usage of the compute node you run on to help you optimize the code if needed(using CPU-GPU metrics).
 
 For a full chain example, look [below](#example)!
 
@@ -111,6 +113,27 @@ flowchart TD
 1. uv Package Manager: BEAD is now managed by the uv package manager - this simplifies the task of creating an environment, installing the right dependencies, and resolving version incompatibilities. Start by installing uv according to the instructions given [here](https://github.com/astral-sh/uv)
 
 2. Trimap is a visualization tool that is used in the package but is currently problematic to install via uv due to `llvmlite==0.34.0` version issue on Mac M1. As a workaround to this either `uv pip install trimap` or if you are running inside a `conda` env, install trimap with BioConda as described [here](https://bioconda.github.io/recipes/trimap/README.html), before moving to the next step.
+
+### GPU-Accelerated Visualizations
+
+BEAD now supports GPU-accelerated dimensionality reduction algorithms for much faster visualizations and better scalability to large datasets:
+
+- **cuML Implementation**: Automatically uses NVIDIA RAPIDS cuML library when available for PCA, t-SNE, and UMAP
+- **Automatic Fallback**: Falls back to CPU implementations when GPU is not available
+- **Extended Methods**: Now supports UMAP as an additional dimensionality reduction technique
+- **Robust Error Handling**: Gracefully handles errors and falls back to simpler methods when needed
+
+To enable GPU acceleration for visualizations, install the optional GPU dependencies:
+
+```bash
+uv pip install -e ".[gpu]"
+```
+
+For enhanced CPU-based visualization without GPU:
+
+```bash
+uv pip install ".[viz]"
+```
 
 3. After installing uv, clone this repository to your working directory.
 

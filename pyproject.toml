@@ -25,6 +25,16 @@ dependencies = [
     "setuptools>=75.8.0",
 ]
 
+[project.optional-dependencies]
+viz = [
+    "umap-learn>=0.5.5",
+]
+gpu = [
+    "cuml>=24.4.0",
+    "umap-learn>=0.5.5",
+    "cudf>=24.4.0"
+]
+
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
