@@ -326,6 +326,8 @@ class ConvVAE(ConvAE):
         z = self.reparameterize(mean, logvar)
         out = self.decode(z)
         return out, mean, logvar, z, z, z
+
+
 class Dirichlet_ConvVAE(ConvAE):
     def __init__(self, in_shape, z_dim, *args, **kwargs):
         super().__init__(in_shape, z_dim, *args, **kwargs)
@@ -376,6 +378,7 @@ class Dirichlet_ConvVAE(ConvAE):
         D_z = torch.nn.functional.softmax(G_z,dim=-1)
         out = self.decode(D_z)
         return out, mean, logvar, D_z,D_z,D_z
+
 
 class Planar_ConvVAE(ConvVAE):
     """

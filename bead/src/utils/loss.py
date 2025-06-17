@@ -806,6 +806,7 @@ class VAEFlowLossL2(VAEFlowLoss):
         loss = vae_loss + self.l2_weight * l2_loss
         return loss, vae_loss, recon_loss, kl_loss, l2_loss
 
+
 class DVAELoss(VAELoss):
     """
     DVAELoss: Combines reconstruction loss and Dirichlet KL divergence loss.
@@ -815,6 +816,7 @@ class DVAELoss(VAELoss):
     def __init__(self, config):
         super(DVAELoss, self).__init__(config)
         self.kl_loss_fn = KLDivergenceLoss(config, prior="dirichlet")
+
 
 class DVAEFlowLoss(VAEFlowLoss):
     """
