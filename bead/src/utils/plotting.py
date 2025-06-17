@@ -195,7 +195,7 @@ def reduce_dim_subsampled(
     data : numpy.ndarray
         Input data of shape (n_samples, n_features)
     method : str, optional
-        Dimensionality reduction method to use: "pca", "tsne", "trimap", or "umap", default is "trimap"
+        Dimensionality reduction method to use: "pca", "tsne", "trimap", or "umap", default is "tsne"
     n_components : int, optional
         Number of dimensions to reduce to, default is 2
     n_samples : int, optional
@@ -220,11 +220,11 @@ def reduce_dim_subsampled(
     # Convert to numpy array if it's a tensor
     if isinstance(data, torch.Tensor):
         data = data.cpu().numpy()
-    
+
     # Check device availability for GPU acceleration
     device = helper.get_device()
     use_gpu = CUML_AVAILABLE and device.type == 'cuda'
-    
+
     # Subsampling for large datasets
     if n_samples is not None and data.shape[0] > n_samples:
         if verbose:
@@ -258,26 +258,26 @@ def reduce_dim_subsampled(
                 reducer = PCA(n_components=n_components)
             reduced = reducer.fit_transform(data)
             method_used = "pca"
-        
+
         elif method == "tsne":
             if verbose:
                 print("Reducing to 2 dimensions using t-SNE...")
             if use_gpu:
                 # cuML's T-SNE has different parameters
-                reducer = cuTSNE(n_components=n_components, random_state=42, 
+                reducer = cuTSNE(n_components=n_components, random_state=42,
                                 learning_rate='auto', init='random')
             else:
                 reducer = TSNE(n_components=n_components, random_state=42)
             reduced = reducer.fit_transform(data)
             method_used = "t-sne"
-        
+
         elif method == "trimap" and TRIMAP_AVAILABLE:
             if verbose:
                 print("Reducing to 2 dimensions using TriMap...")
             reducer = trimap.TRIMAP(n_dims=n_components)
             reduced = reducer.fit_transform(data)
             method_used = "trimap"
-        
+
         elif method == "umap":
             if verbose:
                 print("Reducing to 2 dimensions using UMAP...")
@@ -289,21 +289,21 @@ def reduce_dim_subsampled(
                 raise ImportError("UMAP is not available. Install 'umap-learn' package.")
             reduced = reducer.fit_transform(data)
             method_used = "umap"
-        
+
         else:
             # Fall back to PCA if the specified method is not available
             if method != "pca" and method != "tsne":
                 warnings.warn(
                     f"Method '{method}' is not available. Falling back to t-SNE."
                 )
-            
+
             if use_gpu:
                 reducer = cuTSNE(n_components=n_components, random_state=42)
             else:
                 reducer = TSNE(n_components=n_components, random_state=42)
             reduced = reducer.fit_transform(data)
             method_used = "t-sne"
-            
+
     except Exception as e:
         warnings.warn(f"Error using {method}, falling back to PCA: {str(e)}")
         if use_gpu:
@@ -312,7 +312,7 @@ def reduce_dim_subsampled(
             reducer = PCA(n_components=n_components)
         reduced = reducer.fit_transform(data)
         method_used = "pca"
-    
+
     # Convert to numpy array if it's a GPU array
     if hasattr(reduced, 'to_numpy'):
         reduced = reduced.to_numpy()
@@ -325,7 +325,7 @@ def plot_latent_variables(config, paths, verbose=False):
     Visualize latent space embeddings from the model.
 
     This function creates 2D projections of the latent space using dimensionality
-    reduction techniques (PCA, t-SNE, or TriMap) for both initial (z0) and final (zk)
+    reduction techniques (PCA, t-SNE, UMap or TriMap) for both initial (z0) and final (zk)
     latent variables, color-coded by class.
 
     Parameters
@@ -349,7 +349,7 @@ def plot_latent_variables(config, paths, verbose=False):
     def reduce_dim(data):
         # Use our improved dimensionality reduction function
         reduced, method, _ = reduce_dim_subsampled(
-            data=data, 
+            data=data,
             method=config.latent_space_plot_style,
             n_components=2,
             n_samples=None,
@@ -522,7 +522,7 @@ def plot_mu_logvar(config, paths, verbose=False):
     def reduce_dim(data):
         # Use our improved dimensionality reduction function
         reduced, method, _ = reduce_dim_subsampled(
-            data=data, 
+            data=data,
             method=config.latent_space_plot_style,
             n_components=2,
             n_samples=None,
