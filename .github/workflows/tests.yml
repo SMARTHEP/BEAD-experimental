@@ -42,9 +42,20 @@ jobs:
         run: |
           uv pip install -e ".[test]"
 
-      - name: Run tests
+      - name: Run standard tests
         run: |
-          uv run pytest
+          # Run all tests except GPU tests
+          uv run pytest --ignore=tests/unit/test_gpu_plotting.py
+          
+      - name: Run GPU visualization tests
+        run: |
+          # Install visualization dependencies for testing without actual GPU hardware
+          uv pip install -e ".[test,viz]"
+          
+          # Run GPU tests - they're designed to automatically skip GPU-specific tests 
+          # when running in an environment without GPUs or when cuML isn't installed
+          echo "Note: Some GPU-specific tests may be skipped in CI environment"
+          uv run pytest tests/unit/test_gpu_plotting.py -v
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
