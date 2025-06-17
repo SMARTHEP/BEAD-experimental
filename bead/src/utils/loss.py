@@ -812,5 +812,5 @@ class DVAELoss(VAELoss):
     """
 
     def __init__(self, config):
-        super(DirichletVAELoss, self).__init__(config)
+        super(DVAELoss, self).__init__(config)
         self.kl_loss_fn = KLDivergenceLoss(config, prior="dirichlet")
