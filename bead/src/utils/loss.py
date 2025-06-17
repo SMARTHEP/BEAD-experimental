@@ -22,7 +22,8 @@ Classes:
     VAEFlowLossEMD: VAE flow loss with EMD term.
     VAEFlowLossL1: VAE flow loss with L1 regularization.
     VAEFlowLossL2: VAE flow loss with L2 regularization.
-    DVAELoss: Combined loss for DirichletConvVAE (reconstruction + KL(dirichlet)).
+    DVAELoss: Combined loss for DirichletConvVAE (reconstruction + KL(dirichlet)) inherits from VAELoss.
+    DVAEFlowLoss: Combined loss for DirichletConvVAE (reconstruction + KL(dirichlet)) inherits from VAEFlowLoss.
 """
 
 import torch
@@ -813,4 +814,13 @@ class DVAELoss(VAELoss):
 
     def __init__(self, config):
         super(DVAELoss, self).__init__(config)
+        self.kl_loss_fn = KLDivergenceLoss(config, prior="dirichlet")
+
+class DVAEFlowLoss(VAEFlowLoss):
+    """
+    DVAEFlowLoss: Combines reconstruction loss and Dirichlet KL divergence loss.
+    Inherits from VAEFlowLoss and overrides the KL loss function to use Dirichlet prior.
+    """
+    def __init__(self,config):
+        super(DVAEFlowLoss,self).__init__(config)
         self.kl_loss_fn = KLDivergenceLoss(config, prior="dirichlet")
