@@ -36,8 +36,8 @@ test = ["pytest>=8.0.0,<9", "pytest-cov>=5.0.0,<6", "pytest-xdist>=3.5.0,<4"]
 
 [tool.uv.sources]
 # Directs uv to find the RAPIDS packages at the official NVIDIA index
-cuml-cu12 = { url = "https://pypi.nvidia.com" }
-cudf-cu12 = { url = "https://pypi.nvidia.com" }
+cuml-cu12 = { url = "https://pypi.nvidia.com/cuml-cu12/cuml_cu12-23.10.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl" }
+cudf-cu12 = { url = "https://pypi.nvidia.com/cudf-cu12/cudf_cu12-23.10.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl" }
 
 torch = [
     { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
