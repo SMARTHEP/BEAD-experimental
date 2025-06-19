@@ -924,6 +924,63 @@ def call_forward(model, inputs):
         return (result,)
 
 
+def unpack_model_outputs(outputs):
+    """
+    Standardizes model outputs to a consistent 6-tuple format regardless of model type.
+    
+    This function takes the raw outputs from different model types and ensures they all
+    conform to the standard 6-tuple format: (recon, mu, logvar, ldj, z0, zk).
+    
+    For models that don't naturally produce all these values:
+    - AE models (len(outputs) == 2): Returns (recon, zeros, zeros, zeros, z, z)
+    - VAE models (len(outputs) == 4): Returns (recon, mu, logvar, zeros, z, z)
+    - Flow models (len(outputs) == 6): Returns outputs as-is
+    
+    Args:
+        outputs (tuple): The raw outputs tuple from a model's forward method.
+            Could be one of:
+            - (recon, z) for basic autoencoders (AE, AE_Dropout_BN, ConvAE)
+            - (recon, mu, logvar, z) for VAEs (ConvVAE, Dirichlet_ConvVAE)
+            - (recon, mu, logvar, ldj, z0, zk) for flow-based models (Planar_ConvVAE, etc.)
+    
+    Returns:
+        tuple: A standardized 6-tuple (recon, mu, logvar, ldj, z0, zk) where:
+            - recon: Reconstructed input
+            - mu: Mean of the latent distribution (or zeros for AEs)
+            - logvar: Log variance of the latent distribution (or zeros for AEs)
+            - ldj: Log determinant of the Jacobian (or zeros for non-flow models)
+            - z0: Initial sample from the latent distribution (or same as zk for non-flow models)
+            - zk: Final transformed latent variable (or just the latent code for non-flow models)
+    
+    Raises:
+        ValueError: If the length of outputs is not 2, 4, or 6.
+    """
+    if len(outputs) == 2:  # Basic AE model: (recon, z)     
+        recon, zk = outputs
+        # Create zero tensors with proper shape and device for mu, logvar, ldj
+        shape = zk.shape
+        device = zk.device
+        mu = torch.zeros(shape, device=device)
+        logvar = torch.zeros(shape, device=device)
+        ldj = torch.zeros(1, device=device)
+        z0 = zk  # For AE, initial and final latent are the same
+        return recon, mu, logvar, ldj, z0, zk
+        
+    elif len(outputs) == 4:  # VAE model: (recon, mu, logvar, z)
+        recon, mu, logvar, zk = outputs
+        # Create zero tensor for ldj
+        ldj = torch.zeros(1, device=recon.device)
+        z0 = zk  # For VAEs without flows, initial and final latent are the same
+        return recon, mu, logvar, ldj, z0, zk
+        
+    elif len(outputs) == 6:  # Flow model: already in correct format
+        # Just return as-is
+        return outputs
+        
+    else:
+        raise ValueError(f"Unexpected number of outputs from model: {len(outputs)}. Expected 2, 4, or 6.")
+
+
 class EarlyStopping:
     """
     Class to perform early stopping during model training.
