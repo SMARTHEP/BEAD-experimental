@@ -99,7 +99,7 @@ def get_arguments():
         "--options",
         type=str,
         required=False,
-        help="Additional options for convert_csv mode [h5 (default), npy] or for chain mode (see help for chain mode)\n\n",
+        help="Additional options for convert_csv mode [h5 (default), npy], overlaying roc plots or for chain mode (see help for chain mode)\n\n",
     )
     parser.add_argument(
         "-v",
@@ -644,10 +644,10 @@ def run_inference(paths, config, verbose: bool = False):
         print("Inference failed")
 
 
-def run_plots(paths, config, verbose: bool = False):
+def run_plots(paths, config, skip_to_roc: bool = False, verbose: bool = False):
     """
     Main function calling the plotting functions, ran when --mode=plot is selected.
-    The main functions this calls are: `plotting.plot_losses`, `plotting.plot_latent_variables`, 
+    The main functions this calls are: `plotting.plot_losses`, `plotting.plot_latent_variables`,
     plotting.plot_mu_logvar and `plotting.plot_roc_curve`.
 
     Args:
@@ -658,22 +658,23 @@ def run_plots(paths, config, verbose: bool = False):
     input_path = os.path.join(paths["output_path"], "results")
     output_path = os.path.join(paths["output_path"], "plots", "loss")
 
-    try:
-        plotting.plot_losses(input_path, output_path, config, verbose)
-    except FileNotFoundError as e:
-        print(e)
-    try:
-        plotting.plot_latent_variables(config, paths, verbose)
-    except ValueError as e:
-        print(e)
-    except Exception as e:
-        print(f"Error plotting latent variables: {e}")
-    try:
-        plotting.plot_mu_logvar(config, paths, verbose)
-    except ValueError as e:
-        print(e)
-    except Exception as e:
-        print(f"Error plotting mu/logvar: {e}")
+    if not skip_to_roc:
+        try:
+            plotting.plot_losses(input_path, output_path, config, verbose)
+        except FileNotFoundError as e:
+            print(e)
+        try:
+            plotting.plot_latent_variables(config, paths, verbose)
+        except ValueError as e:
+            print(e)
+        except Exception as e:
+            print(f"Error plotting latent variables: {e}")
+        try:
+            plotting.plot_mu_logvar(config, paths, verbose)
+        except ValueError as e:
+            print(e)
+        except Exception as e:
+            print(f"Error plotting mu/logvar: {e}")
     try:
         plotting.plot_roc_curve(config, paths, verbose)
     except ValueError as e:
