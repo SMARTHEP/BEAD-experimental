@@ -72,7 +72,7 @@ wheels = [
 
 [[package]]
 name = "bead"
-version = "0.12.3"
+version = "0.13.1"
 source = { editable = "." }
 dependencies = [
     { name = "argparse" },
@@ -97,6 +97,21 @@ dependencies = [
     { name = "trimap" },
 ]
 
+[package.optional-dependencies]
+gpu = [
+    { name = "cudf" },
+    { name = "cuml" },
+    { name = "umap-learn" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-xdist" },
+]
+viz = [
+    { name = "umap-learn" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "black" },
@@ -118,12 +133,17 @@ test = [
 requires-dist = [
     { name = "argparse", specifier = ">=1.4.0,<2.0.0" },
     { name = "art", specifier = ">=6.4,<7.0" },
+    { name = "cudf", marker = "extra == 'gpu'", specifier = ">=0.6.1.post1" },
+    { name = "cuml", marker = "extra == 'gpu'", specifier = ">=0.6.1.post1" },
     { name = "dask", specifier = ">=2025.2.0,<2026.0.0" },
     { name = "h5py", specifier = ">=3.12.1,<4.0.0" },
     { name = "loky", specifier = ">=3.4.1,<4.0.0" },
     { name = "matplotlib", specifier = ">=3.10.0,<4.0.0" },
     { name = "numba", specifier = ">=0.61.0,<0.62.0" },
     { name = "numpy", specifier = ">=1.24.0,<2.2.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0,<9" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5.0.0,<6" },
+    { name = "pytest-xdist", marker = "extra == 'test'", specifier = ">=3.5.0,<4" },
     { name = "rich", specifier = ">=13.9.4,<14.0.0" },
     { name = "scikit-learn", specifier = ">=1.6.1,<2.0.0" },
     { name = "scipy", specifier = ">=1.15.1,<2.0.0" },
@@ -134,7 +154,10 @@ requires-dist = [
     { name = "torchvision", marker = "sys_platform == 'linux'", specifier = ">=0.21.0", index = "https://download.pytorch.org/whl/cu126" },
     { name = "tqdm", specifier = ">=4.67.1,<5.0.0" },
     { name = "trimap", specifier = ">=1.1.4" },
+    { name = "umap-learn", marker = "extra == 'gpu'", specifier = ">=0.5.5" },
+    { name = "umap-learn", marker = "extra == 'viz'", specifier = ">=0.5.5" },
 ]
+provides-extras = ["viz", "gpu", "test"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -360,6 +383,18 @@ wheels = [
 toml = [
     { name = "tomli", marker = "python_full_version <= '3.11'" },
 ]
+
+[[package]]
+name = "cudf"
+version = "0.6.1.post1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ee/8f/b8f7eb3c24d1062b419fec0b9e39b98a5954b3d0fc1539b8f830565ff06b/cudf-0.6.1.post1.tar.gz", hash = "sha256:62d58b923a9a28732780630d8dec5295e565e0b58500c1f6db286eaf4fba0e66", size = 1138, upload-time = "2020-06-01T20:07:47.085Z" }
+
+[[package]]
+name = "cuml"
+version = "0.6.1.post1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/e5/5fba6753b720154fe6590f2a826e8185448dc5cbb4a570a350336d9788c9/cuml-0.6.1.post1.tar.gz", hash = "sha256:a537927e014a5ea3361e951a4464f84599d5ad2c2188c62b7fd21f24b27ec742", size = 1137, upload-time = "2020-06-01T20:09:10.595Z" }
 
 [[package]]
 name = "cycler"
@@ -1140,6 +1175,22 @@ wheels = [
 ]
 
 [[package]]
+name = "pynndescent"
+version = "0.5.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "joblib" },
+    { name = "llvmlite" },
+    { name = "numba" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7e/58/560a4db5eb3794d922fe55804b10326534ded3d971e1933c1eef91193f5e/pynndescent-0.5.13.tar.gz", hash = "sha256:d74254c0ee0a1eeec84597d5fe89fedcf778593eeabe32c2f97412934a9800fb", size = 2975955, upload-time = "2024-06-17T15:48:32.914Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/53/d23a97e0a2c690d40b165d1062e2c4ccc796be458a1ce59f6ba030434663/pynndescent-0.5.13-py3-none-any.whl", hash = "sha256:69aabb8f394bc631b6ac475a1c7f3994c54adf3f51cd63b2730fefba5771b949", size = 56850, upload-time = "2024-06-17T15:48:31.184Z" },
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1752,6 +1803,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/df/db/f35a00659bc03fec321ba8bce9420de607a1d37f8342eee1863174c69557/typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8", size = 85321, upload-time = "2024-06-07T18:52:15.995Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/26/9f/ad63fc0248c5379346306f8668cda6e2e2e9c95e01216d2b8ffd9ff037d0/typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d", size = 37438, upload-time = "2024-06-07T18:52:13.582Z" },
+]
+
+[[package]]
+name = "umap-learn"
+version = "0.5.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "pynndescent" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6f/d4/9ed627905f7993349671283b3c5bf2d9f543ef79229fa1c7e01324eb900c/umap-learn-0.5.7.tar.gz", hash = "sha256:b2a97973e4c6ffcebf241100a8de589a4c84126a832ab40f296c6d9fcc5eb19e", size = 92680, upload-time = "2024-10-28T18:05:57.093Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3c/8f/671c0e1f2572ba625cbcc1faeba9435e00330c3d6962858711445cf1e817/umap_learn-0.5.7-py3-none-any.whl", hash = "sha256:6a7e0be2facfa365a5ed6588447102bdbef32a0ef449535c25c97ea7e680073c", size = 88815, upload-time = "2024-10-28T18:05:55.333Z" },
 ]
 
 [[package]]
