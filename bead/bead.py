@@ -64,6 +64,7 @@ def main():
     local_rank = 0
     world_size = 1
     is_ddp_active = False
+    skip_to_roc = False
 
     if (
         config
@@ -130,6 +131,8 @@ def main():
     # Check what the options flag is set to and override the default if necessary
     if options == "h5" or options == "npy":
         config.file_type = options
+    elif options == "overlay_roc":
+        skip_to_roc = True
 
     # Call the appropriate ggl function based on the mode
     if mode == "new_project":
@@ -143,7 +146,7 @@ def main():
     elif mode == "detect":
         ggl.run_inference(paths, config, verbose)
     elif mode == "plot":
-        ggl.run_plots(paths, config, verbose)
+        ggl.run_plots(paths, config, skip_to_roc, verbose)
     elif mode == "diagnostics":
         ggl.run_diagnostics(paths, config, verbose)
     elif mode == "chain":
