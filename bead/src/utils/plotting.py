@@ -721,10 +721,125 @@ def plot_roc_curve(config, paths, verbose: bool = False):
     The function generates a single plot containing ROC curves for all available
     loss components (total loss, reconstruction loss, KL divergence, etc.),
     with the area under the curve (AUC) displayed in the legend.
-    
+
     If overlay_roc is enabled, it also creates a combined plot showing ROC curves
     from multiple projects for comparison.
     """
+    # Store ROC data for potential overlay with current project
+    current_project_roc = {}
+    # Create ROC overlay if enabled
+    if hasattr(config, 'overlay_roc') and config.overlay_roc:
+        if verbose:
+            print("Generating ROC overlay plot...")
+
+        # Create a new figure for the overlay plot with log scale
+        plt.figure(figsize=(10, 8))
+
+        # Plot current project's ROC curve first
+        if current_project_roc:
+            plt.plot(
+                current_project_roc["fpr"],
+                current_project_roc["tpr"],
+                label=f"{current_project_roc['name']} (AUC = {current_project_roc['auc']:.3f})",
+                lw=2
+            )
+
+        # Process each project in the overlay list
+        for project_path in config.overlay_roc_projects:
+            try:
+                # Parse workspace_name/project_name format
+                workspace_name, project_name = project_path.split("/")
+
+                # Construct paths to the other project's files
+                other_project_results = os.path.join(
+                    "bead/workspaces",
+                    workspace_name,
+                    project_name,
+                    "output",
+                    "results"
+                )
+
+                # Load label file from the other project
+                other_label_path = os.path.join(
+                    other_project_results,
+                    f"test_{config.input_level}_label.npy"
+                )
+
+                # Skip if the label file doesn't exist
+                if not os.path.exists(other_label_path):
+                    if verbose:
+                        print(f"Skipping {project_path}: label file not found")
+                    continue
+
+                other_ground_truth = np.load(other_label_path)
+
+                # Load loss component file (using only the main "loss" component for overlay)
+                other_loss_path = os.path.join(other_project_results, "loss_test.npy")
+                if not os.path.exists(other_loss_path):
+                    if verbose:
+                        print(f"Skipping {project_path}: loss file not found")
+                    continue
+
+                other_loss_data = np.load(other_loss_path)
+
+                # Ensure data is 1D
+                if other_loss_data.ndim > 1:
+                    other_loss_data = other_loss_data.flatten()
+
+                # Check if lengths match
+                if len(other_loss_data) != len(other_ground_truth):
+                    if verbose:
+                        print(f"Skipping {project_path}: length mismatch")
+                    continue
+
+                # Calculate ROC curve and AUC
+                fpr, tpr, _ = roc_curve(other_ground_truth, other_loss_data)
+                roc_auc = auc(fpr, tpr)
+
+                # Plot the ROC curve
+                plt.plot(
+                    fpr,
+                    tpr,
+                    label=f"{project_name} (AUC = {roc_auc:.3f})",
+                    lw=2
+                )
+
+                if verbose:
+                    print(f"Added {project_path} to overlay plot (AUC = {roc_auc:.3f})")
+
+            except Exception as e:
+                if verbose:
+                    print(f"Error processing {project_path}: {str(e)}")
+
+        # Add the random guess line
+        plt.plot([0, 0], [1, 1], "k--", lw=2, label="Random Guess")
+
+        # Set x-axis to log scale and zoom to specified region
+        plt.xscale('log')
+        plt.xlim(1e-4, 1e-1)  # Set x-axis range to show 1E-4, 1E-2 and 1E-1
+        plt.ylim(0, 0.42)
+
+        # Add labels and title
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.title("ROC Curve Comparison")
+        plt.grid(True, alpha=0.3)
+        plt.legend(loc="upper left")
+        plt.tight_layout()
+
+        # Create directory for the overlay plot if it doesn't exist
+        overlay_dir = os.path.join(paths["output_path"], "plots", config.overlay_roc_save_location)
+        os.makedirs(overlay_dir, exist_ok=True)
+
+        # Save the overlay plot
+        overlay_filename = os.path.join(overlay_dir, config.overlay_roc_filename)
+        plt.savefig(overlay_filename)
+
+        if verbose:
+            print(f"ROC overlay plot saved to {overlay_filename}")
+
+        plt.close()
+
     # Load ground truth binary labels from 'label.npy'
     label_path = os.path.join(
         paths["output_path"], "results", "test_" + config.input_level + "_label.npy"
@@ -742,9 +857,6 @@ def plot_roc_curve(config, paths, verbose: bool = False):
 
     # Define the loss component prefixes to search for.
     loss_components = ["loss", "reco", "kl", "emd", "l1", "l2"]
-
-    # Store ROC data for potential overlay
-    current_project_roc = {}
 
     # Iterate over each loss component and generate ROC curve.
     plt.figure(figsize=(8, 6))
@@ -771,7 +883,7 @@ def plot_roc_curve(config, paths, verbose: bool = False):
         # Compute ROC curve and AUC.
         fpr, tpr, thresholds = roc_curve(ground_truth, data)
         roc_auc = auc(fpr, tpr)
-        
+
         # Store loss component ROC data for overlay
         if component == "loss":
             current_project_roc = {
@@ -788,123 +900,10 @@ def plot_roc_curve(config, paths, verbose: bool = False):
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.title(f"ROC Curve - {config.project_name}")
-    plt.legend(loc="lower right")
+    plt.legend(loc="best")
     plt.tight_layout()
 
     # Save the plot as a PDF file.
     save_filename = os.path.join(paths["output_path"], "plots", "loss", "roc.pdf")
     plt.savefig(save_filename)
     plt.close()
-    
-    # Create ROC overlay if enabled
-    if hasattr(config, 'overlay_roc') and config.overlay_roc:
-        if verbose:
-            print("Generating ROC overlay plot...")
-        
-        # Create a new figure for the overlay plot with log scale
-        plt.figure(figsize=(10, 8))
-        
-        # Plot current project's ROC curve first
-        if current_project_roc:
-            plt.plot(
-                current_project_roc["fpr"], 
-                current_project_roc["tpr"], 
-                label=f"{current_project_roc['name']} (AUC = {current_project_roc['auc']:.3f})",
-                lw=2
-            )
-        
-        # Process each project in the overlay list
-        for project_path in config.overlay_roc_projects:
-            try:
-                # Parse workspace_name/project_name format
-                workspace_name, project_name = project_path.split("/")
-                
-                # Construct paths to the other project's files
-                other_project_results = os.path.join(
-                    "bead/workspaces", 
-                    workspace_name,
-                    project_name, 
-                    "output", 
-                    "results"
-                )
-                
-                # Load label file from the other project
-                other_label_path = os.path.join(
-                    other_project_results, 
-                    f"test_{config.input_level}_label.npy"
-                )
-                
-                # Skip if the label file doesn't exist
-                if not os.path.exists(other_label_path):
-                    if verbose:
-                        print(f"Skipping {project_path}: label file not found")
-                    continue
-                
-                other_ground_truth = np.load(other_label_path)
-                
-                # Load loss component file (using only the main "loss" component for overlay)
-                other_loss_path = os.path.join(other_project_results, "loss_test.npy")
-                if not os.path.exists(other_loss_path):
-                    if verbose:
-                        print(f"Skipping {project_path}: loss file not found")
-                    continue
-                
-                other_loss_data = np.load(other_loss_path)
-                
-                # Ensure data is 1D
-                if other_loss_data.ndim > 1:
-                    other_loss_data = other_loss_data.flatten()
-                
-                # Check if lengths match
-                if len(other_loss_data) != len(other_ground_truth):
-                    if verbose:
-                        print(f"Skipping {project_path}: length mismatch")
-                    continue
-                
-                # Calculate ROC curve and AUC
-                fpr, tpr, _ = roc_curve(other_ground_truth, other_loss_data)
-                roc_auc = auc(fpr, tpr)
-                
-                # Plot the ROC curve
-                plt.plot(
-                    fpr, 
-                    tpr, 
-                    label=f"{project_name} (AUC = {roc_auc:.3f})",
-                    lw=2
-                )
-                
-                if verbose:
-                    print(f"Added {project_path} to overlay plot (AUC = {roc_auc:.3f})")
-                
-            except Exception as e:
-                if verbose:
-                    print(f"Error processing {project_path}: {str(e)}")
-        
-        # Add the random guess line
-        plt.plot([0, 1], [0, 1], "k--", lw=2, label="Random Guess")
-        
-        # Set x-axis to log scale and zoom to specified region
-        plt.xscale('log')
-        plt.xlim(1e-4, 1e-1)  # Set x-axis range to show 1E-4, 1E-2 and 1E-1
-        plt.ylim(0, 1)
-        
-        # Add labels and title
-        plt.xlabel("False Positive Rate")
-        plt.ylabel("True Positive Rate")
-        plt.title("ROC Curve Comparison")
-        plt.grid(True, alpha=0.3)
-        plt.legend(loc="lower right")
-        plt.tight_layout()
-        
-        # Create directory for the overlay plot if it doesn't exist
-        overlay_dir = os.path.join(paths["output_path"], "plots", config.overlay_roc_save_location)
-        os.makedirs(overlay_dir, exist_ok=True)
-        
-        # Save the overlay plot
-        overlay_filename = os.path.join(overlay_dir, config.overlay_roc_filename)
-        plt.savefig(overlay_filename)
-        
-        if verbose:
-            print(f"ROC overlay plot saved to {overlay_filename}")
-        
-        plt.close()
