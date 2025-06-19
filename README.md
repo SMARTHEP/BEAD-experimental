@@ -43,8 +43,9 @@ Bead has several versions each targetting different operating conditions (local 
 
 
 # News
-* [ ] *TBD* - New CRVSTAL losses to follow!
-* [ ] *19 June* - New model update! Planned [DVAE](https://arxiv.org/abs/2104.08291) integration
+* [ ] *10 July* - **Big Stuff** preliminary tests planned with GSoC and HSF-India contributions!
+* [ ] *26 June* - New CRVSTAL loss ([NT-xEnt](https://arxiv.org/abs/2002.05709)) PR waiting to be merged! Feature added by GSoC contributor @JohnKala [Ioannis Kalaitzidis](https://github.com/JohnKala).
+* [x] *19 June* - New model update! [DVAE](https://arxiv.org/abs/2104.08291) integration complete! Feature added by HSF-India Fellow @Abhi-sheKkK [Abhishek Kotwani](https://github.com/Abhi-sheKkK).
 * [x] *17 June* - New pre-release, BEAD v0.12.7 - Now supports faster GPU-based plotting and overlaid ROCs for comparing across projects!
 * [x] *16 June* - ~BEAD talk and poster at EuCAIFCon '25 @ Cagliari, Sardinia!~ - Withdrawn due to visa issues :(
 * [x] *25 May* - BEAD now supports a new class of models (losses) called CRVSTAL with one stable variant!
