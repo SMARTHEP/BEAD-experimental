@@ -62,7 +62,7 @@ class ReconstructionLoss(BaseLoss):
         self.reg_param = config.reg_param
         self.component_names = ["reco"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0):
+    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0, zk=None, generator_labels=None, **kwargs):
         self.loss_type = "mse"
         self.reduction = "mean"
 
@@ -111,7 +111,7 @@ class KLDivergenceLoss(BaseLoss):
         alpha = term / var
         return alpha
 
-    def calculate(self, recon, target, mu, logvar, parameters=None, log_det_jacobian=0):
+    def calculate(self, recon, target, mu, logvar, parameters=None, log_det_jacobian=0, zk=None, z0=None, generator_labels=None, **kwargs):
         batch_size = mu.size(0)
 
         if self.prior == "dirichlet":
@@ -126,7 +126,7 @@ class KLDivergenceLoss(BaseLoss):
 
         else:
             kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
-            return (kl_loss/batch_size,)
+            return (kl_loss.mean(),)
 
 
 # ---------------------------
@@ -307,7 +307,7 @@ class BinaryCrossEntropyLoss(BaseLoss):
         self.component_names = ["bce"]
 
     def calculate(
-        self, predictions, targets, mu, logvar, parameters, log_det_jacobian=0
+        self, predictions, targets, mu, logvar, parameters, log_det_jacobian=0, zk=None, z0=None, generator_labels=None, **kwargs
     ):
         """
         Calculate the binary cross entropy loss.
@@ -367,10 +367,10 @@ class VAELoss(BaseLoss):
         generator_labels=None,
     ):
         recon_loss = self.recon_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian=0
+            recon, target, mu, logvar, parameters, log_det_jacobian=log_det_jacobian, zk=zk, generator_labels=generator_labels
         )
         kl_loss = self.kl_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian=0
+            recon, target, mu, logvar, parameters, log_det_jacobian=log_det_jacobian, zk=zk, generator_labels=generator_labels
         )
         loss = recon_loss[0] + self.kl_weight * kl_loss[0]
         return loss, recon_loss[0], kl_loss[0]
@@ -413,10 +413,10 @@ class VAEFlowLoss(BaseLoss):
         generator_labels=None,
     ):
         recon_loss = self.recon_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian=0
+            recon, target, mu, logvar, parameters, log_det_jacobian=log_det_jacobian, zk=zk, z0=z0, generator_labels=generator_labels
         )[0]
         kl_loss = self.kl_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian=0
+            recon, target, mu, logvar, parameters, log_det_jacobian=log_det_jacobian, zk=zk, z0=z0, generator_labels=generator_labels
         )[0]
         # Ensure log_det_jacobian is a tensor
         if not isinstance(log_det_jacobian, torch.Tensor):
@@ -482,7 +482,7 @@ class VAESupConLoss(BaseLoss):
     ):
         # Calculate VAE loss components
         vae_loss, reco_loss, kl_loss = self.vae_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian
+            recon, target, mu, logvar, zk, parameters, log_det_jacobian, generator_labels
         )
 
         # Calculate Supervised Contrastive loss only if generator_labels are provided; if not, fallback to ELBO loss
@@ -543,7 +543,7 @@ class VAEFlowSupConLoss(BaseLoss):
     ):
         # Calculate VAEFlow loss components
         vaeflow_loss, reco_loss, kl_loss = self.vaeflow_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian
+            recon, target, mu, logvar, zk, parameters, log_det_jacobian, generator_labels
         )
 
         # Calculate Supervised Contrastive loss only if generator_labels are provided; if not, fallback to ELBO loss
