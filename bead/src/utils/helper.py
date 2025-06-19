@@ -1101,6 +1101,49 @@ def load_model(model_path: str, in_shape, config):
     return model
 
 
+def get_ntxent_outputs(model, inputs, config):
+    """
+    Performs a dual forward pass through the model with augmented input views for NT-Xent contrastive learning.
+    
+    This function:
+    1. Generates two augmented views of the input data by adding Gaussian noise
+    2. Passes each view through the model
+    3. Unpacks the model outputs from each view
+    4. Returns all necessary outputs for NT-Xent loss calculation
+    
+    Args:
+        model (nn.Module): The model to perform forward passes with
+        inputs (torch.Tensor): Input data batch
+        config (dataClass): Configuration object containing NT-Xent parameters
+        
+    Returns:
+        tuple: A tuple containing:
+            - recon_i: Reconstruction from the first view
+            - mu_i: Mean latent vector from the first view
+            - logvar_i: Log variance from the first view
+            - ldj_i: Log-determinant of Jacobian from the first view
+            - z0_i: Initial latent vector from the first view
+            - zk_i: Final latent vector from the first view
+            - zk_j: Final latent vector from the second view
+    """
+    from ..utils.ntxent_utils import generate_augmented_views
+    
+    # Generate two augmented views by adding noise to the input data
+    # The sigma (noise level) is controlled by the config
+    x_i, x_j = generate_augmented_views(inputs, sigma=config.ntxent_noise_sigma)
+    
+    # Perform forward pass with the first view
+    out_i = call_forward(model, x_i)
+    recon_i, mu_i, logvar_i, ldj_i, z0_i, zk_i = unpack_model_outputs(out_i)
+    
+    # Perform forward pass with the second view (we only need zk_j for NT-Xent)
+    out_j = call_forward(model, x_j)
+    _, _, _, _, _, zk_j = unpack_model_outputs(out_j)
+    
+    # Return all outputs needed for loss calculation
+    return recon_i, mu_i, logvar_i, ldj_i, z0_i, zk_i, zk_j
+
+
 def save_loss_components(loss_data, component_names, suffix, save_dir="loss_outputs"):
     """
     This function unpacks loss_data into separate components, converts each into a NumPy array,
