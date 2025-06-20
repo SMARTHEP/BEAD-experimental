@@ -132,7 +132,7 @@ def main():
     if options == "h5" or options == "npy":
         config.file_type = options
     elif options == "overlay_roc":
-        skip_to_roc = True
+        config.skip_to_roc = True
 
     # Call the appropriate ggl function based on the mode
     if mode == "new_project":
@@ -146,7 +146,7 @@ def main():
     elif mode == "detect":
         ggl.run_inference(paths, config, verbose)
     elif mode == "plot":
-        ggl.run_plots(paths, config, skip_to_roc, verbose)
+        ggl.run_plots(paths, config, verbose)
     elif mode == "diagnostics":
         ggl.run_diagnostics(paths, config, verbose)
     elif mode == "chain":
