@@ -727,6 +727,76 @@ def plot_roc_curve(config, paths, verbose: bool = False):
     """
     # Store ROC data for potential overlay with current project
     current_project_roc = {}
+
+    if not config.skip_to_roc:
+        # Load ground truth binary labels from 'label.npy'
+        label_path = os.path.join(
+            paths["output_path"], "results", "test_" + config.input_level + "_label.npy"
+        )
+        output_dir = os.path.join(paths["output_path"], "results")
+        # check if the label file exists
+        if not os.path.exists(label_path):
+            raise FileNotFoundError(f"Label file not found: {label_path}")
+        else:
+            ground_truth = np.load(label_path)
+
+        # Ensure ground_truth is a 1D array
+        if ground_truth.ndim != 1:
+            raise ValueError("Ground truth labels must be a 1D array.")
+
+        # Define the loss component prefixes to search for.
+        loss_components = ["loss", "reco", "kl", "emd", "l1", "l2"]
+
+        # Iterate over each loss component and generate ROC curve.
+        plt.figure(figsize=(8, 6))
+
+        for component in loss_components:
+            file_path = os.path.join(output_dir, f"{component}_test.npy")
+            if not os.path.exists(file_path):
+                continue  # Skip if the file does not exist
+
+            # Load loss scores
+            data = np.load(file_path)
+
+            # Ensure that data is a 1D array (flatten if necessary).
+            if data.ndim > 1:
+                data = data.flatten()
+
+            # Check if the length of data matches the length of ground_truth
+            if len(data) != len(ground_truth):
+                raise ValueError(
+                    f"Length mismatch: {file_path} has {len(data)} entries; "
+                    f"ground truth has {len(ground_truth)} entries."
+                )
+
+            # Compute ROC curve and AUC.
+            fpr, tpr, thresholds = roc_curve(ground_truth, data)
+            roc_auc = auc(fpr, tpr)
+
+            # Store loss component ROC data for overlay
+            if component == "loss":
+                current_project_roc = {
+                    "fpr": fpr,
+                    "tpr": tpr,
+                    "auc": roc_auc,
+                    "name": config.project_name
+                }
+
+            # Plot the ROC curve.
+            plt.plot(fpr, tpr, label=f"{component.capitalize()} AUC = {roc_auc:.2f}", lw=2)
+
+        plt.plot([0, 1], [0, 1], "k--", lw=2, label="Random Guess")
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.title(f"ROC Curve - {config.project_name}")
+        plt.legend(loc="best")
+        plt.tight_layout()
+
+        # Save the plot as a PDF file.
+        save_filename = os.path.join(paths["output_path"], "plots", "loss", "roc.pdf")
+        plt.savefig(save_filename)
+        plt.close()
+
     # Create ROC overlay if enabled
     if hasattr(config, 'overlay_roc') and config.overlay_roc:
         if verbose:
@@ -796,6 +866,17 @@ def plot_roc_curve(config, paths, verbose: bool = False):
                 fpr, tpr, _ = roc_curve(other_ground_truth, other_loss_data)
                 roc_auc = auc(fpr, tpr)
 
+                # Print out TPR at specific FPR thresholds using numpy interpolation
+                target_fpr = [1e-4, 1e-3, 1e-2, 1e-1]
+                for threshold in target_fpr:
+                    if threshold in fpr:
+                        tpr_at_fpr = tpr[np.where(fpr == threshold)[0][0]]
+                    else:
+                        # Interpolate to find TPR at the desired FPR
+                        tpr_at_fpr = np.interp(threshold, fpr, tpr)
+                    if verbose:
+                        print(f"TPR for {project_name} at FPR {threshold:.1e}: {tpr_at_fpr:.3f}")
+
                 # Plot the ROC curve
                 plt.plot(
                     fpr,
@@ -839,71 +920,3 @@ def plot_roc_curve(config, paths, verbose: bool = False):
             print(f"ROC overlay plot saved to {overlay_filename}")
 
         plt.close()
-
-    # Load ground truth binary labels from 'label.npy'
-    label_path = os.path.join(
-        paths["output_path"], "results", "test_" + config.input_level + "_label.npy"
-    )
-    output_dir = os.path.join(paths["output_path"], "results")
-    # check if the label file exists
-    if not os.path.exists(label_path):
-        raise FileNotFoundError(f"Label file not found: {label_path}")
-    else:
-        ground_truth = np.load(label_path)
-
-    # Ensure ground_truth is a 1D array
-    if ground_truth.ndim != 1:
-        raise ValueError("Ground truth labels must be a 1D array.")
-
-    # Define the loss component prefixes to search for.
-    loss_components = ["loss", "reco", "kl", "emd", "l1", "l2"]
-
-    # Iterate over each loss component and generate ROC curve.
-    plt.figure(figsize=(8, 6))
-
-    for component in loss_components:
-        file_path = os.path.join(output_dir, f"{component}_test.npy")
-        if not os.path.exists(file_path):
-            continue  # Skip if the file does not exist
-
-        # Load loss scores
-        data = np.load(file_path)
-
-        # Ensure that data is a 1D array (flatten if necessary).
-        if data.ndim > 1:
-            data = data.flatten()
-
-        # Check if the length of data matches the length of ground_truth
-        if len(data) != len(ground_truth):
-            raise ValueError(
-                f"Length mismatch: {file_path} has {len(data)} entries; "
-                f"ground truth has {len(ground_truth)} entries."
-            )
-
-        # Compute ROC curve and AUC.
-        fpr, tpr, thresholds = roc_curve(ground_truth, data)
-        roc_auc = auc(fpr, tpr)
-
-        # Store loss component ROC data for overlay
-        if component == "loss":
-            current_project_roc = {
-                "fpr": fpr,
-                "tpr": tpr,
-                "auc": roc_auc,
-                "name": config.project_name
-            }
-
-        # Plot the ROC curve.
-        plt.plot(fpr, tpr, label=f"{component.capitalize()} AUC = {roc_auc:.2f}", lw=2)
-
-    plt.plot([0, 1], [0, 1], "k--", lw=2, label="Random Guess")
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.title(f"ROC Curve - {config.project_name}")
-    plt.legend(loc="best")
-    plt.tight_layout()
-
-    # Save the plot as a PDF file.
-    save_filename = os.path.join(paths["output_path"], "plots", "loss", "roc.pdf")
-    plt.savefig(save_filename)
-    plt.close()
