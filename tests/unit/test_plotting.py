@@ -347,6 +347,7 @@ class TestROCCurvePlotting(unittest.TestCase):
         """Test ROC curve overlay functionality."""
         # Setup the overlay config
         self.config.overlay_roc = True
+        self.config.skip_to_roc = True  # Skip to ROC curve plotting
         self.config.overlay_roc_projects = []  # Empty list so we don't need to mock external projects
         self.config.overlay_roc_save_location = "overlay_roc"
         self.config.overlay_roc_filename = "combined_roc.pdf"
