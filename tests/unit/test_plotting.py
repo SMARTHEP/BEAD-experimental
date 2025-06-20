@@ -302,6 +302,7 @@ class TestROCCurvePlotting(unittest.TestCase):
         self.config = SimpleNamespace()
         self.config.input_level = "constituent"
         self.config.project_name = "test_project"
+        self.config.skip_to_roc = False  # Skip to ROC curve plotting
 
         # Create ground truth labels (1D array with binary values)
         self.n_samples = 100
