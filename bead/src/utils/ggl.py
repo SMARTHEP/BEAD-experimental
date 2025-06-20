@@ -644,7 +644,7 @@ def run_inference(paths, config, verbose: bool = False):
         print("Inference failed")
 
 
-def run_plots(paths, config, skip_to_roc: bool = False, verbose: bool = False):
+def run_plots(paths, config, verbose: bool = False):
     """
     Main function calling the plotting functions, ran when --mode=plot is selected.
     The main functions this calls are: `plotting.plot_losses`, `plotting.plot_latent_variables`,
@@ -658,7 +658,7 @@ def run_plots(paths, config, skip_to_roc: bool = False, verbose: bool = False):
     input_path = os.path.join(paths["output_path"], "results")
     output_path = os.path.join(paths["output_path"], "plots", "loss")
 
-    if not skip_to_roc:
+    if not config.skip_to_roc:
         try:
             plotting.plot_losses(input_path, output_path, config, verbose)
         except FileNotFoundError as e:
