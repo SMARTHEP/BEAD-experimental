@@ -24,13 +24,15 @@ from sklearn.metrics import auc, roc_curve
 
 # Import GPU-accelerated algorithms if available, otherwise use CPU versions
 try:
-    import cuml
-    from cuml.manifold import TSNE as cuTSNE
     from cuml.decomposition import PCA as cuPCA
+    from cuml.manifold import TSNE as cuTSNE
+
     CUML_AVAILABLE = True
 except ImportError:
     CUML_AVAILABLE = False
-    warnings.warn("cuML not installed. Using sklearn CPU implementations instead.")
+    warnings.warn(
+        "cuML not installed. Using sklearn CPU implementations instead.", stacklevel=2
+    )
 
 # Import CPU implementations as fallback
 from sklearn.decomposition import PCA
@@ -40,6 +42,7 @@ from sklearn.manifold import TSNE
 try:
     if CUML_AVAILABLE:
         from cuml.manifold import UMAP as cuUMAP
+
         CUUMAP_AVAILABLE = True
     else:
         CUUMAP_AVAILABLE = False
@@ -48,6 +51,7 @@ except ImportError:
 
 try:
     import umap
+
     UMAP_AVAILABLE = True
 except ImportError:
     UMAP_AVAILABLE = False
@@ -55,10 +59,14 @@ except ImportError:
 # Import TriMap as an alternative
 try:
     import trimap
+
     TRIMAP_AVAILABLE = True
 except ImportError:
     TRIMAP_AVAILABLE = False
-    warnings.warn("TriMap not installed. This dimensionality reduction method will not be available.")
+    warnings.warn(
+        "TriMap not installed. This dimensionality reduction method will not be available.",
+        stacklevel=2,
+    )
 
 # Import utility function to check device availability
 from . import helper
@@ -223,7 +231,7 @@ def reduce_dim_subsampled(
 
     # Check device availability for GPU acceleration
     device = helper.get_device()
-    use_gpu = CUML_AVAILABLE and device.type == 'cuda'
+    use_gpu = CUML_AVAILABLE and device.type == "cuda"
 
     # Subsampling for large datasets
     if n_samples is not None and data.shape[0] > n_samples:
@@ -244,7 +252,10 @@ def reduce_dim_subsampled(
             else:
                 data = PCA(n_components=50).fit_transform(data)
         except Exception as e:
-            warnings.warn(f"Error in PCA preprocessing, using original data: {str(e)}")
+            warnings.warn(
+                f"Error in PCA preprocessing, using original data: {str(e)}",
+                stacklevel=2,
+            )
 
     # Apply the selected dimensionality reduction method
     method = method.lower()
@@ -264,8 +275,12 @@ def reduce_dim_subsampled(
                 print("Reducing to 2 dimensions using t-SNE...")
             if use_gpu:
                 # cuML's T-SNE has different parameters
-                reducer = cuTSNE(n_components=n_components, random_state=42,
-                                learning_rate='auto', init='random')
+                reducer = cuTSNE(
+                    n_components=n_components,
+                    random_state=42,
+                    learning_rate="auto",
+                    init="random",
+                )
             else:
                 reducer = TSNE(n_components=n_components, random_state=42)
             reduced = reducer.fit_transform(data)
@@ -286,7 +301,9 @@ def reduce_dim_subsampled(
             elif UMAP_AVAILABLE:
                 reducer = umap.UMAP(n_components=n_components, random_state=42)
             else:
-                raise ImportError("UMAP is not available. Install 'umap-learn' package.")
+                raise ImportError(
+                    "UMAP is not available. Install 'umap-learn' package."
+                )
             reduced = reducer.fit_transform(data)
             method_used = "umap"
 
@@ -294,7 +311,8 @@ def reduce_dim_subsampled(
             # Fall back to PCA if the specified method is not available
             if method != "pca" and method != "tsne":
                 warnings.warn(
-                    f"Method '{method}' is not available. Falling back to t-SNE."
+                    f"Method '{method}' is not available. Falling back to t-SNE.",
+                    stacklevel=2,
                 )
 
             if use_gpu:
@@ -305,7 +323,9 @@ def reduce_dim_subsampled(
             method_used = "t-sne"
 
     except Exception as e:
-        warnings.warn(f"Error using {method}, falling back to PCA: {str(e)}")
+        warnings.warn(
+            f"Error using {method}, falling back to PCA: {str(e)}", stacklevel=2
+        )
         if use_gpu:
             reducer = cuPCA(n_components=n_components)
         else:
@@ -314,7 +334,7 @@ def reduce_dim_subsampled(
         method_used = "pca"
 
     # Convert to numpy array if it's a GPU array
-    if hasattr(reduced, 'to_numpy'):
+    if hasattr(reduced, "to_numpy"):
         reduced = reduced.to_numpy()
 
     return reduced, method_used, indices
@@ -353,7 +373,7 @@ def plot_latent_variables(config, paths, verbose=False):
             method=config.latent_space_plot_style,
             n_components=2,
             n_samples=None,
-            verbose=verbose
+            verbose=verbose,
         )
         return reduced, method
 
@@ -526,7 +546,7 @@ def plot_mu_logvar(config, paths, verbose=False):
             method=config.latent_space_plot_style,
             n_components=2,
             n_samples=None,
-            verbose=verbose
+            verbose=verbose,
         )
         return reduced, method
 
@@ -779,11 +799,13 @@ def plot_roc_curve(config, paths, verbose: bool = False):
                     "fpr": fpr,
                     "tpr": tpr,
                     "auc": roc_auc,
-                    "name": config.project_name
+                    "name": config.project_name,
                 }
 
             # Plot the ROC curve.
-            plt.plot(fpr, tpr, label=f"{component.capitalize()} AUC = {roc_auc:.2f}", lw=2)
+            plt.plot(
+                fpr, tpr, label=f"{component.capitalize()} AUC = {roc_auc:.2f}", lw=2
+            )
 
         plt.plot([0, 1], [0, 1], "k--", lw=2, label="Random Guess")
         plt.xlabel("False Positive Rate")
@@ -798,7 +820,7 @@ def plot_roc_curve(config, paths, verbose: bool = False):
         plt.close()
 
     # Create ROC overlay if enabled
-    if hasattr(config, 'overlay_roc') and config.overlay_roc:
+    if hasattr(config, "overlay_roc") and config.overlay_roc:
         if verbose:
             print("Generating ROC overlay plot...")
 
@@ -811,7 +833,7 @@ def plot_roc_curve(config, paths, verbose: bool = False):
                 current_project_roc["fpr"],
                 current_project_roc["tpr"],
                 label=f"{current_project_roc['name']} (AUC = {current_project_roc['auc']:.3f})",
-                lw=2
+                lw=2,
             )
 
         # Process each project in the overlay list
@@ -822,17 +844,12 @@ def plot_roc_curve(config, paths, verbose: bool = False):
 
                 # Construct paths to the other project's files
                 other_project_results = os.path.join(
-                    "bead/workspaces",
-                    workspace_name,
-                    project_name,
-                    "output",
-                    "results"
+                    "bead/workspaces", workspace_name, project_name, "output", "results"
                 )
 
                 # Load label file from the other project
                 other_label_path = os.path.join(
-                    other_project_results,
-                    f"test_{config.input_level}_label.npy"
+                    other_project_results, f"test_{config.input_level}_label.npy"
                 )
 
                 # Skip if the label file doesn't exist
@@ -875,15 +892,12 @@ def plot_roc_curve(config, paths, verbose: bool = False):
                         # Interpolate to find TPR at the desired FPR
                         tpr_at_fpr = np.interp(threshold, fpr, tpr)
                     if verbose:
-                        print(f"TPR for {project_name} at FPR {threshold:.1e}: {tpr_at_fpr:.3f}")
+                        print(
+                            f"TPR for {project_name} at FPR {threshold:.1e}: {tpr_at_fpr:.3f}"
+                        )
 
                 # Plot the ROC curve
-                plt.plot(
-                    fpr,
-                    tpr,
-                    label=f"{project_name} (AUC = {roc_auc:.3f})",
-                    lw=2
-                )
+                plt.plot(fpr, tpr, label=f"{project_name} (AUC = {roc_auc:.3f})", lw=2)
 
                 if verbose:
                     print(f"Added {project_path} to overlay plot (AUC = {roc_auc:.3f})")
@@ -896,7 +910,7 @@ def plot_roc_curve(config, paths, verbose: bool = False):
         plt.plot([0, 0], [1, 1], "k--", lw=2, label="Random Guess")
 
         # Set x-axis to log scale and zoom to specified region
-        plt.xscale('log')
+        plt.xscale("log")
         plt.xlim(1e-4, 1e-1)  # Set x-axis range to show 1E-4, 1E-2 and 1E-1
         plt.ylim(0, 0.42)
 
@@ -909,7 +923,9 @@ def plot_roc_curve(config, paths, verbose: bool = False):
         plt.tight_layout()
 
         # Create directory for the overlay plot if it doesn't exist
-        overlay_dir = os.path.join(paths["output_path"], "plots", config.overlay_roc_save_location)
+        overlay_dir = os.path.join(
+            paths["output_path"], "plots", config.overlay_roc_save_location
+        )
         os.makedirs(overlay_dir, exist_ok=True)
 
         # Save the overlay plot
