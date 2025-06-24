@@ -64,7 +64,6 @@ def main():
     local_rank = 0
     world_size = 1
     is_ddp_active = False
-    skip_to_roc = False
 
     if (
         config
