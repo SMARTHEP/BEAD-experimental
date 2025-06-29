@@ -334,5 +334,6 @@ torchrun --standalone --nnodes=1 --nproc_per_node=3 -m bead.bead -m chain -p $WO
 
 # CRVSTAL
 ***C*ontrastive *R*epresentations in *V*AE *S*tructures for *T*agging *A*nomalies in the *L*atent *S*pace**
+
 BEAD now comes with 2 in-built contrastive loss implementations namely, Supervised Contrastive (SupCon) and Normalized Temptrature-scaled Cross Entropy(NT-xEnt) losses, that allow you to make the most of the available generator labels during training. Using the annealing implementation to control the contrastive loss hyper-parameter is recommended to better achieve required behavior.
 
