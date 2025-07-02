@@ -62,7 +62,7 @@ class ReconstructionLoss(BaseLoss):
         self.reg_param = config.reg_param
         self.component_names = ["reco"]
 
-    def calculate(self, recon, target, mu, logvar, parameters, log_det_jacobian=0, zk=None, generator_labels=None, **kwargs):
+    def calculate(self, recon, target, mu, logvar, parameters=None, log_det_jacobian=0, zk=None, **kwargs):
         self.loss_type = "mse"
         self.reduction = "mean"
 
@@ -111,7 +111,7 @@ class KLDivergenceLoss(BaseLoss):
         alpha = term / var
         return alpha
 
-    def calculate(self, recon, target, mu, logvar, parameters=None, log_det_jacobian=0, zk=None, z0=None, generator_labels=None, **kwargs):
+    def calculate(self, recon, target, mu, logvar, parameters=None, log_det_jacobian=0, zk=None, z0=None, **kwargs):
         batch_size = mu.size(0)
 
         if self.prior == "dirichlet":
@@ -122,11 +122,11 @@ class KLDivergenceLoss(BaseLoss):
 
             kl_loss = torch.distributions.kl_divergence(q_z, prior)
 
-            return (kl_loss.mean(),)
+            return (kl_loss/batch_size,)
 
         else:
             kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
-            return (kl_loss.mean(),)
+            return (kl_loss/batch_size,)
 
 
 # ---------------------------
@@ -152,7 +152,7 @@ class SupervisedContrastiveLoss(BaseLoss):
         )
         self.world_size = config.world_size if hasattr(config, "world_size") else 1
 
-    def calculate(self, features, labels):
+    def calculate(self, features, labels, **kwargs):
         """
         Args:
             features (torch.Tensor): Latent vectors (e.g., zk), shape [batch_size, feature_dim].Assumed to be L2-normalized.
@@ -233,7 +233,7 @@ class WassersteinLoss(BaseLoss):
         self.dim = 1
         self.component_names = ["emd"]
 
-    def calculate(self, p, q):
+    def calculate(self, p, q, **kwargs):
         # Normalize if not already probability distributions
         p = p / (p.sum(dim=self.dim, keepdim=True) + 1e-8)
         q = q / (q.sum(dim=self.dim, keepdim=True) + 1e-8)
@@ -259,7 +259,7 @@ class L1Regularization(BaseLoss):
         self.weight = self.config.reg_param
         self.component_names = ["l1"]
 
-    def calculate(self, parameters):
+    def calculate(self, parameters, **kwargs):
         l1_loss = 0.0
         for param in parameters:
             l1_loss += torch.sum(torch.abs(param))
@@ -279,7 +279,7 @@ class L2Regularization(BaseLoss):
         self.weight = self.config.reg_param
         self.component_names = ["l2"]
 
-    def calculate(self, parameters):
+    def calculate(self, parameters, **kwargs):
         l2_loss = 0.0
         for param in parameters:
             l2_loss += torch.sum(param**2)
@@ -306,9 +306,7 @@ class BinaryCrossEntropyLoss(BaseLoss):
         self.reduction = "mean"
         self.component_names = ["bce"]
 
-    def calculate(
-        self, predictions, targets, mu, logvar, parameters, log_det_jacobian=0, zk=None, z0=None, generator_labels=None, **kwargs
-    ):
+    def calculate(self, predictions, targets, **kwargs):
         """
         Calculate the binary cross entropy loss.
 
