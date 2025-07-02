@@ -934,14 +934,16 @@ def unpack_model_outputs(outputs):
     For models that don't naturally produce all these values:
     - AE models (len(outputs) == 2): Returns (recon, zeros, zeros, zeros, z, z)
     - VAE models (len(outputs) == 4): Returns (recon, mu, logvar, zeros, z, z)
-    - Flow models (len(outputs) == 6): Returns outputs as-is
+    - Flow models (len(outputs) == 6): Returns (recon, mu, logvar, ldj, z0, zk)
+    - Dirichlet VAE (len(outputs) == 6): Returns (recon, mu, logvar, zeros, G_z, D_z)
     
     Args:
         outputs (tuple): The raw outputs tuple from a model's forward method.
             Could be one of:
             - (recon, z) for basic autoencoders (AE, AE_Dropout_BN, ConvAE)
-            - (recon, mu, logvar, z) for VAEs (ConvVAE, Dirichlet_ConvVAE)
+            - (recon, mu, logvar, z) for VAEs (ConvVAE)
             - (recon, mu, logvar, ldj, z0, zk) for flow-based models (Planar_ConvVAE, etc.)
+            - (recon, mu, logvar, G_z, G_z, D_z) for Dirichlet_ConvVAE
     
     Returns:
         tuple: A standardized 6-tuple (recon, mu, logvar, ldj, z0, zk) where:
@@ -949,8 +951,8 @@ def unpack_model_outputs(outputs):
             - mu: Mean of the latent distribution (or zeros for AEs)
             - logvar: Log variance of the latent distribution (or zeros for AEs)
             - ldj: Log determinant of the Jacobian (or zeros for non-flow models)
-            - z0: Initial sample from the latent distribution (or same as zk for non-flow models)
-            - zk: Final transformed latent variable (or just the latent code for non-flow models)
+            - z0: Initial sample from the latent distribution (G_z for Dirichlet VAE)
+            - zk: Final transformed latent variable (D_z for Dirichlet VAE)
     
     Raises:
         ValueError: If the length of outputs is not 2, 4, or 6.
@@ -973,9 +975,21 @@ def unpack_model_outputs(outputs):
         z0 = zk  # For VAEs without flows, initial and final latent are the same
         return recon, mu, logvar, ldj, z0, zk
         
-    elif len(outputs) == 6:  # Flow model: already in correct format
-        # Just return as-is
-        return outputs
+    elif len(outputs) == 6:  # Could be Flow model or Dirichlet VAE
+        recon, mu, logvar = outputs[0], outputs[1], outputs[2]
+        
+        # Check if this is likely a Dirichlet VAE output (recon, mu, logvar, G_z, G_z, D_z)
+        # We can identify this by checking if the 4th and 5th elements are identical (both G_z)
+        # This is a heuristic that should work reliably for the known models
+        if torch.equal(outputs[3], outputs[4]):
+            # This is likely a Dirichlet VAE output
+            G_z, _, D_z = outputs[3], outputs[4], outputs[5]
+            ldj = torch.zeros(1, device=recon.device)  # DVAE has no ldj
+            z0, zk = G_z, D_z  # Use G_z as z0 and D_z as zk
+            return recon, mu, logvar, ldj, z0, zk
+        else:
+            # This is likely a Flow model output (already in correct format)
+            return outputs
         
     else:
         raise ValueError(f"Unexpected number of outputs from model: {len(outputs)}. Expected 2, 4, or 6.")
