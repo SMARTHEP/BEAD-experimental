@@ -377,7 +377,11 @@ class Dirichlet_ConvVAE(ConvAE):
         # Apply softmax to map z to simplex (Dirichlet approximation)
         D_z = torch.nn.functional.softmax(G_z,dim=-1)
         out = self.decode(D_z)
+<<<<<<< HEAD
         return out, mean, logvar, G_z,G_z,D_z
+=======
+        return out, mean, logvar, D_z
+>>>>>>> efdf8fd52de033cb65b953e9e261bd91779c16dd
 
 
 class Planar_ConvVAE(ConvVAE):
