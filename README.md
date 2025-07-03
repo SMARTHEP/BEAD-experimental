@@ -37,7 +37,7 @@ BEAD has five main running modes:
 
 - **GPU Visualization**: GPU-accelerated plotting and dimensionality reduction for faster analysis and visualization of large datasets, with automatic fallback to CPU when GPU is unavailable.
 
-For a full chain example, look [below](#example)!
+For a full chain example, look [below](#fullchain-example)!
 
 Bead has several versions each targetting different operating conditions (local or HPC cluster; CPU or GPU or multi-CPU-GPU distributed runs etc.). After the first full release, we will add a list mapping each stable version with the computing environment it was desinged for. For now, `prod_local` is the stable branch for running on a low compute device for e.g. the lame laptop your Univeristy gave you :P.
 
