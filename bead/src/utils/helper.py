@@ -1120,7 +1120,7 @@ def get_ntxent_outputs(model, inputs, config):
     Performs a dual forward pass through the model with augmented input views for NT-Xent contrastive learning.
     
     This function:
-    1. Generates two augmented views of the input data by adding Gaussian noise
+    1. Generates two augmented views of the input data using naive gaussian smearing strategy
     2. Passes each view through the model
     3. Unpacks the model outputs from each view
     4. Returns all necessary outputs for NT-Xent loss calculation
@@ -1142,9 +1142,9 @@ def get_ntxent_outputs(model, inputs, config):
     """
     from ..utils.ntxent_utils import generate_augmented_views
     
-    # Generate two augmented views by adding noise to the input data
+    # Generate two augmented views using naive gaussian smearing strategy
     # The sigma (noise level) is controlled by the config
-    x_i, x_j = generate_augmented_views(inputs, sigma=config.ntxent_noise_sigma)
+    x_i, x_j = generate_augmented_views(inputs, sigma=config.ntxent_sigma)
     
     # Perform forward pass with the first view
     out_i = call_forward(model, x_i)
