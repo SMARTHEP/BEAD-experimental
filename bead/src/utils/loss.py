@@ -921,9 +921,23 @@ class NTXentCombinedLoss(BaseLoss):
     
     def __init__(self, config):
         super(NTXentCombinedLoss, self).__init__(config)
-        # Get the base loss function class from the config
-        base_loss_name = config.base_loss_function if hasattr(config, "base_loss_function") else "VAELoss"
-        base_loss_class = globals()[base_loss_name]  # Get the class by name using globals()
+        
+        # Intelligently parse the loss function name to determine the base loss
+        if config.loss_function == "NTXentLoss":
+            # For standalone NTXentLoss, use a minimal base loss (ReconstructionLoss)
+            base_loss_name = "ReconstructionLoss"
+        elif config.loss_function == "NTXentVAELoss":
+            base_loss_name = "VAELoss"
+        elif config.loss_function == "NTXentVAEFlowLoss":
+            base_loss_name = "VAEFlowLoss"
+        elif config.loss_function == "NTXentDVAELoss":
+            base_loss_name = "DVAELoss"
+        else:
+            # For custom combinations or backward compatibility
+            base_loss_name = getattr(config, "base_loss_function", "VAELoss")
+        
+        # Get the class by name using globals()
+        base_loss_class = globals()[base_loss_name]
         
         # Initialize the base loss function and NT-Xent loss
         self.base_loss_fn = base_loss_class(config)

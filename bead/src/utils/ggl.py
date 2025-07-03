@@ -193,7 +193,6 @@ class Config:
     overlay_roc_filename: str
     
     # NT-Xent loss parameters
-    use_ntxent: bool = False  # Whether to use NT-Xent contrastive loss
     base_loss_function: str = "VAELoss"  # Base loss function to wrap with NT-Xent
     ntxent_sigma: float = 0.1  # Standard deviation for Gaussian noise in augmentation
     ntxent_temperature: float = 0.07  # Temperature parameter for NT-Xent loss
