@@ -97,16 +97,11 @@ def fit(
             else torch.float32,
             enabled=(config.use_amp and device.type == "cuda"),
         ):
-<<<<<<< HEAD
             # Check if NT-Xent is needed based on the loss function name
             # This will match NTXentLoss, NTXentVAELoss, NTXentVAEFlowLoss, NTXentDVAELoss, etc.
             is_ntxent = "ntxent" in config.loss_function.lower()
             
             if is_ntxent:
-=======
-            # If NT-Xent is enabled, use dual forward pass with augmented views
-            if hasattr(config, "use_ntxent") and config.use_ntxent:
->>>>>>> efdf8fd52de033cb65b953e9e261bd91779c16dd
                 recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, inputs, config)
             else:
                 # Standard single forward pass
@@ -121,22 +116,13 @@ def fit(
                 "mu": mu,
                 "logvar": logvar,
                 "zk": zk,
-<<<<<<< HEAD
-=======
-                "z0": z0,  # Include z0 for flow-based loss functions
->>>>>>> efdf8fd52de033cb65b953e9e261bd91779c16dd
                 "parameters": model_for_loss_params.parameters(),
                 "log_det_jacobian": ldj if hasattr(ldj, "item") else torch.tensor(0.0, device=device),
                 "generator_labels": gen_labels,
             }
             
             # Only include zk_j for NT-Xent loss functions
-<<<<<<< HEAD
             if is_ntxent:
-=======
-            if (hasattr(config, "use_ntxent") and config.use_ntxent) and \
-               (hasattr(loss_fn, "calculate_ntxent") or "NTXent" in loss_fn.__class__.__name__):
->>>>>>> efdf8fd52de033cb65b953e9e261bd91779c16dd
                 loss_args["zk_j"] = zk_j
                 
             losses = loss_fn.calculate(**loss_args)
@@ -233,16 +219,11 @@ def validate(
                 else torch.float32,
                 enabled=(config.use_amp and device.type == "cuda"),
             ):
-<<<<<<< HEAD
                 # Check if NT-Xent is needed based on the loss function name
                 # This will match NTXentLoss, NTXentVAELoss, NTXentVAEFlowLoss, NTXentDVAELoss, etc.
                 is_ntxent = "ntxent" in config.loss_function.lower()
                 
                 if is_ntxent:
-=======
-                # If NT-Xent is enabled, use dual forward pass with augmented views
-                if hasattr(config, "use_ntxent") and config.use_ntxent:
->>>>>>> efdf8fd52de033cb65b953e9e261bd91779c16dd
                     recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, inputs, config)
                 else:
                     # Standard single forward pass
@@ -257,22 +238,13 @@ def validate(
                     "mu": mu,
                     "logvar": logvar,
                     "zk": zk,
-<<<<<<< HEAD
-=======
-                    "z0": z0,  # Include z0 for flow-based loss functions
->>>>>>> efdf8fd52de033cb65b953e9e261bd91779c16dd
                     "parameters": model_for_loss_params.parameters(),
                     "log_det_jacobian": ldj if hasattr(ldj, "item") else torch.tensor(0.0, device=device),
                     "generator_labels": gen_labels,
                 }
                 
                 # Only include zk_j for NT-Xent loss functions
-<<<<<<< HEAD
                 if is_ntxent:
-=======
-                if (hasattr(config, "use_ntxent") and config.use_ntxent) and \
-                   (hasattr(loss_fn, "calculate_ntxent") or "NTXent" in loss_fn.__class__.__name__):
->>>>>>> efdf8fd52de033cb65b953e9e261bd91779c16dd
                     loss_args["zk_j"] = zk_j
                     
                 losses = loss_fn.calculate(**loss_args)
