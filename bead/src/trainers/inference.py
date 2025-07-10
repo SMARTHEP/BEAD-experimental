@@ -277,7 +277,7 @@ def infer(
     parameters = model.parameters()
 
     with torch.no_grad():
-        for idx, batch in enumerate(tqdm(test_dl)):
+        for _idx, batch in enumerate(tqdm(test_dl)):
             inputs, labels = batch
             inputs = inputs.to(device)
 
