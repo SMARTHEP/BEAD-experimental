@@ -375,9 +375,9 @@ class Dirichlet_ConvVAE(ConvAE):
         out, mean, logvar = self.encode(x)
         G_z = self.reparameterize(mean, logvar)
         # Apply softmax to map z to simplex (Dirichlet approximation)
-        D_z = torch.nn.functional.softmax(G_z,dim=-1)
+        D_z = torch.nn.functional.softmax(G_z, dim=-1)
         out = self.decode(D_z)
-        return out, mean, logvar, G_z,G_z,D_z
+        return out, mean, logvar, G_z, G_z, D_z
 
 
 class Planar_ConvVAE(ConvVAE):
@@ -516,7 +516,7 @@ class OrthogonalSylvester_ConvVAE(ConvVAE):
         max_norm = 0
 
         # Iterative orthogonalization
-        for s in range(self.steps):
+        for _s in range(self.steps):
             tmp = torch.bmm(amat.transpose(2, 1), amat)
             tmp = self._eye - tmp
             tmp = self._eye + 0.5 * tmp
