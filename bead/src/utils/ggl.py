@@ -191,6 +191,11 @@ class Config:
     overlay_roc_projects: list
     overlay_roc_save_location: str
     overlay_roc_filename: str
+    
+    # NT-Xent loss parameters
+    ntxent_sigma: float = 0.1  # Standard deviation for naive gaussian smearing strategy
+    ntxent_temperature: float = 0.07  # Temperature parameter for NT-Xent loss
+    ntxent_weight: float = 1.0  # Weight for NT-Xent loss term
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
@@ -241,6 +246,11 @@ def set_config(c):
     c.use_amp                      = False
     c.early_stopping_patience      = 100
     c.min_delta                    = 0
+
+# === NT-Xent loss configuration ===
+    c.ntxent_sigma                 = 0.1
+    c.ntxent_temperature           = 0.07
+    c.ntxent_weight                = 1.0
     c.lr_scheduler_patience        = 50
     c.reg_param                    = 0.001
     c.intermittent_model_saving    = False

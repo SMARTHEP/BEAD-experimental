@@ -97,21 +97,35 @@ def fit(
             else torch.float32,
             enabled=(config.use_amp and device.type == "cuda"),
         ):
-            out = helper.call_forward(ddp_model, inputs)
-            recon, mu, logvar, ldj, z0, zk = out
+            # Check if NT-Xent is needed based on the loss function name
+            # This will match NTXentLoss, NTXentVAELoss, NTXentVAEFlowLoss, NTXentDVAELoss, etc.
+            is_ntxent = "ntxent" in config.loss_function.lower()
+            
+            if is_ntxent:
+                recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, inputs, config)
+            else:
+                # Standard single forward pass
+                out = helper.call_forward(ddp_model, inputs)
+                recon, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
+                zk_j = None  # No second view for standard training
 
-            losses = loss_fn.calculate(
-                recon=recon,
-                target=inputs,
-                mu=mu,
-                logvar=logvar,
-                zk=zk,
-                parameters=model_for_loss_params.parameters(),
-                log_det_jacobian=ldj
-                if hasattr(ldj, "item")
-                else torch.tensor(0.0, device=device),  # ldj gets extra love
-                generator_labels=gen_labels,
-            )
+            # Prepare common arguments for loss calculation
+            loss_args = {
+                "recon": recon,
+                "target": inputs,
+                "mu": mu,
+                "logvar": logvar,
+                "zk": zk,
+                "parameters": model_for_loss_params.parameters(),
+                "log_det_jacobian": ldj if hasattr(ldj, "item") else torch.tensor(0.0, device=device),
+                "generator_labels": gen_labels,
+            }
+            
+            # Only include zk_j for NT-Xent loss functions
+            if is_ntxent:
+                loss_args["zk_j"] = zk_j
+                
+            losses = loss_fn.calculate(**loss_args)
         loss, *_ = losses
 
         scaler.scale(loss).backward()
@@ -205,20 +219,35 @@ def validate(
                 else torch.float32,
                 enabled=(config.use_amp and device.type == "cuda"),
             ):
-                out = helper.call_forward(ddp_model, inputs)
-                recon, mu, logvar, ldj, z0, zk = out
-                losses = loss_fn.calculate(
-                    recon=recon,
-                    target=inputs,
-                    mu=mu,
-                    logvar=logvar,
-                    zk=zk,
-                    parameters=model_for_loss_params.parameters(),
-                    log_det_jacobian=ldj
-                    if hasattr(ldj, "item")
-                    else torch.tensor(0.0, device=device),
-                    generator_labels=gen_labels,
-                )
+                # Check if NT-Xent is needed based on the loss function name
+                # This will match NTXentLoss, NTXentVAELoss, NTXentVAEFlowLoss, NTXentDVAELoss, etc.
+                is_ntxent = "ntxent" in config.loss_function.lower()
+                
+                if is_ntxent:
+                    recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, inputs, config)
+                else:
+                    # Standard single forward pass
+                    out = helper.call_forward(ddp_model, inputs)
+                    recon, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
+                    zk_j = None  # No second view for standard validation
+
+                # Prepare common arguments for loss calculation
+                loss_args = {
+                    "recon": recon,
+                    "target": inputs,
+                    "mu": mu,
+                    "logvar": logvar,
+                    "zk": zk,
+                    "parameters": model_for_loss_params.parameters(),
+                    "log_det_jacobian": ldj if hasattr(ldj, "item") else torch.tensor(0.0, device=device),
+                    "generator_labels": gen_labels,
+                }
+                
+                # Only include zk_j for NT-Xent loss functions
+                if is_ntxent:
+                    loss_args["zk_j"] = zk_j
+                    
+                losses = loss_fn.calculate(**loss_args)
             loss, *_ = losses
             running_loss += loss.item()
             num_batches_processed_this_rank += 1
@@ -290,6 +319,9 @@ def train(
     local_rank = config.local_rank
     world_size = config.world_size
     device = helper.get_device(config)
+    
+    # Store device in config for access by loss functions (needed for NT-Xent)
+    config.device = device
 
     if "ConvVAE" in config.model_name or "ConvAE" in config.model_name:
         if not isinstance(data, (list, tuple)):
@@ -642,7 +674,7 @@ def train(
                         enabled=(config.use_amp and device.type == "cuda"),
                     ):
                         out = helper.call_forward(actual_model_for_evaluation, inputs)
-                        _, mu, logvar, ldj, z0, zk = out
+                        _, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
                     mu_data_list.append(mu.detach().cpu().numpy())
                     logvar_data_list.append(logvar.detach().cpu().numpy())
                     if hasattr(ldj, "detach"):
