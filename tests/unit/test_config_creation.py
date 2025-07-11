@@ -76,7 +76,7 @@ class TestConfigCreation(unittest.TestCase):
             reg_param = c.annealing_params['reg_param']
             self.assertEqual(reg_param['strategy'], 'TRIGGER_BASED')
             self.assertEqual(reg_param['values'], [0.001, 0.005, 0.01])
-            self.assertEqual(reg_param['trigger_source'], 'early_stopper_half_patience')
+            self.assertEqual(reg_param['trigger_source'], 'early_stopper_third_patience')
             self.assertEqual(reg_param['current_index'], 0)
         finally:
             # Clean up the temporary file
