@@ -23,7 +23,7 @@ BEAD has five main running modes:
 
    5. Diagnostics: Enabling this mode allows running profilers that measure a host of metrics connected to the usage of the compute node you run on to help you optimize the code if needed(using CPU-GPU metrics).
 
-For more information, follow the install instructions here: https://github.com/PRAkTIKal24/BEAD and from ./BEAD/bead/ run the command ```poetry run bead -h``` to get detailed instructions on running the package and the available customizations
+For more information, follow the install instructions here: https://github.com/PRAkTIKal24/BEAD and from ./BEAD/bead/ run the command ```uv run bead -h``` to get detailed instructions on running the package and the available customizations
 
 .. note::
 
