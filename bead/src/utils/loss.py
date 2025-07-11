@@ -62,7 +62,17 @@ class ReconstructionLoss(BaseLoss):
         self.reg_param = config.reg_param
         self.component_names = ["reco"]
 
-    def calculate(self, recon, target, mu, logvar, parameters=None, log_det_jacobian=0, zk=None, **kwargs):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        parameters=None,
+        log_det_jacobian=0,
+        zk=None,
+        **kwargs,
+    ):
         self.loss_type = "mse"
         self.reduction = "mean"
 
@@ -103,30 +113,43 @@ class KLDivergenceLoss(BaseLoss):
         K = mu.size(1)
         var = torch.exp(logvar)
         exp_mu = torch.exp(mu)
-        exp_minus_mu= torch.exp(-mu)
+        exp_minus_mu = torch.exp(-mu)
         sum_exp_minus = exp_minus_mu.sum(dim=1, keepdim=True)
 
         # Laplace Bridge approximation
-        term = 1.0 - 2.0 / K + (exp_mu * sum_exp_minus) / (K ** 2)
+        term = 1.0 - 2.0 / K + (exp_mu * sum_exp_minus) / (K**2)
         alpha = term / var
         return alpha
 
-    def calculate(self, recon, target, mu, logvar, parameters=None, log_det_jacobian=0, zk=None, z0=None, **kwargs):
+    def calculate(
+        self,
+        recon,
+        target,
+        mu,
+        logvar,
+        parameters=None,
+        log_det_jacobian=0,
+        zk=None,
+        z0=None,
+        **kwargs,
+    ):
         batch_size = mu.size(0)
 
         if self.prior == "dirichlet":
             D_z = self.compute_alpha_laplace(mu, logvar)
 
             q_z = torch.distributions.Dirichlet(D_z)
-            prior = torch.distributions.Dirichlet(torch.full_like(D_z, self.alpha_prior_value))
+            prior = torch.distributions.Dirichlet(
+                torch.full_like(D_z, self.alpha_prior_value)
+            )
 
             kl_loss = torch.distributions.kl_divergence(q_z, prior)
 
-            return (kl_loss/batch_size,)
+            return (kl_loss.mean(),)
 
         else:
             kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
-            return (kl_loss/batch_size,)
+            return (kl_loss / batch_size,)
 
 
 # ---------------------------
@@ -365,10 +388,24 @@ class VAELoss(BaseLoss):
         generator_labels=None,
     ):
         recon_loss = self.recon_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian=log_det_jacobian, zk=zk, generator_labels=generator_labels
+            recon,
+            target,
+            mu,
+            logvar,
+            parameters,
+            log_det_jacobian=log_det_jacobian,
+            zk=zk,
+            generator_labels=generator_labels,
         )
         kl_loss = self.kl_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian=log_det_jacobian, zk=zk, generator_labels=generator_labels
+            recon,
+            target,
+            mu,
+            logvar,
+            parameters,
+            log_det_jacobian=log_det_jacobian,
+            zk=zk,
+            generator_labels=generator_labels,
         )
         loss = recon_loss[0] + self.kl_weight * kl_loss[0]
         return loss, recon_loss[0], kl_loss[0]
@@ -413,10 +450,26 @@ class VAEFlowLoss(BaseLoss):
         **kwargs,
     ):
         recon_loss = self.recon_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian=log_det_jacobian, zk=zk, z0=z0, generator_labels=generator_labels
+            recon,
+            target,
+            mu,
+            logvar,
+            parameters,
+            log_det_jacobian=log_det_jacobian,
+            zk=zk,
+            z0=z0,
+            generator_labels=generator_labels,
         )[0]
         kl_loss = self.kl_loss_fn.calculate(
-            recon, target, mu, logvar, parameters, log_det_jacobian=log_det_jacobian, zk=zk, z0=z0, generator_labels=generator_labels
+            recon,
+            target,
+            mu,
+            logvar,
+            parameters,
+            log_det_jacobian=log_det_jacobian,
+            zk=zk,
+            z0=z0,
+            generator_labels=generator_labels,
         )[0]
         # Ensure log_det_jacobian is a tensor
         if not isinstance(log_det_jacobian, torch.Tensor):
@@ -482,7 +535,14 @@ class VAESupConLoss(BaseLoss):
     ):
         # Calculate VAE loss components
         vae_loss, reco_loss, kl_loss = self.vae_loss_fn.calculate(
-            recon, target, mu, logvar, zk, parameters, log_det_jacobian, generator_labels
+            recon,
+            target,
+            mu,
+            logvar,
+            zk,
+            parameters,
+            log_det_jacobian,
+            generator_labels,
         )
 
         # Calculate Supervised Contrastive loss only if generator_labels are provided; if not, fallback to ELBO loss
@@ -543,7 +603,14 @@ class VAEFlowSupConLoss(BaseLoss):
     ):
         # Calculate VAEFlow loss components
         vaeflow_loss, reco_loss, kl_loss = self.vaeflow_loss_fn.calculate(
-            recon, target, mu, logvar, zk, parameters, log_det_jacobian, generator_labels
+            recon,
+            target,
+            mu,
+            logvar,
+            zk,
+            parameters,
+            log_det_jacobian,
+            generator_labels,
         )
 
         # Calculate Supervised Contrastive loss only if generator_labels are provided; if not, fallback to ELBO loss
@@ -823,6 +890,7 @@ class DVAEFlowLoss(VAEFlowLoss):
     DVAEFlowLoss: Combines reconstruction loss and Dirichlet KL divergence loss.
     Inherits from VAEFlowLoss and overrides the KL loss function to use Dirichlet prior.
     """
+
     def __init__(self, config):
         super(DVAEFlowLoss, self).__init__(config)
         self.kl_loss_fn = KLDivergenceLoss(config, prior="dirichlet")
@@ -832,96 +900,109 @@ class NTXentLoss(BaseLoss):
     """
     NT-Xent (Normalized Temperature-scaled Cross Entropy) Loss
     as used in SimCLR and similar contrastive learning frameworks.
-    
+
     This is an unsupervised contrastive loss that works with augmented views of the same data points.
     It pulls together representations of different augmentations of the same sample (positive pairs),
     while pushing away representations of different samples (negative pairs).
-    
+
     References:
     - SimCLR: https://arxiv.org/abs/2002.05709
     """
-    
+
     def __init__(self, config):
         super(NTXentLoss, self).__init__(config)
-        self.temperature = config.ntxent_temperature if hasattr(config, "ntxent_temperature") else 0.07
+        self.temperature = (
+            config.ntxent_temperature if hasattr(config, "ntxent_temperature") else 0.07
+        )
         self.component_names = ["ntxent"]
         # DDP related attributes
-        self.is_ddp_active = config.is_ddp_active if hasattr(config, "is_ddp_active") else False
+        self.is_ddp_active = (
+            config.is_ddp_active if hasattr(config, "is_ddp_active") else False
+        )
         self.world_size = config.world_size if hasattr(config, "world_size") else 1
-    
+
     def calculate(self, z1, z2):
         """
         Calculate NT-Xent loss for each batch.
-        
+
         Args:
             z1 (torch.Tensor): First set of features/representations, shape [batch_size, feature_dim].
             z2 (torch.Tensor): Second set of features/representations, shape [batch_size, feature_dim].
                 These are typically augmented versions of the same inputs.
-        
+
         Returns:
             torch.Tensor: NT-Xent loss value.
         """
         # Get batch size and ensure both representations have the same shape
         batch_size = z1.shape[0]
         assert z1.shape == z2.shape, "Shape mismatch between representation sets"
-        
+
         # Normalize the representations (L2 norm)
         z1 = F.normalize(z1, dim=1)
         z2 = F.normalize(z2, dim=1)
-        
+
         # Concatenate along the batch dimension to create 2N samples
         representations = torch.cat([z1, z2], dim=0)  # [2*batch_size, feature_dim]
-        
+
         # Create similarity matrix (2N × 2N)
-        similarity_matrix = torch.matmul(representations, representations.T)  # [2*batch_size, 2*batch_size]
-        
+        similarity_matrix = torch.matmul(
+            representations, representations.T
+        )  # [2*batch_size, 2*batch_size]
+
         # Create positive pair mask
         # Each sample in z1 has its corresponding augmented version in z2 at the same index
         # So for i in [0, batch_size-1], (i, i+batch_size) and (i+batch_size, i) are positive pairs
         positive_mask = torch.zeros_like(similarity_matrix)
         for i in range(batch_size):
-            positive_mask[i, i + batch_size] = 1  # First augmentation to second augmentation
-            positive_mask[i + batch_size, i] = 1  # Second augmentation to first augmentation
-            
+            positive_mask[i, i + batch_size] = (
+                1  # First augmentation to second augmentation
+            )
+            positive_mask[i + batch_size, i] = (
+                1  # Second augmentation to first augmentation
+            )
+
         # Create a mask to exclude self-comparisons (diagonal)
         diag_mask = ~torch.eye(2 * batch_size, dtype=torch.bool, device=z1.device)
-        
+
         # Apply temperature scaling to similarity scores
         similarity_matrix = similarity_matrix / self.temperature
-        
+
         # For each row, compute the softmax denominator (sum over all non-self examples)
         exp_sim = torch.exp(similarity_matrix)
         exp_sim_masked = exp_sim * diag_mask  # Zero out self-comparisons
         denominator = exp_sim_masked.sum(dim=1, keepdim=True)
-        
+
         # Compute the numerator (exp of similarity for positive pairs)
-        numerator = torch.exp(torch.sum(similarity_matrix * positive_mask, dim=1) / torch.sum(positive_mask, dim=1))
-        
+        numerator = torch.exp(
+            torch.sum(similarity_matrix * positive_mask, dim=1)
+            / torch.sum(positive_mask, dim=1)
+        )
+
         # Compute the final loss for each sample
         loss_per_sample = -torch.log(numerator / (denominator + 1e-8))
-        
+
         # Average loss over the batch
         loss = loss_per_sample.mean()
-        
+
         return (loss,)
 
 
 class NTXentCombinedLoss(BaseLoss):
     """
     Combined loss that adds NT-Xent contrastive loss to any base loss function.
-    
+
     This loss function wraps another loss function (e.g., VAELoss, VAEFlowLoss)
     and adds the NT-Xent contrastive loss term between two augmented views of the
     latent representations.
-    
+
     Config parameters:
       - base_loss_function: The name of the base loss function to use (e.g., "VAELoss")
       - ntxent_weight: Weight for the NT-Xent loss term.
     """
-    
+
     def __init__(self, config):
         super(NTXentCombinedLoss, self).__init__(config)
-        
+
         # Intelligently parse the loss function name to determine the base loss
         if config.loss_function == "NTXentLoss":
             # For standalone NTXentLoss, use a minimal base loss (ReconstructionLoss)
@@ -935,18 +1016,24 @@ class NTXentCombinedLoss(BaseLoss):
         else:
             # For custom combinations or backward compatibility
             base_loss_name = getattr(config, "base_loss_function", "VAELoss")
-        
+
         # Get the class by name using globals()
         base_loss_class = globals()[base_loss_name]
-        
+
         # Initialize the base loss function and NT-Xent loss
         self.base_loss_fn = base_loss_class(config)
         self.ntxent_loss_fn = NTXentLoss(config)
-        self.ntxent_weight = torch.tensor(config.ntxent_weight if hasattr(config, "ntxent_weight") else 1.0)
-        
+        self.ntxent_weight = torch.tensor(
+            config.ntxent_weight if hasattr(config, "ntxent_weight") else 1.0
+        )
+
         # Prepare component names
-        self.component_names = ["loss"] + [f"base_{name}" for name in self.base_loss_fn.component_names] + ["ntxent_loss"]
-    
+        self.component_names = (
+            ["loss"]
+            + [f"base_{name}" for name in self.base_loss_fn.component_names]
+            + ["ntxent_loss"]
+        )
+
     def calculate(
         self,
         recon,
@@ -959,11 +1046,11 @@ class NTXentCombinedLoss(BaseLoss):
         z_aug2=None,
         log_det_jacobian=0,
         generator_labels=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Calculate the combined loss.
-        
+
         Args:
             recon: Reconstructed input
             target: Original input
@@ -976,7 +1063,7 @@ class NTXentCombinedLoss(BaseLoss):
             log_det_jacobian: Log determinant of Jacobian (for flow models)
             generator_labels: Labels for the data (if applicable)
             **kwargs: Additional arguments for the base loss
-            
+
         Returns:
             tuple: Combined loss and component losses
         """
@@ -990,9 +1077,9 @@ class NTXentCombinedLoss(BaseLoss):
             parameters=parameters,
             log_det_jacobian=log_det_jacobian,
             generator_labels=generator_labels,
-            **kwargs
+            **kwargs,
         )
-        
+
         # Only calculate NT-Xent loss if augmented views are provided
         if z_aug1 is not None and z_aug2 is not None:
             ntxent_loss = self.ntxent_loss_fn.calculate(z_aug1, z_aug2)[0]
@@ -1000,10 +1087,10 @@ class NTXentCombinedLoss(BaseLoss):
         else:
             ntxent_loss = torch.tensor(0.0, device=recon.device)
             weighted_ntxent_loss = ntxent_loss
-        
+
         # Combine losses
         total_loss = base_losses[0] + weighted_ntxent_loss
-        
+
         # Return combined loss and all components
         # Structure must match component_names = ["loss"] + [f"base_{name}" for name in self.base_loss_fn.component_names] + ["ntxent_loss"]
         return (total_loss,) + base_losses + (ntxent_loss,)
