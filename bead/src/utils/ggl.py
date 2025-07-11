@@ -191,11 +191,9 @@ class Config:
     overlay_roc_projects: list
     overlay_roc_save_location: str
     overlay_roc_filename: str
-    
+
     # NT-Xent loss parameters
     ntxent_sigma: float = 0.1  # Standard deviation for naive gaussian smearing strategy
-    ntxent_temperature: float = 0.07  # Temperature parameter for NT-Xent loss
-    ntxent_weight: float = 1.0  # Weight for NT-Xent loss term
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
@@ -238,26 +236,12 @@ def set_config(c):
     c.subsample_plot               = False
 
 
-
-
-# === Additional configuration options ===
-
-    c.use_ddp                      = False
-    c.use_amp                      = False
-    c.early_stopping_patience      = 100
-    c.min_delta                    = 0
-
 # === NT-Xent loss configuration ===
     c.ntxent_sigma                 = 0.1
-    c.ntxent_temperature           = 0.07
-    c.ntxent_weight                = 1.0
-    c.lr_scheduler_patience        = 50
+    c.lr_scheduler_patience        = 30
     c.reg_param                    = 0.001
-    c.intermittent_model_saving    = False
+    c.intermittent_model_saving    = True
     c.intermittent_saving_patience = 100
-    c.activation_extraction        = False
-    c.deterministic_algorithm      = False
-    c.separate_model_saving        = False
     c.subsample_size               = 300000
     c.contrastive_temperature      = 0.07
     c.contrastive_weight           = 0.005
@@ -266,21 +250,30 @@ def set_config(c):
     c.overlay_roc_save_location    = "overlay_roc"
     c.overlay_roc_filename         = "combined_roc.pdf"
 
-    # Parameter annealing configuration
+# === Parameter annealing configuration ===
     c.annealing_params = {{
         "reg_param": {{
             "strategy": "TRIGGER_BASED",
-            "values": [0.001, 0.005, 0.01, 0.05],
-            "trigger_source": "early_stopper_half_patience",
+            "values": [0.001, 0.005, 0.01],
+            "trigger_source": "early_stopper_third_patience",
             "current_index": 0
         }},
         "contrastive_weight": {{
             "strategy": "TRIGGER_BASED",
-            "values": [0.005, 0.01, 0.02, 0.03],
-            "trigger_source": "early_stopper_third_patience",
+            "values": [0, 0.005, 0.01, 0.02, 0.03],
+            "trigger_source": "early_stopper_half_patience",
             "current_index": 0
         }}
     }}
+# === Additional configuration options ===
+
+    c.use_ddp                      = False
+    c.use_amp                      = False
+    c.early_stopping_patience      = 100
+    c.min_delta                    = 0
+    c.activation_extraction        = False
+    c.deterministic_algorithm      = False
+    c.separate_model_saving        = False
 
 """
 
