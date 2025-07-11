@@ -912,7 +912,9 @@ class NTXentLoss(BaseLoss):
     def __init__(self, config):
         super(NTXentLoss, self).__init__(config)
         self.temperature = (
-            config.ntxent_temperature if hasattr(config, "ntxent_temperature") else 0.07
+            config.contrastive_temperature
+            if hasattr(config, "contrastive_temperature")
+            else 0.07
         )
         self.component_names = ["ntxent"]
         # DDP related attributes
@@ -1002,29 +1004,10 @@ class NTXentCombinedLoss(BaseLoss):
 
     def __init__(self, config):
         super(NTXentCombinedLoss, self).__init__(config)
-
-        # Intelligently parse the loss function name to determine the base loss
-        if config.loss_function == "NTXentLoss":
-            # For standalone NTXentLoss, use a minimal base loss (ReconstructionLoss)
-            base_loss_name = "ReconstructionLoss"
-        elif config.loss_function == "NTXentVAELoss":
-            base_loss_name = "VAELoss"
-        elif config.loss_function == "NTXentVAEFlowLoss":
-            base_loss_name = "VAEFlowLoss"
-        elif config.loss_function == "NTXentDVAELoss":
-            base_loss_name = "DVAELoss"
-        else:
-            # For custom combinations or backward compatibility
-            base_loss_name = getattr(config, "base_loss_function", "VAELoss")
-
-        # Get the class by name using globals()
-        base_loss_class = globals()[base_loss_name]
-
-        # Initialize the base loss function and NT-Xent loss
-        self.base_loss_fn = base_loss_class(config)
+        # Initialize the NT-Xent loss function
         self.ntxent_loss_fn = NTXentLoss(config)
         self.ntxent_weight = torch.tensor(
-            config.ntxent_weight if hasattr(config, "ntxent_weight") else 1.0
+            config.contrastive_weight if hasattr(config, "contrastive_weight") else 1.0
         )
 
         # Prepare component names
@@ -1089,8 +1072,52 @@ class NTXentCombinedLoss(BaseLoss):
             weighted_ntxent_loss = ntxent_loss
 
         # Combine losses
-        total_loss = base_losses[0] + weighted_ntxent_loss
+        total_loss = base_losses[0] + weighted_ntxent_loss.mean()
 
         # Return combined loss and all components
         # Structure must match component_names = ["loss"] + [f"base_{name}" for name in self.base_loss_fn.component_names] + ["ntxent_loss"]
         return (total_loss,) + base_losses + (ntxent_loss,)
+
+
+class NTXentVAELoss(NTXentCombinedLoss):
+    """
+    NTXentVAELoss: Combines VAE loss with NT-Xent contrastive loss.
+    Inherits from NTXentCombinedLoss and uses VAELoss as the base loss.
+    """
+
+    def __init__(self, config):
+        super(NTXentVAELoss, self).__init__(config)
+        self.base_loss_fn = VAELoss(config)
+
+
+class NTXentVAEFlowLoss(NTXentCombinedLoss):
+    """
+    NTXentVAEFlowLoss: Combines VAE-Flow loss with NT-Xent contrastive loss.
+    Inherits from NTXentCombinedLoss and uses VAEFlowLoss as the base loss.
+    """
+
+    def __init__(self, config):
+        super(NTXentVAELoss, self).__init__(config)
+        self.base_loss_fn = VAEFlowLoss(config)
+
+
+class NTXentDVAELoss(NTXentCombinedLoss):
+    """
+    NTXentDVAELoss: Combines DVAELoss with NT-Xent contrastive loss.
+    Inherits from NTXentCombinedLoss and uses DVAELoss as the base loss.
+    """
+
+    def __init__(self, config):
+        super(NTXentDVAELoss, self).__init__(config)
+        self.base_loss_fn = DVAELoss(config)
+
+
+class NTXentDVAEFlowLoss(NTXentCombinedLoss):
+    """
+    NTXentDVAEFlowLoss: Combines DVAEFlowLoss with NT-Xent contrastive loss.
+    Inherits from NTXentCombinedLoss and uses DVAEFlowLoss as the base loss.
+    """
+
+    def __init__(self, config):
+        super(NTXentDVAEFlowLoss, self).__init__(config)
+        self.base_loss_fn = DVAEFlowLoss(config)
