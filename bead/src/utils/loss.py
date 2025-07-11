@@ -1010,13 +1010,6 @@ class NTXentCombinedLoss(BaseLoss):
             config.contrastive_weight if hasattr(config, "contrastive_weight") else 1.0
         )
 
-        # Prepare component names
-        self.component_names = (
-            ["loss"]
-            + [f"base_{name}" for name in self.base_loss_fn.component_names]
-            + ["ntxent_loss"]
-        )
-
     def calculate(
         self,
         recon,
@@ -1089,6 +1082,13 @@ class NTXentVAELoss(NTXentCombinedLoss):
         super(NTXentVAELoss, self).__init__(config)
         self.base_loss_fn = VAELoss(config)
 
+        # Prepare component names
+        self.component_names = (
+            ["loss"]
+            + [f"base_{name}" for name in self.base_loss_fn.component_names]
+            + ["ntxent_loss"]
+        )
+
 
 class NTXentVAEFlowLoss(NTXentCombinedLoss):
     """
@@ -1099,6 +1099,13 @@ class NTXentVAEFlowLoss(NTXentCombinedLoss):
     def __init__(self, config):
         super(NTXentVAELoss, self).__init__(config)
         self.base_loss_fn = VAEFlowLoss(config)
+
+        # Prepare component names
+        self.component_names = (
+            ["loss"]
+            + [f"base_{name}" for name in self.base_loss_fn.component_names]
+            + ["ntxent_loss"]
+        )
 
 
 class NTXentDVAELoss(NTXentCombinedLoss):
@@ -1111,6 +1118,13 @@ class NTXentDVAELoss(NTXentCombinedLoss):
         super(NTXentDVAELoss, self).__init__(config)
         self.base_loss_fn = DVAELoss(config)
 
+        # Prepare component names
+        self.component_names = (
+            ["loss"]
+            + [f"base_{name}" for name in self.base_loss_fn.component_names]
+            + ["ntxent_loss"]
+        )
+
 
 class NTXentDVAEFlowLoss(NTXentCombinedLoss):
     """
@@ -1121,3 +1135,10 @@ class NTXentDVAEFlowLoss(NTXentCombinedLoss):
     def __init__(self, config):
         super(NTXentDVAEFlowLoss, self).__init__(config)
         self.base_loss_fn = DVAEFlowLoss(config)
+
+        # Prepare component names
+        self.component_names = (
+            ["loss"]
+            + [f"base_{name}" for name in self.base_loss_fn.component_names]
+            + ["ntxent_loss"]
+        )
