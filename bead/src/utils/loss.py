@@ -1053,7 +1053,6 @@ class NTXentCombinedLoss(BaseLoss):
             parameters=parameters,
             log_det_jacobian=log_det_jacobian,
             generator_labels=generator_labels,
-            **kwargs,
         )
 
         # Only calculate NT-Xent loss if augmented views are provided
