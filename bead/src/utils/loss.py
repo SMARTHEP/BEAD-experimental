@@ -1068,7 +1068,7 @@ class NTXentCombinedLoss(BaseLoss):
 
         # Return combined loss and all components
         # Structure must match component_names = ["loss"] + [f"base_{name}" for name in self.base_loss_fn.component_names] + ["ntxent_loss"]
-        return (total_loss,) + base_losses + (ntxent_loss,)
+        return total_loss, base_losses, ntxent_loss
 
 
 class NTXentVAELoss(NTXentCombinedLoss):
