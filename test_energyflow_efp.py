@@ -5,10 +5,6 @@ Comprehensive EnergyFlow Library Integration Test for BEAD
 This script validates the EnergyFlow library integration for EFP computation
 within the BEAD anomaly detection pipeline. It tests installation, API compatibility,
 performance benchmarks, GPU support, masking behavior, and edge cases.
-
-Phase 3.1: EnergyFlow Library Integration Testing
-Author: BEAD Development Team
-Date: 2025-01-30
 """
 
 import sys
@@ -115,8 +111,8 @@ def test_api_compatibility() -> Dict[str, Any]:
         
         # Use parameters matching our scientific decisions
         efpset = ef.EFPSet(
-            n=5,           # N_max = 5 (max particles in graph)
-            d=6,           # d_max = 6 (max degree)
+            'n<=5',        # N_max = 5 (max particles in graph)
+            'd<=6',        # d_max = 6 (max degree)
             measure='hadr', # Hadron collider measure (pT, eta, phi)
             beta=1.0,      # Linear energy weighting (IRC safe)
             normed=True,   # Normalize angular distances to [0,1]
@@ -125,7 +121,7 @@ def test_api_compatibility() -> Dict[str, Any]:
         )
         
         # Get number of EFPs
-        n_efps = len(efpset)
+        n_efps = efpset.count()
         results['efp_features'] = n_efps
         print(f"   ✓ EFPSet created: {n_efps} EFP features")
         print(f"     Parameters: n≤5, d≤6, β=1.0, measure='hadr', normed=True")
