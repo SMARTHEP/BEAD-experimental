@@ -194,6 +194,27 @@ class Config:
 
     # NT-Xent loss parameters
     ntxent_sigma: float = 0.1  # Standard deviation for naive gaussian smearing strategy
+    
+    # Energy-Flow Polynomial (EFP) feature-generation options. See arXiv:1810.05165.
+    enable_efp: bool = False                           # Enable/disable EFP computation
+    efp_nmax: int = 5                                  # Maximum number of particles in EFP graphs (default: 140 EFPs)
+    efp_dmax: int = 6                                  # Maximum degree of EFP graphs (default: 140 EFPs)
+    efp_extended_mode: bool = False                    # Use extended config (n≤6, d≤7) for 531 EFPs vs 140 EFPs
+    efp_beta: float = 1.0                              # Energy weighting parameter (IRC-safe baseline)
+    efp_beta_list: list = None                         # Multi-β sweep (if set, concatenate features)
+    efp_measure: str = "hadr"                          # Angular measure: "hadr", "ee", "gen"
+    efp_normed: bool = True                            # Use normed distances in EFPSet
+    efp_include_composites: bool = False               # Include composite graphs (not supported by EnergyFlow API)
+    efp_eps: float = 1e-12                             # Numerical guard for zi lower-cut/angle floor
+    efp_embedding_dim: int = 64                        # Output dimension of EFP embedding layer
+    efp_gate: str = "sigmoid"                          # Gate function: "sigmoid" or "relu6"
+    efp_gate_thresh: float = 0.05                      # Gate zeroing threshold
+    efp_standardize_meanvar: bool = True               # Apply dataset-level mean/var standardization
+    efp_cache_dir: str = None                          # Cache directory (None = compute on-the-fly)
+    efp_n_jobs: int = 4                               # Number of parallel workers for EFP computation
+    efp_device: str = "cpu"                            # Device for EFP computation (EnergyFlow is CPU-only)
+    efp_feature_prefix: str = "EFP_"                   # Prefix for feature naming/logging
+    efp_use_true_energy: bool = False                  # Use true energy instead of (pT, η, φ) only
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:

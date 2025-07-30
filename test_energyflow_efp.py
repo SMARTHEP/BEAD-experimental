@@ -423,8 +423,6 @@ def main():
     if 'masking_behavior' in all_results and all_results['masking_behavior'].get('success'):
         print(f"  • Masking: Zero-padding filter validated")
     
-    print(f"\nIntegration Status: Ready for Phase 3.2 (Config Implementation)")
-    
     return overall_success
 
 
