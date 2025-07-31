@@ -426,7 +426,7 @@ def compute_efp_features(constituents_selection, config, n_jets, n_constits, ver
         
         # Flatten for standardization: (events * jets, n_efps)
         efp_flat = efp_results.reshape(-1, n_efps)
-        efp_standardized = standardize_efps(efp_flat)
+        efp_standardized, efp_stats = standardize_efps(efp_flat)
         efp_results = efp_standardized.reshape(num_events, n_jets, n_efps)
         
         if verbose:

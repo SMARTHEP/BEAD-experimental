@@ -256,6 +256,16 @@ def set_config(c):
     c.latent_space_plot_style      = "umap"
     c.subsample_plot               = False
 
+# === EFP (Energy-Flow Polynomial) configuration ===
+    c.enable_efp                   = False
+    c.efp_nmax                     = 5
+    c.efp_dmax                     = 6
+    c.efp_beta                     = 1.0
+    c.efp_measure                  = "hadr"
+    c.efp_normed                   = True
+    c.efp_include_composites       = False
+    c.efp_standardize_meanvar      = True
+    c.efp_n_jobs                   = 4
 
 # === NT-Xent loss configuration ===
     c.ntxent_sigma                 = 0.1

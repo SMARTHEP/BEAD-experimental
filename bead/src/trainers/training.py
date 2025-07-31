@@ -27,6 +27,7 @@ from tqdm.rich import tqdm
 
 from ..utils import helper
 from ..utils.annealing import AnnealingManager
+from ..utils.efp_integration import prepare_model_input
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -85,7 +86,14 @@ def fit(
         pbar = dataloader
 
     for _idx, batch in enumerate(pbar):
-        inputs, gen_labels = batch
+        # Handle both 2-tuple (inputs, labels) and 3-tuple (inputs, labels, efp_features) batches
+        if len(batch) == 3:
+            inputs, gen_labels, efp_features = batch
+            efp_features = efp_features.to(device, non_blocking=True)
+        else:
+            inputs, gen_labels = batch
+            efp_features = None
+            
         inputs = inputs.to(device, non_blocking=True)
         gen_labels = gen_labels.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
@@ -101,11 +109,14 @@ def fit(
             # This will match NTXentLoss, NTXentVAELoss, NTXentVAEFlowLoss, NTXentDVAELoss, etc.
             is_ntxent = "ntxent" in config.loss_function.lower()
             
+            # Prepare model input with optional EFP features
+            model_input = prepare_model_input(inputs, efp_features, config)
+            
             if is_ntxent:
-                recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, inputs, config)
+                recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, model_input, config)
             else:
                 # Standard single forward pass
-                out = helper.call_forward(ddp_model, inputs)
+                out = helper.call_forward(ddp_model, model_input)
                 recon, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
                 zk_j = None  # No second view for standard training
 
@@ -208,7 +219,14 @@ def validate(
 
     with torch.no_grad():
         for _idx, batch in enumerate(pbar):
-            inputs, gen_labels = batch
+            # Handle both 2-tuple (inputs, labels) and 3-tuple (inputs, labels, efp_features) batches
+            if len(batch) == 3:
+                inputs, gen_labels, efp_features = batch
+                efp_features = efp_features.to(device, non_blocking=True)
+            else:
+                inputs, gen_labels = batch
+                efp_features = None
+                
             inputs = inputs.to(device, non_blocking=True)
             gen_labels = gen_labels.to(device, non_blocking=True)
 
@@ -223,11 +241,14 @@ def validate(
                 # This will match NTXentLoss, NTXentVAELoss, NTXentVAEFlowLoss, NTXentDVAELoss, etc.
                 is_ntxent = "ntxent" in config.loss_function.lower()
                 
+                # Prepare model input with optional EFP features
+                model_input = prepare_model_input(inputs, efp_features, config)
+                
                 if is_ntxent:
-                    recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, inputs, config)
+                    recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, model_input, config)
                 else:
                     # Standard single forward pass
-                    out = helper.call_forward(ddp_model, inputs)
+                    out = helper.call_forward(ddp_model, model_input)
                     recon, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
                     zk_j = None  # No second view for standard validation
 
@@ -715,13 +736,22 @@ def train(
                         disable=not verbose,
                     )
                 ):
-                    inputs, _ = batch
+                    # Handle both 2-tuple (inputs, labels) and 3-tuple (inputs, labels, efp_features) batches
+                    if len(batch) == 3:
+                        inputs, _, efp_features = batch
+                        efp_features = efp_features.to(device, non_blocking=True)
+                    else:
+                        inputs, _ = batch
+                        efp_features = None
+                        
                     inputs = inputs.to(device, non_blocking=True)
                     with torch.amp.autocast(
                         device_type=device.type,
                         enabled=(config.use_amp and device.type == "cuda"),
                     ):
-                        out = helper.call_forward(actual_model_for_evaluation, inputs)
+                        # Prepare model input with optional EFP features
+                        model_input = prepare_model_input(inputs, efp_features, config)
+                        out = helper.call_forward(actual_model_for_evaluation, model_input)
                         _, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
                     mu_data_list.append(mu.detach().cpu().numpy())
                     logvar_data_list.append(logvar.detach().cpu().numpy())

@@ -13,12 +13,12 @@ import torch
 import numpy as np
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "bead" / "src"))
+# Add BEAD source to path (same pattern as unit tests)
+sys.path.insert(0, os.path.join(os.getcwd(), 'bead', 'src'))
 
-# Import with absolute paths to avoid relative import issues
-import utils.helper as helper
-import utils.data_processing as data_processing
+# Import BEAD modules
+from utils.efp_integration import prepare_model_input
+from utils import helper, data_processing
 from utils.ggl import Config
 
 

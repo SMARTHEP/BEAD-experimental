@@ -23,6 +23,7 @@ from tqdm import TqdmExperimentalWarning
 from tqdm.rich import tqdm
 
 from ..utils import diagnostics, helper
+from ..utils.efp_integration import prepare_model_input
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -278,10 +279,19 @@ def infer(
 
     with torch.no_grad():
         for _idx, batch in enumerate(tqdm(test_dl)):
-            inputs, labels = batch
+            # Handle both 2-tuple (inputs, labels) and 3-tuple (inputs, labels, efp_features) batches
+            if len(batch) == 3:
+                inputs, labels, efp_features = batch
+                efp_features = efp_features.to(device)
+            else:
+                inputs, labels = batch
+                efp_features = None
+                
             inputs = inputs.to(device)
 
-            out = helper.call_forward(model, inputs)
+            # Prepare model input with optional EFP features
+            model_input = prepare_model_input(inputs, efp_features, config)
+            out = helper.call_forward(model, model_input)
             recon, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
 
             # Compute the loss
