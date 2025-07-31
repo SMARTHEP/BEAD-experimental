@@ -424,13 +424,13 @@ def load_augment_tensors(folder_path, keyword):
         raise ValueError("No files found with the specified keyword, " + keyword)
 
     # For each category in 'bkg_train', ensure that each generator type has at least one file.
-    if keyword == "bkg_train":
-        for cat in categories:
-            for gen in generators:
-                if len(file_categories[cat][gen]) == 0:
-                    raise ValueError(
-                        "Required files not found. Please run the --mode convert_csv and prepare inputs before retrying."
-                    )
+    # if keyword == "bkg_train":
+    #     for cat in categories:
+    #         for gen in generators:
+    #             if len(file_categories[cat][gen]) == 0:
+    #                 raise ValueError(
+    #                     "Required files not found. Please run the --mode convert_csv and prepare inputs before retrying."
+    #                 )
 
     # For each file, load its tensor and append the generator feature.
     def load_and_augment(file_info):
