@@ -299,23 +299,24 @@ def invert_normalize_data(normalized_data, scaler):
     return scaler.inverse_transform(normalized_data)
 
 
-def load_tensors(folder_path, keyword="sig_test"):
+def load_tensors(folder_path, keyword="sig_test", include_efp=False):
     """
     Searches through the specified folder for all '.pt' files containing the given keyword in their names.
-    Categorizes these files based on the presence of 'jets', 'events', or 'constituents' in their filenames,
+    Categorizes these files based on the presence of 'jets', 'events', 'constituents', or 'efp' in their filenames,
     loads them into PyTorch tensors, concatenates them along axis=0, and returns the resulting tensors.
 
     Args:
         folder_path (str): The path to the folder to search.
         keyword (str): The keyword to filter files ('bkg_train', 'bkg_test', or 'sig_test').
+        include_efp (bool): Whether to include EFP features in loading. Default False for backward compatibility.
 
     Returns:
-        tuple: A tuple containing three PyTorch tensors: (jets_tensor, events_tensor, constituents_tensor).
+        tuple: A tuple containing PyTorch tensors. If include_efp=False: (events, jets, constituents).
+               If include_efp=True: (events, jets, constituents, efp).
 
     Raises:
-        ValueError: If any specific category ('jets', 'events', 'constituents') has no matching files.
-            The error message is:
-            "Required files not found. Please run the --mode convert_csv and prepare inputs before retrying."
+        ValueError: If any required category ('jets', 'events', 'constituents') has no matching files.
+                   EFP files are optional and won't raise errors if missing.
     """
     if keyword not in ["bkg_train", "bkg_test", "sig_test"]:
         raise ValueError(
@@ -324,6 +325,8 @@ def load_tensors(folder_path, keyword="sig_test"):
 
     # Initialize dictionaries to hold file lists for each category
     file_categories = {"jets": [], "events": [], "constituents": []}
+    if include_efp:
+        file_categories["efp"] = []
 
     # Iterate over all files in the specified directory
     for filename in os.listdir(folder_path):
@@ -344,16 +347,29 @@ def load_tensors(folder_path, keyword="sig_test"):
     result_tensors = {}
     for category, files in file_categories.items():
         if not files:
-            raise ValueError(
-                f"Required files with keyword, '{keyword}' not found. Please run the --mode convert_csv and prepare_inputs before retrying."
-            )
+            if category == "efp" and include_efp:
+                # EFP files are optional - return None if missing
+                result_tensors[category] = None
+                continue
+            else:
+                raise ValueError(
+                    f"Required files with keyword, '{keyword}' not found. Please run the --mode convert_csv and prepare_inputs before retrying."
+                )
         result_tensors[category] = load_and_concat(files)
 
-    return (
-        result_tensors["events"],
-        result_tensors["jets"],
-        result_tensors["constituents"],
-    )
+    if include_efp:
+        return (
+            result_tensors["events"],
+            result_tensors["jets"],
+            result_tensors["constituents"],
+            result_tensors["efp"],
+        )
+    else:
+        return (
+            result_tensors["events"],
+            result_tensors["jets"],
+            result_tensors["constituents"],
+        )
 
 
 def load_augment_tensors(folder_path, keyword):
@@ -647,7 +663,7 @@ def data_label_split(data):
 # Define the custom dataset class
 class CustomDataset(Dataset):
     """
-    A custom PyTorch Dataset for handling paired data and label tensors.
+    A custom PyTorch Dataset for handling paired data and label tensors, with optional EFP features.
 
     This dataset provides a simple interface for accessing data points and their
     corresponding labels, which is compatible with PyTorch's DataLoader.
@@ -655,17 +671,22 @@ class CustomDataset(Dataset):
     Attributes:
         data (torch.Tensor): The data tensor containing features.
         labels (torch.Tensor): The labels tensor associated with the data.
+        efp_data (torch.Tensor, optional): The EFP features tensor. None if not provided.
     """
 
-    def __init__(self, data_tensor, label_tensor):
+    def __init__(self, data_tensor, label_tensor, efp_tensor=None):
         self.data = data_tensor
         self.labels = label_tensor
+        self.efp_data = efp_tensor
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return self.data[idx], self.labels[idx]
+        if self.efp_data is not None:
+            return self.data[idx], self.labels[idx], self.efp_data[idx]
+        else:
+            return self.data[idx], self.labels[idx]
 
 
 # Function to create datasets
@@ -682,12 +703,16 @@ def create_datasets(
     events_val_label,
     jets_val_label,
     constituents_val_label,
+    efp_train=None,
+    efp_val=None,
+    efp_train_label=None,
+    efp_val_label=None,
 ):
     """
     Creates CustomDataset objects for training and validation data.
 
     This function pairs data tensors with their corresponding label tensors
-    to create dataset objects for events, jets, and constituents data.
+    to create dataset objects for events, jets, constituents, and optionally EFP data.
 
     Args:
         events_train (torch.Tensor): Training events data.
@@ -702,6 +727,10 @@ def create_datasets(
         events_val_label (torch.Tensor): Labels for validation events.
         jets_val_label (torch.Tensor): Labels for validation jets.
         constituents_val_label (torch.Tensor): Labels for validation constituents.
+        efp_train (torch.Tensor, optional): Training EFP features data.
+        efp_val (torch.Tensor, optional): Validation EFP features data.
+        efp_train_label (torch.Tensor, optional): Labels for training EFP features.
+        efp_val_label (torch.Tensor, optional): Labels for validation EFP features.
 
     Returns:
         dict: A dictionary containing CustomDataset objects for all data types.
@@ -727,6 +756,12 @@ def create_datasets(
         "jets_val": jets_val_dataset,
         "constituents_val": constituents_val_dataset,
     }
+    
+    # Add EFP datasets if provided
+    if efp_train is not None and efp_train_label is not None:
+        datasets["efp_train"] = CustomDataset(efp_train, efp_train_label)
+    if efp_val is not None and efp_val_label is not None:
+        datasets["efp_val"] = CustomDataset(efp_val, efp_val_label)
     return datasets
 
 
@@ -746,14 +781,30 @@ def calculate_in_shape(data, config, test_mode=False):
         bs = 1
     else:
         bs = config.batch_size
-    (
-        events_train,
-        jets_train,
-        constituents_train,
-        events_val,
-        jets_val,
-        constituents_val,
-    ) = data
+    
+    # Handle data unpacking with optional EFP features
+    if len(data) == 8:  # EFP features included
+        (
+            events_train,
+            jets_train,
+            constituents_train,
+            efp_train,
+            events_val,
+            jets_val,
+            constituents_val,
+            efp_val,
+        ) = data
+    elif len(data) == 6:  # No EFP features
+        (
+            events_train,
+            jets_train,
+            constituents_train,
+            events_val,
+            jets_val,
+            constituents_val,
+        ) = data
+    else:
+        raise ValueError(f"Expected 6 or 8 data tensors, got {len(data)}")
 
     # Get the shapes of the data
     # Calculate the input shapes to initialize the model

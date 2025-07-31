@@ -21,7 +21,7 @@ import numpy as np
 import torch
 
 from . import helper, normalization
-from .efp_utils import validate_efp_config, create_efpset, compute_efps_batch, standardize_efp_features
+from .efp_utils import validate_efp_config, create_efpset, compute_efps_batch, standardize_efps
 
 
 def load_data(file_path, file_type="h5", verbose: bool = False):
@@ -249,15 +249,35 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
     )
 
     try:
-        events_tensor, jets_tensor, constituents_tensor = helper.load_tensors(
-            input_path, keyword
-        )
-        if verbose:
-            print(
-                f"Loaded tensors from {input_path}/{keyword}_events.pt, {keyword}_jets.pt and {keyword}_constituents.pt"
+        # Check if EFP features should be loaded
+        include_efp = getattr(config, 'enable_efp', False)
+        
+        if include_efp:
+            events_tensor, jets_tensor, constituents_tensor, efp_tensor = helper.load_tensors(
+                input_path, keyword, include_efp=True
             )
-            print(
-                f"Events tensor shape: {events_tensor.shape}\nJets tensor shape: {jets_tensor.shape}\nConstituents tensor shape: {constituents_tensor.shape}"
+            if verbose:
+                print(
+                    f"Loaded tensors from {input_path}/{keyword}_events.pt, {keyword}_jets.pt, {keyword}_constituents.pt, and {keyword}_efp.pt"
+                )
+                print(
+                    f"Events tensor shape: {events_tensor.shape}\nJets tensor shape: {jets_tensor.shape}\nConstituents tensor shape: {constituents_tensor.shape}"
+                )
+                if efp_tensor is not None:
+                    print(f"EFP tensor shape: {efp_tensor.shape}")
+                else:
+                    print("EFP tensor: None (files not found)")
+        else:
+            events_tensor, jets_tensor, constituents_tensor = helper.load_tensors(
+                input_path, keyword
+            )
+            efp_tensor = None
+            if verbose:
+                print(
+                    f"Loaded tensors from {input_path}/{keyword}_events.pt, {keyword}_jets.pt and {keyword}_constituents.pt"
+                )
+                print(
+                    f"Events tensor shape: {events_tensor.shape}\nJets tensor shape: {jets_tensor.shape}\nConstituents tensor shape: {constituents_tensor.shape}"
             )
     except ValueError as e:
         print(e)
@@ -268,12 +288,20 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
         jets_tensor, constituents_tensor = helper.select_features(
             jets_tensor, constituents_tensor, config.input_features
         )
-        data = (events_tensor, jets_tensor, constituents_tensor)
+        
+        # Prepare data tuple with or without EFP tensor
+        if include_efp and efp_tensor is not None:
+            data = (events_tensor, jets_tensor, constituents_tensor, efp_tensor)
+        else:
+            data = (events_tensor, jets_tensor, constituents_tensor)
+            
         if verbose:
             print("Data reshaped successfully")
             print("Events tensor shape:", events_tensor.shape)
             print("Jets tensor shape:", jets_tensor.shape)
             print("Constituents tensor shape:", constituents_tensor.shape)
+            if include_efp and efp_tensor is not None:
+                print("EFP tensor shape:", efp_tensor.shape)
     except ValueError as e:
         print(e)
 
@@ -285,11 +313,17 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
                 f"Train:Val split ratio: {config.train_size * 100}:{(1 - config.train_size) * 100}"
             )
         try:
-            # Apply the function to each tensor, producing a list of three tuples.
-            splits = [
-                helper.train_val_split(t, config.train_size)
-                for t in (events_tensor, jets_tensor, constituents_tensor)
-            ]
+            # Apply the function to each tensor, producing a list of tuples.
+            if include_efp and efp_tensor is not None:
+                splits = [
+                    helper.train_val_split(t, config.train_size)
+                    for t in (events_tensor, jets_tensor, constituents_tensor, efp_tensor)
+                ]
+            else:
+                splits = [
+                    helper.train_val_split(t, config.train_size)
+                    for t in (events_tensor, jets_tensor, constituents_tensor)
+                ]
         except ValueError as e:
             print(e)
         # Unpack the list of tuples into two transposed tuples.
@@ -392,7 +426,7 @@ def compute_efp_features(constituents_selection, config, n_jets, n_constits, ver
         
         # Flatten for standardization: (events * jets, n_efps)
         efp_flat = efp_results.reshape(-1, n_efps)
-        efp_standardized = standardize_efp_features(efp_flat)
+        efp_standardized = standardize_efps(efp_flat)
         efp_results = efp_standardized.reshape(num_events, n_jets, n_efps)
         
         if verbose:

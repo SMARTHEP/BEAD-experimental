@@ -330,24 +330,65 @@ def train(
             )
         data = [x.unsqueeze(1).float() if x is not None else None for x in data]
 
-    (
-        events_train,
-        jets_train,
-        constituents_train,
-        events_val,
-        jets_val,
-        constituents_val,
-    ) = data
-    (
-        events_train_label,
-        jets_train_label,
-        constituents_train_label,
-        events_val_label,
-        jets_val_label,
-        constituents_val_label,
-    ) = labels
+    # Handle data unpacking with optional EFP features
+    if len(data) == 8:  # EFP features included
+        (
+            events_train,
+            jets_train,
+            constituents_train,
+            efp_train,
+            events_val,
+            jets_val,
+            constituents_val,
+            efp_val,
+        ) = data
+        (
+            events_train_label,
+            jets_train_label,
+            constituents_train_label,
+            efp_train_label,
+            events_val_label,
+            jets_val_label,
+            constituents_val_label,
+            efp_val_label,
+        ) = labels
+    elif len(data) == 6:  # No EFP features
+        (
+            events_train,
+            jets_train,
+            constituents_train,
+            events_val,
+            jets_val,
+            constituents_val,
+        ) = data
+        (
+            events_train_label,
+            jets_train_label,
+            constituents_train_label,
+            events_val_label,
+            jets_val_label,
+            constituents_val_label,
+        ) = labels
+        efp_train = efp_val = efp_train_label = efp_val_label = None
+    else:
+        raise ValueError(f"Expected 6 or 8 data tensors, got {len(data)}")
 
-    datasets = helper.create_datasets(*data, *labels)
+    # Create datasets with optional EFP features
+    if efp_train is not None:
+        datasets = helper.create_datasets(
+            events_train, jets_train, constituents_train,
+            events_val, jets_val, constituents_val,
+            events_train_label, jets_train_label, constituents_train_label,
+            events_val_label, jets_val_label, constituents_val_label,
+            efp_train, efp_val, efp_train_label, efp_val_label
+        )
+    else:
+        datasets = helper.create_datasets(
+            events_train, jets_train, constituents_train,
+            events_val, jets_val, constituents_val,
+            events_train_label, jets_train_label, constituents_train_label,
+            events_val_label, jets_val_label, constituents_val_label
+        )
 
     if verbose and (not is_ddp_active or local_rank == 0):
         print(
@@ -368,6 +409,13 @@ def train(
         print(
             f"Constituents - Validation set shape: {constituents_val.shape if constituents_val is not None else 'N/A'}"
         )
+        if efp_train is not None:
+            print(
+                f"EFP - Training set shape: {efp_train.shape if efp_train is not None else 'N/A'}"
+            )
+            print(
+                f"EFP - Validation set shape: {efp_val.shape if efp_val is not None else 'N/A'}"
+            )
 
     # Calculate the input shapes to initialize the model
     input_shape = helper.calculate_in_shape(data, config)
