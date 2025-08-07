@@ -27,7 +27,7 @@ from tqdm.rich import tqdm
 
 from ..utils import helper
 from ..utils.annealing import AnnealingManager
-from ..utils.efp_integration import prepare_model_input
+
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -110,7 +110,10 @@ def fit(
             is_ntxent = "ntxent" in config.loss_function.lower()
             
             # Prepare model input with optional EFP features
-            model_input = prepare_model_input(inputs, efp_features, config)
+            model_input = inputs
+            if efp_features is not None and getattr(config, 'enable_efp', False) and not getattr(config, 'efp_precompute_only', False):
+                efp_flat = efp_features.view(efp_features.size(0), -1)
+                model_input = torch.cat([inputs, efp_flat], dim=1)
             
             if is_ntxent:
                 recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, model_input, config)
@@ -242,7 +245,10 @@ def validate(
                 is_ntxent = "ntxent" in config.loss_function.lower()
                 
                 # Prepare model input with optional EFP features
-                model_input = prepare_model_input(inputs, efp_features, config)
+                model_input = inputs
+                if efp_features is not None and getattr(config, 'enable_efp', False) and not getattr(config, 'efp_precompute_only', False):
+                    efp_flat = efp_features.view(efp_features.size(0), -1)
+                    model_input = torch.cat([inputs, efp_flat], dim=1)
                 
                 if is_ntxent:
                     recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, model_input, config)
@@ -750,7 +756,10 @@ def train(
                         enabled=(config.use_amp and device.type == "cuda"),
                     ):
                         # Prepare model input with optional EFP features
-                        model_input = prepare_model_input(inputs, efp_features, config)
+                        model_input = inputs
+                        if efp_features is not None and getattr(config, 'enable_efp', False) and not getattr(config, 'efp_precompute_only', False):
+                            efp_flat = efp_features.view(efp_features.size(0), -1)
+                            model_input = torch.cat([inputs, efp_flat], dim=1)
                         out = helper.call_forward(actual_model_for_evaluation, model_input)
                         _, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
                     mu_data_list.append(mu.detach().cpu().numpy())

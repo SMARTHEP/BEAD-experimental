@@ -196,7 +196,8 @@ class Config:
     ntxent_sigma: float = 0.1  # Standard deviation for naive gaussian smearing strategy
     
     # Energy-Flow Polynomial (EFP) feature-generation options. See arXiv:1810.05165.
-    enable_efp: bool = False                           # Enable/disable EFP computation
+    enable_efp: bool = False                           # Master switch: compute EFPs and use as model input
+    efp_precompute_only: bool = False                  # If True with enable_efp=True: compute EFPs but don't use as model input (caching mode)
     efp_nmax: int = 5                                  # Maximum number of particles in EFP graphs (default: 140 EFPs)
     efp_dmax: int = 6                                  # Maximum degree of EFP graphs (default: 140 EFPs)
     efp_extended_mode: bool = False                    # Use extended config (n≤6, d≤7) for 531 EFPs vs 140 EFPs
@@ -257,7 +258,8 @@ def set_config(c):
     c.subsample_plot               = False
 
 # === EFP (Energy-Flow Polynomial) configuration ===
-    c.enable_efp                   = False
+    c.enable_efp                   = False  # Master switch: compute EFPs and use as model input
+    c.efp_precompute_only          = False  # Compute EFPs but don't use (caching mode)
     c.efp_nmax                     = 5
     c.efp_dmax                     = 6
     c.efp_beta                     = 1.0

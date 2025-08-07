@@ -250,7 +250,7 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
 
     try:
         # Check if EFP features should be loaded
-        include_efp = getattr(config, 'enable_efp', False)
+        include_efp = getattr(config, 'enable_efp_integration', False)
         
         if include_efp:
             events_tensor, jets_tensor, constituents_tensor, efp_tensor = helper.load_tensors(

@@ -23,7 +23,7 @@ from tqdm import TqdmExperimentalWarning
 from tqdm.rich import tqdm
 
 from ..utils import diagnostics, helper
-from ..utils.efp_integration import prepare_model_input
+
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -290,7 +290,10 @@ def infer(
             inputs = inputs.to(device)
 
             # Prepare model input with optional EFP features
-            model_input = prepare_model_input(inputs, efp_features, config)
+            model_input = inputs
+            if efp_features is not None and getattr(config, 'enable_efp', False) and not getattr(config, 'efp_precompute_only', False):
+                efp_flat = efp_features.view(efp_features.size(0), -1)
+                model_input = torch.cat([inputs, efp_flat], dim=1)
             out = helper.call_forward(model, model_input)
             recon, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
 

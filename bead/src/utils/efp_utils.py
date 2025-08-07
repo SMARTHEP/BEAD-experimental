@@ -52,9 +52,9 @@ def validate_efp_config(config) -> Dict[str, Union[int, str, bool]]:
     if extended_mode:
         nmax = 6
         dmax = 7
-        logger.info("EFP extended mode enabled: using n≤6, d≤7 for ~386 EFPs")
+        logger.info("EFP extended mode enabled: using n≤6, d≤7 for ~531 EFPs")
     else:
-        logger.info("EFP standard mode: using n≤5, d≤6 for ~111 EFPs")
+        logger.info("EFP standard mode: using n≤5, d≤6 for ~140 EFPs")
     
     # Validate parameters
     if nmax < 2 or nmax > 8:
@@ -222,27 +222,27 @@ def compute_efps_batch(jets_constituents: np.ndarray,
     n_jets = jets_constituents.shape[0]
     n_efps = len(efpset.graphs())  # Use graph count for feature size
     
-    # Prepare events list for batch_compute
-    events = []
+    # Prepare jets list for batch_compute
+    jets_to_process = []
     valid_jet_indices = []
     
     for i, jet in enumerate(jets_constituents):
         filtered_constituents, mask = preprocess_jet_constituents(jet)
-        if np.any(mask):  # Has valid particles
-            events.append(filtered_constituents)
+        if np.any(mask):  # Has valid particles (to avoid computing EFPs for empty jets)
+            jets_to_process.append(filtered_constituents)
             valid_jet_indices.append(i)
     
     # Initialize output array
     efp_results = np.zeros((n_jets, n_efps), dtype=np.float32)
     
-    if len(events) > 0:
+    if jets_to_process:
         try:
             # Compute EFPs for valid jets
             start_time = time.time()
-            batch_results = efpset.batch_compute(events, n_jobs=n_jobs)
+            batch_results = efpset.batch_compute(jets_to_process, n_jobs=n_jobs)
             computation_time = time.time() - start_time
             
-            logger.debug(f"Computed EFPs for {len(events)}/{n_jets} jets in {computation_time:.3f}s")
+            logger.debug(f"Computed EFPs for {len(jets_to_process)}/{n_jets} jets in {computation_time:.3f}s")
             
             # Fill results for valid jets
             for idx, jet_idx in enumerate(valid_jet_indices):
