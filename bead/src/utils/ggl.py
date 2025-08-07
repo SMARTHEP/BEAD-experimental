@@ -207,9 +207,13 @@ class Config:
     efp_normed: bool = True                            # Use normed distances in EFPSet
     efp_include_composites: bool = False               # Include composite graphs (not supported by EnergyFlow API)
     efp_eps: float = 1e-12                             # Numerical guard for zi lower-cut/angle floor
-    efp_embedding_dim: int = 64                        # Output dimension of EFP embedding layer
-    efp_gate: str = "sigmoid"                          # Gate function: "sigmoid" or "relu6"
-    efp_gate_thresh: float = 0.05                      # Gate zeroing threshold
+    # EFP Embedding Layer Configuration
+    efp_embedding_dim: int = 64                        # Output embedding dimension (transformer token size)
+    efp_gate_type: str = "sigmoid"                     # Gate activation: "sigmoid", "relu6", "tanh"
+    efp_gate_threshold: float = 0.05                   # Sparsification threshold (gates below this are zeroed)
+    efp_dropout_rate: float = 0.1                      # Dropout rate for embedding regularization
+    efp_use_layer_norm: bool = True                    # Enable layer normalization for training stability
+    efp_monitor_sparsity: bool = True                  # Track gate activation statistics for interpretability
     efp_standardize_meanvar: bool = True               # Apply dataset-level mean/var standardization
     efp_cache_dir: str = None                          # Cache directory (None = compute on-the-fly)
     efp_n_jobs: int = 4                               # Number of parallel workers for EFP computation
