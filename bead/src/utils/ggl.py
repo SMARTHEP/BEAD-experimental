@@ -220,6 +220,27 @@ class Config:
     efp_device: str = "cpu"                            # Device for EFP computation (EnergyFlow is CPU-only)
     efp_feature_prefix: str = "EFP_"                   # Prefix for feature naming/logging
     efp_use_true_energy: bool = False                  # Use true energy instead of (pT, η, φ) only
+    
+    # Flexible Transformer Configuration
+    enable_transformer: bool = False                   # Master switch: enable transformer integration with VAE
+    transformer_mode: str = "combined"                 # Operation mode: "combined", "latent_only", "efp_only"
+    transformer_d_model: int = 256                     # Transformer model dimension (embedding size)
+    transformer_n_heads: int = 8                       # Number of attention heads
+    transformer_n_layers: int = 6                      # Number of transformer encoder layers
+    transformer_d_ff: int = 2048                       # Feed-forward network dimension
+    transformer_dropout: float = 0.1                  # Dropout rate for transformer layers
+    transformer_activation: str = "gelu"               # Activation function: "gelu", "relu", "swish"
+    transformer_norm_first: bool = True                # Apply normalization before attention (Normformer style)
+    transformer_use_class_attention: bool = True       # Use class attention pooling for sequence-to-vector conversion
+    transformer_max_jets: int = 3                      # Maximum number of jets per event
+    transformer_output_dim: int = 10                   # Output dimension for transformer head
+    transformer_output_activation: str = None          # Output activation: None, "sigmoid", "tanh", "softmax"
+    # Advanced Transformer Options
+    transformer_positional_encoding: str = "sinusoidal"  # Positional encoding type: "sinusoidal", "learned"
+    transformer_token_type_embeddings: bool = True     # Use token type embeddings to distinguish latent vs EFP tokens
+    transformer_gradient_checkpointing: bool = False   # Enable gradient checkpointing to save memory
+    transformer_attention_dropout: float = 0.1         # Separate dropout rate for attention weights
+    transformer_layer_norm_eps: float = 1e-5          # Layer normalization epsilon for numerical stability
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
