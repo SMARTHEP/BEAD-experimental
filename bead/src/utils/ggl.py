@@ -194,10 +194,9 @@ class Config:
 
     # NT-Xent loss parameters
     ntxent_sigma: float = 0.1  # Standard deviation for naive gaussian smearing strategy
-    
-    # Energy-Flow Polynomial (EFP) feature-generation options. See arXiv:1810.05165.
-    enable_efp: bool = False                           # Master switch: compute EFPs and use as model input
-    efp_precompute_only: bool = False                  # If True with enable_efp=True: compute EFPs but don't use as model input (caching mode)
+    # === EFP (Energy-Flow Polynomial) feature-generation options ===
+    # See arXiv:1810.05165 for EFP theory and implementation details
+    efp_mode: str = "disabled"                         # EFP computation and usage mode: "disabled", "cache_only", "full_integration"
     efp_nmax: int = 5                                  # Maximum number of particles in EFP graphs (default: 140 EFPs)
     efp_dmax: int = 6                                  # Maximum degree of EFP graphs (default: 140 EFPs)
     efp_extended_mode: bool = False                    # Use extended config (n≤6, d≤7) for 531 EFPs vs 140 EFPs
@@ -242,6 +241,29 @@ class Config:
     transformer_attention_dropout: float = 0.1         # Separate dropout rate for attention weights
     transformer_layer_norm_eps: float = 1e-5          # Layer normalization epsilon for numerical stability
 
+    # === EFP Mode Helper Methods ===
+    def should_compute_efp(self) -> bool:
+        """Returns True if EFP computation should be performed."""
+        return self.efp_mode in ["cache_only", "full_integration"]
+    
+    def should_use_efp(self) -> bool:
+        """Returns True if EFP features should be used as model input."""
+        return self.efp_mode == "full_integration"
+    
+    def is_efp_cache_only(self) -> bool:
+        """Returns True if EFP should be computed but not used (cache-only mode)."""
+        return self.efp_mode == "cache_only"
+    
+    def is_efp_disabled(self) -> bool:
+        """Returns True if EFP computation and usage are disabled."""
+        return self.efp_mode == "disabled"
+    
+    def validate_efp_mode(self) -> None:
+        """Validates the efp_mode parameter and provides warnings if needed."""
+        valid_modes = ["disabled", "cache_only", "full_integration"]
+        if self.efp_mode not in valid_modes:
+            raise ValueError(f"Invalid efp_mode '{self.efp_mode}'. Must be one of: {valid_modes}")
+
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
     """
@@ -283,8 +305,7 @@ def set_config(c):
     c.subsample_plot               = False
 
 # === EFP (Energy-Flow Polynomial) configuration ===
-    c.enable_efp                   = False  # Master switch: compute EFPs and use as model input
-    c.efp_precompute_only          = False  # Compute EFPs but don't use (caching mode)
+    c.efp_mode                     = "disabled"  # EFP mode: "disabled", "cache_only", "full_integration"
     c.efp_nmax                     = 5
     c.efp_dmax                     = 6
     c.efp_beta                     = 1.0

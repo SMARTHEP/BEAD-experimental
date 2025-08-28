@@ -1120,17 +1120,18 @@ class FlexibleTransformer(nn.Module):
     """Flexible transformer model that can integrate with any VAE model.
     
     This model is designed to be used with any VAE model, processing both
-    VAE latent vectors and EFP embeddings. It uses the transformer utilities
+    VAE latent vectors and raw EFP features. It uses the transformer utilities
     from transformer_utils.py to build a flexible and modular architecture.
     
     The model can be used in different modes:
     1. VAE-only mode: Only process VAE latent vectors
-    2. EFP-only mode: Only process EFP embeddings
-    3. Combined mode: Process both VAE latent vectors and EFP embeddings
+    2. EFP-only mode: Only process EFP features
+    3. Combined mode: Process both VAE latent vectors and EFP features
     
     Args:
         latent_dim: Dimension of the VAE latent space.
-        efp_embedding_dim: Dimension of the EFP embeddings.
+        n_efp_features: Number of raw EFP features (e.g., 140 or 531).
+        efp_embedding_dim: Dimension of the EFP embeddings after compression.
         output_dim: Dimension of the output space.
         d_model: Dimension of the transformer model.
         n_heads: Number of attention heads.
@@ -1142,11 +1143,13 @@ class FlexibleTransformer(nn.Module):
         use_class_attention: Whether to use class attention pooling for the output.
         max_jets: Maximum number of jets per event.
         output_activation: Activation function for the output layer.
+        efp_config: Optional configuration dict for EFPEmbedding layer.
     """
     
     def __init__(
         self,
         latent_dim: int,
+        n_efp_features: int,
         efp_embedding_dim: int,
         output_dim: int,
         d_model: int = 256,
@@ -1159,12 +1162,14 @@ class FlexibleTransformer(nn.Module):
         use_class_attention: bool = True,
         max_jets: int = 3,
         output_activation: callable = None,
+        efp_config: dict = None,
     ):
         super().__init__()
         
         # Create the transformer
         self.transformer = transformer_utils.HyperTransformer(
             latent_dim=latent_dim,
+            n_efp_features=n_efp_features,
             efp_embedding_dim=efp_embedding_dim,
             d_model=d_model,
             n_heads=n_heads,
@@ -1175,6 +1180,7 @@ class FlexibleTransformer(nn.Module):
             norm_first=norm_first,
             use_class_attention=use_class_attention,
             max_jets=max_jets,
+            efp_config=efp_config,
         )
         
         # Output projection
@@ -1196,29 +1202,29 @@ class FlexibleTransformer(nn.Module):
     def forward(
         self,
         latent_z: torch.Tensor = None,
-        efp_embeddings: torch.Tensor = None,
+        efp_features: torch.Tensor = None,
         jet_mask: torch.Tensor = None,
     ) -> torch.Tensor:
         """Forward pass.
         
         Args:
             latent_z: Optional VAE latent vector of shape (batch_size, latent_dim)
-            efp_embeddings: Optional EFP embeddings of shape (batch_size, n_jets, efp_embedding_dim)
+            efp_features: Optional raw EFP features of shape (batch_size, n_jets, n_efp_features)
             jet_mask: Optional mask tensor of shape (batch_size, n_jets)
             
         Returns:
             output: Output tensor of shape (batch_size, output_dim)
         """
         # Check inputs
-        if latent_z is None and efp_embeddings is None:
-            raise ValueError("At least one of latent_z or efp_embeddings must be provided")
+        if latent_z is None and efp_features is None:
+            raise ValueError("At least one of latent_z or efp_features must be provided")
         
         # Process inputs through transformer
-        if latent_z is not None and efp_embeddings is not None:
+        if latent_z is not None and efp_features is not None:
             # Combined mode
             transformer_output = self.transformer(
                 latent_z=latent_z,
-                efp_embeddings=efp_embeddings,
+                efp_features=efp_features,
                 jet_mask=jet_mask,
             )
         elif latent_z is not None:
@@ -1227,7 +1233,7 @@ class FlexibleTransformer(nn.Module):
         else:
             # EFP-only mode
             transformer_output = self.transformer.encode_efp(
-                efp_embeddings=efp_embeddings,
+                efp_features=efp_features,
                 jet_mask=jet_mask,
             )
         
@@ -1251,23 +1257,27 @@ class VAEWithTransformer(nn.Module):
     """VAE model with integrated transformer.
     
     This model combines a VAE with a transformer, allowing for flexible
-    integration of VAE latent vectors and EFP embeddings. The VAE can be
+    integration of VAE latent vectors and raw EFP features. The VAE can be
     any VAE model, and the transformer is built using the transformer utilities
     from transformer_utils.py.
     
     Args:
         vae_model: VAE model to use.
-        efp_embedding_dim: Dimension of the EFP embeddings.
+        n_efp_features: Number of raw EFP features (e.g., 140 or 531).
+        efp_embedding_dim: Dimension of the EFP embeddings after compression.
         output_dim: Dimension of the output space.
         transformer_config: Configuration for the transformer.
+        efp_config: Optional configuration dict for EFPEmbedding layer.
     """
     
     def __init__(
         self,
         vae_model: nn.Module,
+        n_efp_features: int,
         efp_embedding_dim: int,
         output_dim: int,
         transformer_config: dict = None,
+        efp_config: dict = None,
     ):
         super().__init__()
         
@@ -1306,8 +1316,10 @@ class VAEWithTransformer(nn.Module):
         # Create the transformer
         self.transformer = FlexibleTransformer(
             latent_dim=latent_dim,
+            n_efp_features=n_efp_features,
             efp_embedding_dim=efp_embedding_dim,
             output_dim=output_dim,
+            efp_config=efp_config,
             **default_config,
         )
     
@@ -1384,18 +1396,10 @@ class VAEWithTransformer(nn.Module):
         
         reconstruction = self.decode(z)
         
-        # Process EFP features if provided
-        efp_embeddings = None
-        if efp_features is not None and hasattr(self.vae, 'efp_embedding'):
-            efp_embeddings = self.vae.efp_embedding(efp_features)
-        elif efp_features is not None:
-            # If VAE doesn't have EFP embedding, use features directly
-            efp_embeddings = efp_features
-        
-        # Transformer forward pass
+        # Transformer forward pass (transformer handles EFP embedding internally)
         transformer_output = self.transformer(
             latent_z=z,
-            efp_embeddings=efp_embeddings,
+            efp_features=efp_features,
             jet_mask=jet_mask,
         )
         
@@ -1430,18 +1434,10 @@ class VAEWithTransformer(nn.Module):
             else:
                 z = vae_output
         
-        # Process EFP features if provided
-        efp_embeddings = None
-        if efp_features is not None and hasattr(self.vae, 'efp_embedding'):
-            with torch.no_grad():
-                efp_embeddings = self.vae.efp_embedding(efp_features)
-        elif efp_features is not None:
-            efp_embeddings = efp_features
-        
-        # Transformer forward pass
+        # Transformer forward pass (transformer handles EFP embedding internally)
         return self.transformer(
             latent_z=z,
-            efp_embeddings=efp_embeddings,
+            efp_features=efp_features,
             jet_mask=jet_mask,
         )
 
@@ -1565,8 +1561,10 @@ def create_flexible_transformer_from_config(config, latent_dim: int) -> Flexible
     
     return FlexibleTransformer(
         latent_dim=latent_dim,
+        n_efp_features=config.efp_n_features,
         efp_embedding_dim=config.efp_embedding_dim,
         output_dim=config.transformer_output_dim,
+        efp_config=getattr(config, 'efp_config', None),
         **transformer_config,
     )
 
@@ -1594,7 +1592,9 @@ def create_vae_with_transformer_from_config(
     
     return VAEWithTransformer(
         vae_model=vae_model,
+        n_efp_features=config.efp_n_features,
         efp_embedding_dim=config.efp_embedding_dim,
         output_dim=config.transformer_output_dim,
         transformer_config=transformer_config,
+        efp_config=getattr(config, 'efp_config', None),
     )

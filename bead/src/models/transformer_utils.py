@@ -17,11 +17,13 @@ Key components:
 """
 
 import math
-from typing import Optional, Tuple, Callable
+from typing import Callable, Optional, Union, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from .layers import EFPEmbedding
 
 
 class MultiHeadedAttentionBlock(nn.Module):
@@ -549,14 +551,17 @@ def construct_transformer_input(
 
 
 class HyperTransformer(nn.Module):
-    """Transformer that integrates VAE latent vectors and EFP embeddings.
+    """HyperTransformer for multi-modal input processing.
     
-    This transformer can process both VAE latent vectors and EFP embeddings,
-    combining them into a unified transformer architecture.
+    This transformer processes both VAE latent vectors and raw EFP features,
+    combining them into a unified representation for downstream tasks.
+    The EFP features are first processed through an EFPEmbedding layer for
+    compression, sparsification, and regularization before transformer processing.
     
     Args:
-        latent_dim: Dimension of the VAE latent space
-        efp_embedding_dim: Dimension of the EFP embeddings
+        latent_dim: Dimension of the VAE latent vector
+        n_efp_features: Number of raw EFP features (e.g., 140 or 531)
+        efp_embedding_dim: Dimension of the EFP embeddings after compression (e.g., 64)
         d_model: Dimension of the transformer model
         n_heads: Number of attention heads
         n_layers: Number of transformer layers
@@ -566,11 +571,13 @@ class HyperTransformer(nn.Module):
         norm_first: Whether to apply normalization before or after attention and feed-forward
         use_class_attention: Whether to use class attention pooling for the output
         max_jets: Maximum number of jets per event
+        efp_config: Optional configuration dict for EFPEmbedding layer
     """
     
     def __init__(
         self,
         latent_dim: int,
+        n_efp_features: int,
         efp_embedding_dim: int,
         d_model: int = 256,
         n_heads: int = 8,
@@ -581,14 +588,32 @@ class HyperTransformer(nn.Module):
         norm_first: bool = True,
         use_class_attention: bool = True,
         max_jets: int = 3,
+        efp_config: Optional[dict] = None,
     ):
         super().__init__()
         
         self.latent_dim = latent_dim
+        self.n_efp_features = n_efp_features
         self.efp_embedding_dim = efp_embedding_dim
         self.d_model = d_model
         self.use_class_attention = use_class_attention
         self.max_jets = max_jets
+        
+        # EFP Embedding layer (raw EFP features -> embedded features)
+        efp_embedding_config = {
+            'gate_type': 'sigmoid',
+            'gate_threshold': 0.1,
+            'dropout_rate': dropout,
+            'use_layer_norm': True,
+        }
+        if efp_config:
+            efp_embedding_config.update(efp_config)
+            
+        self.efp_embedding = EFPEmbedding(
+            n_efp_features=n_efp_features,
+            embedding_dim=efp_embedding_dim,
+            **efp_embedding_config
+        )
         
         # Input projections
         self.latent_projection = LatentProjection(
@@ -687,19 +712,22 @@ class HyperTransformer(nn.Module):
     
     def encode_efp(
         self,
-        efp_embeddings: torch.Tensor,
+        efp_features: torch.Tensor,
         jet_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Encode EFP embeddings.
+        """Encode EFP features.
         
         Args:
-            efp_embeddings: EFP embeddings of shape (batch_size, n_jets, efp_embedding_dim)
+            efp_features: Raw EFP features of shape (batch_size, n_jets, n_efp_features)
             jet_mask: Jet mask of shape (batch_size, n_jets)
             
         Returns:
             Encoded EFP embeddings of shape (batch_size, d_model) if use_class_attention=True,
             otherwise (batch_size, n_jets, d_model)
         """
+        # Apply EFP embedding layer first (raw features -> embedded features)
+        efp_embeddings = self.efp_embedding(efp_features, jet_mask)
+        
         # Project EFP embeddings to transformer token space
         efp_tokens = self.efp_projection(efp_embeddings)
         
@@ -725,20 +753,23 @@ class HyperTransformer(nn.Module):
     def forward(
         self,
         latent_z: torch.Tensor,
-        efp_embeddings: torch.Tensor,
+        efp_features: torch.Tensor,
         jet_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass.
         
         Args:
             latent_z: VAE latent vector of shape (batch_size, latent_dim)
-            efp_embeddings: EFP embeddings of shape (batch_size, n_jets, efp_embedding_dim)
+            efp_features: Raw EFP features of shape (batch_size, n_jets, n_efp_features)
             jet_mask: Jet mask of shape (batch_size, n_jets)
             
         Returns:
             Output tensor of shape (batch_size, d_model) if use_class_attention=True,
             otherwise (batch_size, 1 + n_jets, d_model)
         """
+        # Apply EFP embedding layer first (raw features -> embedded features)
+        efp_embeddings = self.efp_embedding(efp_features, jet_mask)
+        
         # Project inputs to transformer token space
         latent_tokens = self.latent_projection(latent_z)
         efp_tokens = self.efp_projection(efp_embeddings)

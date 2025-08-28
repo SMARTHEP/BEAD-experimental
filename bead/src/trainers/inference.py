@@ -291,7 +291,7 @@ def infer(
 
             # Prepare model input with optional EFP features
             model_input = inputs
-            if efp_features is not None and getattr(config, 'enable_efp', False) and not getattr(config, 'efp_precompute_only', False):
+            if efp_features is not None and config.should_use_efp():
                 efp_flat = efp_features.view(efp_features.size(0), -1)
                 model_input = torch.cat([inputs, efp_flat], dim=1)
             out = helper.call_forward(model, model_input)

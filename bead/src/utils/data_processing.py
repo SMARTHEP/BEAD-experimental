@@ -186,7 +186,7 @@ def process_and_save_tensors(
 
     # Compute EFP features if enabled
     efp_tensor = None
-    if getattr(config, 'enable_efp', False):
+    if config.should_compute_efp():
         if verbose:
             print("Computing EFP features...")
         efp_tensor = compute_efp_features(
@@ -249,8 +249,31 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
     )
 
     try:
-        # Check if EFP features should be loaded
-        include_efp = getattr(config, 'enable_efp_integration', False)
+        # Validate EFP mode
+        if hasattr(config, 'validate_efp_mode'):
+            config.validate_efp_mode()
+        
+        # Determine if EFP features should be included in loading
+        if config.should_use_efp():
+            # Standard case: compute and use EFPs
+            include_efp = True
+            if verbose:
+                print("EFP full integration mode: EFPs will be computed and used for training")
+        elif config.is_efp_cache_only():
+            # Caching case: EFPs computed but not used for training
+            include_efp = False
+            if verbose:
+                print("EFP cache-only mode: EFPs computed but not used for training")
+        elif config.is_efp_disabled():
+            # Disabled: no EFP computation or usage
+            include_efp = False
+            if verbose:
+                print("EFP disabled: no EFP computation or usage")
+        else:
+            # Invalid mode - fallback to disabled
+            include_efp = False
+            if verbose:
+                print(f"Warning: Invalid efp_mode '{config.efp_mode}'. Falling back to 'disabled'.")
         
         if include_efp:
             events_tensor, jets_tensor, constituents_tensor, efp_tensor = helper.load_tensors(
@@ -376,20 +399,23 @@ def compute_efp_features(constituents_selection, config, n_jets, n_constits, ver
     num_events = constituents_selection.shape[0]
     total_features = constituents_selection.shape[1]
     
-    # Extract only (pT, eta, phi) features - typically indices 4, 5, 6 or 7, 8 for sin/cos phi
+    # Extract features from constituent array
     # Based on BEAD data structure: [evt_id, jet_id, constit_id, b_tagged, constit_pt, constit_eta, constit_phi_sin, constit_phi_cos, generator_id]
-    # We need pT (index 4), eta (index 5), and reconstruct phi from sin/cos (indices 6, 7)
+    # Where generator_id is now mass 
     pt_values = constituents_selection[:, :, 4]  # pT
     eta_values = constituents_selection[:, :, 5]  # eta
     phi_sin = constituents_selection[:, :, 6]  # phi_sin
     phi_cos = constituents_selection[:, :, 7]  # phi_cos
+    mass_values = constituents_selection[:, :, 8]  # mass (from generator_id/PID)
+
     
     # Reconstruct phi from sin/cos
     phi_values = np.arctan2(phi_sin, phi_cos)
     
-    # Reshape to (events, jets, constits, 3) for (pT, eta, phi)
-    constituents_reshaped = np.stack([pt_values, eta_values, phi_values], axis=-1)
-    constituents_reshaped = constituents_reshaped.reshape(num_events, n_jets, n_constits, 3)
+    # Reshape to (events, jets, constits, 4) for [pT, eta, phi, mass]
+    # Note: We pass eta here, but preprocess_jet_constituents will convert it to rapidity
+    constituents_reshaped = np.stack([pt_values, eta_values, phi_values, mass_values], axis=-1)
+    constituents_reshaped = constituents_reshaped.reshape(num_events, n_jets, n_constits, 4)
     
     if verbose:
         logger.info(f"Reshaped constituents: {constituents_reshaped.shape}")
@@ -400,7 +426,7 @@ def compute_efp_features(constituents_selection, config, n_jets, n_constits, ver
     
     for event_idx in range(num_events):
         # Process all jets for this event
-        jets_for_event = constituents_reshaped[event_idx]  # Shape: (n_jets, n_constits, 3)
+        jets_for_event = constituents_reshaped[event_idx]  # Shape: (n_jets, n_constits, 4)
         
         try:
             # Compute EFPs for all jets in this event
