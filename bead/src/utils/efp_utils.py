@@ -134,8 +134,8 @@ def create_efpset(efp_config: Dict) -> 'ef.EFPSet':
         measure=efp_config['measure'],
         beta=efp_config['beta'],
         normed=efp_config['normed'],
-        coords='ptyphim',
-        check_input=False
+        coords='ptyphim',  # Explicitly use [pT, y, phi, m] coordinates
+        check_input=True   # Enable input validation to catch format errors
     )
     
     logger.debug(f"Created EFPSet with {len(efpset.efps)} EFPs")
@@ -145,28 +145,42 @@ def create_efpset(efp_config: Dict) -> 'ef.EFPSet':
 def preprocess_jet_constituents(constituents: np.ndarray, 
                                mask_threshold: float = 1e-12) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Preprocess jet constituents for EFP computation.
+    Preprocess jet constituents for EFP computation with proper [pT, y, phi, m] format.
     
     Filters out zero-padded constituents and handles edge cases.
     
     Args:
-        constituents: Array of shape (n_particles, 3) with (pT, eta, phi)
+        constituents: Array of shape (n_particles, 4) with [pT, eta, phi, mass]
         mask_threshold: Minimum pT threshold for valid particles
         
     Returns:
         Tuple of (filtered_constituents, mask) where mask indicates valid particles
     """
+    import energyflow as ef  # Import here to avoid dependency issues
+    
+    # Extract features
+    pt = constituents[:, 0]    # pT
+    eta = constituents[:, 1]   # eta
+    phi = constituents[:, 2]   # phi
+    mass = constituents[:, 3]  # mass (from PID column)
+    
     # Create mask for valid particles (pT > threshold)
-    mask = constituents[:, 0] > mask_threshold
+    mask = pt > mask_threshold
+    
+    # Calculate proper rapidity using EnergyFlow utility
+    rapidity = ef.ys_from_pts_etas_ms(pt, eta, mass)
+    
+    # Create properly formatted constituents: [pT, y, phi, m]
+    proper_constituents = np.stack([pt, rapidity, phi, mass], axis=-1)
     
     # Filter constituents
-    filtered_constituents = constituents[mask]
+    filtered_constituents = proper_constituents[mask]
     
     # Handle empty jets
     if len(filtered_constituents) == 0:
         logger.debug("Empty jet detected (no constituents with pT > threshold)")
         # Return single dummy particle to avoid EFP computation errors
-        filtered_constituents = np.array([[mask_threshold, 0.0, 0.0]])
+        filtered_constituents = np.array([[mask_threshold, 0.0, 0.0, 0.0]])
         mask = np.array([False])  # Mark as invalid
     
     return filtered_constituents, mask
