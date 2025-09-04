@@ -133,8 +133,6 @@ class KLDivergenceLoss(BaseLoss):
         z0=None,
         **kwargs,
     ):
-        batch_size = mu.size(0)
-
         if self.prior == "dirichlet":
             D_z = self.compute_alpha_laplace(mu, logvar)
 
@@ -145,11 +143,10 @@ class KLDivergenceLoss(BaseLoss):
 
             kl_loss = torch.distributions.kl_divergence(q_z, prior)
 
-            return (kl_loss.mean(),)
-
         else:
             kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
-            return (kl_loss.sum() / batch_size,)
+
+        return (kl_loss.mean(),)
 
 
 # ---------------------------
