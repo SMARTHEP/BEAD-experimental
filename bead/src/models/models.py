@@ -19,6 +19,8 @@ Classes:
     ConvFlow_ConvVAE: ConvVAE with convolutional normalizing flows.
     NSFAR_ConvVAE: ConvVAE with neural spline flows.
     TransformerAE: Autoencoder with transformer components.
+    FlexibleTransformer: Flexible transformer model that can integrate with any VAE model.
+    VAEWithTransformer: VAE model with integrated transformer.
 """
 
 import torch
@@ -28,6 +30,7 @@ from torch.autograd import Variable
 from torch.nn import functional as F
 
 from . import flows
+from . import transformer_utils
 
 
 class AE(nn.Module):
@@ -1111,3 +1114,487 @@ class TransformerAE(nn.Module):
         z = self.encoder(x)
         x = self.decoder(z)
         return x, z, z, z, z, z
+
+
+class FlexibleTransformer(nn.Module):
+    """Flexible transformer model that can integrate with any VAE model.
+    
+    This model is designed to be used with any VAE model, processing both
+    VAE latent vectors and raw EFP features. It uses the transformer utilities
+    from transformer_utils.py to build a flexible and modular architecture.
+    
+    The model can be used in different modes:
+    1. VAE-only mode: Only process VAE latent vectors
+    2. EFP-only mode: Only process EFP features
+    3. Combined mode: Process both VAE latent vectors and EFP features
+    
+    Args:
+        latent_dim: Dimension of the VAE latent space.
+        n_efp_features: Number of raw EFP features (e.g., 140 or 531).
+        efp_embedding_dim: Dimension of the EFP embeddings after compression.
+        output_dim: Dimension of the output space.
+        d_model: Dimension of the transformer model.
+        n_heads: Number of attention heads.
+        n_layers: Number of transformer layers.
+        d_ff: Dimension of the feed-forward network.
+        dropout: Dropout probability.
+        activation: Activation function.
+        norm_first: Whether to apply normalization before or after attention and feed-forward.
+        use_class_attention: Whether to use class attention pooling for the output.
+        max_jets: Maximum number of jets per event.
+        output_activation: Activation function for the output layer.
+        efp_config: Optional configuration dict for EFPEmbedding layer.
+    """
+    
+    def __init__(
+        self,
+        latent_dim: int,
+        n_efp_features: int,
+        efp_embedding_dim: int,
+        output_dim: int,
+        d_model: int = 256,
+        n_heads: int = 8,
+        n_layers: int = 6,
+        d_ff: int = 2048,
+        dropout: float = 0.1,
+        activation: callable = F.gelu,
+        norm_first: bool = True,
+        use_class_attention: bool = True,
+        max_jets: int = 3,
+        output_activation: callable = None,
+        efp_config: dict = None,
+    ):
+        super().__init__()
+        
+        # Create the transformer
+        self.transformer = transformer_utils.HyperTransformer(
+            latent_dim=latent_dim,
+            n_efp_features=n_efp_features,
+            efp_embedding_dim=efp_embedding_dim,
+            d_model=d_model,
+            n_heads=n_heads,
+            n_layers=n_layers,
+            d_ff=d_ff,
+            dropout=dropout,
+            activation=activation,
+            norm_first=norm_first,
+            use_class_attention=use_class_attention,
+            max_jets=max_jets,
+            efp_config=efp_config,
+        )
+        
+        # Output projection
+        if use_class_attention:
+            self.output_projection = nn.Linear(d_model, output_dim)
+        else:
+            # If not using class attention, we need to pool the sequence
+            self.output_projection = nn.Sequential(
+                nn.Linear(d_model * (1 + max_jets), d_model),
+                nn.LayerNorm(d_model),
+                nn.Dropout(dropout),
+                nn.GELU() if activation == F.gelu else nn.ReLU(),
+                nn.Linear(d_model, output_dim),
+            )
+        
+        self.use_class_attention = use_class_attention
+        self.output_activation = output_activation
+    
+    def forward(
+        self,
+        latent_z: torch.Tensor = None,
+        efp_features: torch.Tensor = None,
+        jet_mask: torch.Tensor = None,
+    ) -> torch.Tensor:
+        """Forward pass.
+        
+        Args:
+            latent_z: Optional VAE latent vector of shape (batch_size, latent_dim)
+            efp_features: Optional raw EFP features of shape (batch_size, n_jets, n_efp_features)
+            jet_mask: Optional mask tensor of shape (batch_size, n_jets)
+            
+        Returns:
+            output: Output tensor of shape (batch_size, output_dim)
+        """
+        # Check inputs
+        if latent_z is None and efp_features is None:
+            raise ValueError("At least one of latent_z or efp_features must be provided")
+        
+        # Process inputs through transformer
+        if latent_z is not None and efp_features is not None:
+            # Combined mode
+            transformer_output = self.transformer(
+                latent_z=latent_z,
+                efp_features=efp_features,
+                jet_mask=jet_mask,
+            )
+        elif latent_z is not None:
+            # VAE-only mode
+            transformer_output = self.transformer.encode_latent(latent_z=latent_z)
+        else:
+            # EFP-only mode
+            transformer_output = self.transformer.encode_efp(
+                efp_features=efp_features,
+                jet_mask=jet_mask,
+            )
+        
+        # Project to output space
+        if self.use_class_attention:
+            # If using class attention, transformer_output is already pooled
+            output = self.output_projection(transformer_output)
+        else:
+            # If not using class attention, we need to flatten and project
+            batch_size = transformer_output.size(0)
+            output = self.output_projection(transformer_output.reshape(batch_size, -1))
+        
+        # Apply output activation if specified
+        if self.output_activation is not None:
+            output = self.output_activation(output)
+        
+        return output
+
+
+class VAEWithTransformer(nn.Module):
+    """VAE model with integrated transformer.
+    
+    This model combines a VAE with a transformer, allowing for flexible
+    integration of VAE latent vectors and raw EFP features. The VAE can be
+    any VAE model, and the transformer is built using the transformer utilities
+    from transformer_utils.py.
+    
+    Args:
+        vae_model: VAE model to use.
+        n_efp_features: Number of raw EFP features (e.g., 140 or 531).
+        efp_embedding_dim: Dimension of the EFP embeddings after compression.
+        output_dim: Dimension of the output space.
+        transformer_config: Configuration for the transformer.
+        efp_config: Optional configuration dict for EFPEmbedding layer.
+    """
+    
+    def __init__(
+        self,
+        vae_model: nn.Module,
+        n_efp_features: int,
+        efp_embedding_dim: int,
+        output_dim: int,
+        transformer_config: dict = None,
+        efp_config: dict = None,
+    ):
+        super().__init__()
+        
+        # Store the VAE model
+        self.vae = vae_model
+        
+        # Get the latent dimension from the VAE
+        latent_dim = None
+        if hasattr(self.vae, 'latent_dim'):
+            latent_dim = self.vae.latent_dim
+        elif hasattr(self.vae, 'z_dim'):
+            latent_dim = self.vae.z_dim
+        elif hasattr(self.vae, 'z_size'):
+            latent_dim = self.vae.z_size
+        else:
+            raise ValueError("VAE model must have 'latent_dim', 'z_dim', or 'z_size' attribute")
+        
+        # Default transformer configuration
+        default_config = {
+            'd_model': 256,
+            'n_heads': 8,
+            'n_layers': 6,
+            'd_ff': 2048,
+            'dropout': 0.1,
+            'activation': F.gelu,
+            'norm_first': True,
+            'use_class_attention': True,
+            'max_jets': 3,
+            'output_activation': None,
+        }
+        
+        # Update with provided configuration
+        if transformer_config is not None:
+            default_config.update(transformer_config)
+        
+        # Create the transformer
+        self.transformer = FlexibleTransformer(
+            latent_dim=latent_dim,
+            n_efp_features=n_efp_features,
+            efp_embedding_dim=efp_embedding_dim,
+            output_dim=output_dim,
+            efp_config=efp_config,
+            **default_config,
+        )
+    
+    def encode(self, x):
+        """Encode input through the VAE encoder.
+        
+        Args:
+            x: Input tensor
+            
+        Returns:
+            z: Latent vector
+            mu: Mean of the latent distribution (if VAE)
+            logvar: Log variance of the latent distribution (if VAE)
+        """
+        if hasattr(self.vae, 'encode'):
+            return self.vae.encode(x)
+        else:
+            raise ValueError("VAE model must have an 'encode' method")
+    
+    def decode(self, z):
+        """Decode latent vector through the VAE decoder.
+        
+        Args:
+            z: Latent vector
+            
+        Returns:
+            x_recon: Reconstructed input
+        """
+        if hasattr(self.vae, 'decode'):
+            return self.vae.decode(z)
+        else:
+            raise ValueError("VAE model must have a 'decode' method")
+    
+    def forward(
+        self,
+        x: torch.Tensor,
+        efp_features: torch.Tensor = None,
+        jet_mask: torch.Tensor = None,
+        return_all: bool = False,
+    ):
+        """Forward pass.
+        
+        Args:
+            x: Input tensor
+            efp_features: Optional EFP features
+            jet_mask: Optional mask tensor for jets
+            return_all: Whether to return all outputs (reconstruction, transformer output, mu, logvar)
+            
+        Returns:
+            If return_all=False:
+                transformer_output: Output of the transformer
+            If return_all=True:
+                reconstruction: Reconstructed input
+                transformer_output: Output of the transformer
+                mu: Mean of the latent distribution (if VAE)
+                logvar: Log variance of the latent distribution (if VAE)
+        """
+        # VAE forward pass
+        vae_output = self.encode(x)
+        
+        # Handle different VAE output formats
+        if isinstance(vae_output, tuple):
+            if len(vae_output) == 3:
+                z, mu, logvar = vae_output
+            elif len(vae_output) == 2:
+                z, mu = vae_output
+                logvar = None
+            else:
+                z = vae_output[0]
+                mu = logvar = None
+        else:
+            z = vae_output
+            mu = logvar = None
+        
+        reconstruction = self.decode(z)
+        
+        # Transformer forward pass (transformer handles EFP embedding internally)
+        transformer_output = self.transformer(
+            latent_z=z,
+            efp_features=efp_features,
+            jet_mask=jet_mask,
+        )
+        
+        if return_all:
+            return reconstruction, transformer_output, mu, logvar
+        else:
+            return transformer_output
+    
+    def transform(
+        self,
+        x: torch.Tensor,
+        efp_features: torch.Tensor = None,
+        jet_mask: torch.Tensor = None,
+    ) -> torch.Tensor:
+        """Transform input through the VAE encoder and transformer.
+        
+        This is a convenience method for inference.
+        
+        Args:
+            x: Input tensor
+            efp_features: Optional EFP features
+            jet_mask: Optional mask tensor for jets
+            
+        Returns:
+            transformer_output: Output of the transformer
+        """
+        # VAE encoding
+        with torch.no_grad():
+            vae_output = self.encode(x)
+            if isinstance(vae_output, tuple):
+                z = vae_output[0]
+            else:
+                z = vae_output
+        
+        # Transformer forward pass (transformer handles EFP embedding internally)
+        return self.transformer(
+            latent_z=z,
+            efp_features=efp_features,
+            jet_mask=jet_mask,
+        )
+
+
+# Utility functions for transformer configuration and creation
+def get_activation_function(activation_str: str):
+    """Map activation function string to callable."""
+    activation_map = {
+        'gelu': F.gelu,
+        'relu': F.relu,
+        'swish': F.silu,  # swish is an alias for silu
+        'silu': F.silu,
+        'leaky_relu': F.leaky_relu,
+        'elu': F.elu,
+        'tanh': torch.tanh,
+    }
+    
+    if activation_str not in activation_map:
+        raise ValueError(f"Unsupported activation function: {activation_str}")
+    
+    return activation_map[activation_str]
+
+
+def get_output_activation_function(activation_str: str):
+    """Map output activation function string to callable."""
+    if activation_str is None or activation_str == "none":
+        return None
+    
+    activation_map = {
+        'sigmoid': torch.sigmoid,
+        'tanh': torch.tanh,
+        'softmax': lambda x: F.softmax(x, dim=-1),
+        'log_softmax': lambda x: F.log_softmax(x, dim=-1),
+        'relu': F.relu,
+        'leaky_relu': F.leaky_relu,
+    }
+    
+    if activation_str not in activation_map:
+        raise ValueError(f"Unsupported output activation function: {activation_str}")
+    
+    return activation_map[activation_str]
+
+
+def create_transformer_config_from_config(config) -> dict:
+    """Create transformer configuration dictionary from BEAD Config object.
+    
+    This utility function extracts transformer-related parameters from the main
+    BEAD configuration and creates a dictionary suitable for initializing
+    FlexibleTransformer or VAEWithTransformer models.
+    
+    Args:
+        config: BEAD Config object containing transformer parameters
+        
+    Returns:
+        dict: Configuration dictionary for transformer initialization
+        
+    Example:
+        >>> from bead.src.utils.ggl import Config
+        >>> config = Config(...)  # Your config with transformer settings
+        >>> transformer_config = create_transformer_config_from_config(config)
+        >>> flexible_transformer = FlexibleTransformer(
+        ...     latent_dim=20,
+        ...     efp_embedding_dim=config.efp_embedding_dim,
+        ...     output_dim=config.transformer_output_dim,
+        ...     **transformer_config
+        ... )
+    """
+    # Map string activation names to functions
+    activation_map = {
+        "gelu": F.gelu,
+        "relu": F.relu,
+        "swish": lambda x: x * torch.sigmoid(x),
+        "silu": F.silu,  # SiLU is the same as Swish
+    }
+    
+    # Map string output activation names to functions
+    output_activation_map = {
+        "sigmoid": torch.sigmoid,
+        "tanh": torch.tanh,
+        "softmax": lambda x: F.softmax(x, dim=-1),
+        "log_softmax": lambda x: F.log_softmax(x, dim=-1),
+        None: None,
+        "none": None,
+    }
+    
+    # Extract transformer configuration
+    transformer_config = {
+        "d_model": config.transformer_d_model,
+        "n_heads": config.transformer_n_heads,
+        "n_layers": config.transformer_n_layers,
+        "d_ff": config.transformer_d_ff,
+        "dropout": config.transformer_dropout,
+        "activation": activation_map.get(config.transformer_activation.lower(), F.gelu),
+        "norm_first": config.transformer_norm_first,
+        "use_class_attention": config.transformer_use_class_attention,
+        "max_jets": config.transformer_max_jets,
+        "output_activation": output_activation_map.get(
+            config.transformer_output_activation, None
+        ),
+    }
+    
+    return transformer_config
+
+
+def create_flexible_transformer_from_config(config, latent_dim: int) -> FlexibleTransformer:
+    """Create FlexibleTransformer model from BEAD Config object.
+    
+    Args:
+        config: BEAD Config object containing transformer parameters
+        latent_dim: Dimension of the VAE latent space
+        
+    Returns:
+        FlexibleTransformer: Configured transformer model
+        
+    Example:
+        >>> from bead.src.utils.ggl import Config
+        >>> config = Config(...)  # Your config with transformer settings
+        >>> transformer = create_flexible_transformer_from_config(config, latent_dim=20)
+    """
+    transformer_config = create_transformer_config_from_config(config)
+    
+    return FlexibleTransformer(
+        latent_dim=latent_dim,
+        n_efp_features=config.efp_n_features,
+        efp_embedding_dim=config.efp_embedding_dim,
+        output_dim=config.transformer_output_dim,
+        efp_config=getattr(config, 'efp_config', None),
+        **transformer_config,
+    )
+
+
+def create_vae_with_transformer_from_config(
+    config, vae_model: nn.Module
+) -> VAEWithTransformer:
+    """Create VAEWithTransformer model from BEAD Config object.
+    
+    Args:
+        config: BEAD Config object containing transformer parameters
+        vae_model: Pre-initialized VAE model to integrate with transformer
+        
+    Returns:
+        VAEWithTransformer: VAE model with integrated transformer
+        
+    Example:
+        >>> from bead.src.utils.ggl import Config
+        >>> from bead.src.models.models import ConvVAE
+        >>> config = Config(...)  # Your config with transformer settings
+        >>> vae = ConvVAE(in_shape=(1, 28, 28), z_dim=20)
+        >>> vae_transformer = create_vae_with_transformer_from_config(config, vae)
+    """
+    transformer_config = create_transformer_config_from_config(config)
+    
+    return VAEWithTransformer(
+        vae_model=vae_model,
+        n_efp_features=config.efp_n_features,
+        efp_embedding_dim=config.efp_embedding_dim,
+        output_dim=config.transformer_output_dim,
+        transformer_config=transformer_config,
+        efp_config=getattr(config, 'efp_config', None),
+    )

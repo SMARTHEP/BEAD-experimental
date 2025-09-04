@@ -72,12 +72,13 @@ wheels = [
 
 [[package]]
 name = "bead"
-version = "0.13.3"
+version = "0.14.2"
 source = { editable = "." }
 dependencies = [
     { name = "argparse" },
     { name = "art" },
     { name = "dask" },
+    { name = "energyflow" },
     { name = "h5py" },
     { name = "loky" },
     { name = "matplotlib" },
@@ -136,6 +137,7 @@ requires-dist = [
     { name = "cudf", marker = "extra == 'gpu'", specifier = ">=0.6.1.post1" },
     { name = "cuml", marker = "extra == 'gpu'", specifier = ">=0.6.1.post1" },
     { name = "dask", specifier = ">=2025.2.0,<2026.0.0" },
+    { name = "energyflow", specifier = ">=1.2.0,<2.0.0" },
     { name = "h5py", specifier = ">=3.12.1,<4.0.0" },
     { name = "loky", specifier = ">=3.4.1,<4.0.0" },
     { name = "matplotlib", specifier = ">=3.10.0,<4.0.0" },
@@ -440,6 +442,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ae/ed/aefcc8cd0ba62a0560c3c18c33925362d46c6075480bfa4df87b28e169a9/docutils-0.21.2.tar.gz", hash = "sha256:3a6b18732edf182daa3cd12775bbb338cf5691468f91eeeb109deff6ebfa986f", size = 2204444, upload-time = "2024-04-23T18:57:18.24Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/d7/9322c609343d929e75e7e5e6255e614fcc67572cfd083959cdef3b7aad79/docutils-0.21.2-py3-none-any.whl", hash = "sha256:dafca5b9e384f0e419294eb4d2ff9fa826435bf15f15b7bd45723e8ad76811b2", size = 587408, upload-time = "2024-04-23T18:57:14.835Z" },
+]
+
+[[package]]
+name = "energyflow"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h5py" },
+    { name = "numpy" },
+    { name = "wasserstein" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/99/06/3c94ec859689c348eaa40b6d702d68ec99f1304d4a667a78fbba1c6305ab/energyflow-1.4.0.tar.gz", hash = "sha256:f79cfe109b3944ae94b363cdda77cc0f8d4ee3d1b59d50cad3b7165751e14099", size = 694226, upload-time = "2024-11-01T09:05:42.13Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/0c/6415d36ecfedc589f86b9c5eb55933dc0bda86341a370f6cd1d016d88783/energyflow-1.4.0-py3-none-any.whl", hash = "sha256:90ed6d8b8553c69226b9f28d45c1aa362c0ad918426e1264f0b73cfe5cdf33f6", size = 700812, upload-time = "2024-11-01T09:05:39.134Z" },
 ]
 
 [[package]]
@@ -1657,6 +1673,7 @@ wheels = [
     { url = "https://download.pytorch.org/whl/cpu/torch-2.7.0%2Bcpu-cp310-cp310-win_amd64.whl", hash = "sha256:f874c1ba4c834db5848eaafd6e63dfce87fb44bb2d9234978c3ad47b5b0f37dd" },
     { url = "https://download.pytorch.org/whl/cpu/torch-2.7.0%2Bcpu-cp311-cp311-win_amd64.whl", hash = "sha256:e32f385dc0b5007ca410035c3b91ef4b1b34b142e9bcdb31d3f0224b7748e992" },
     { url = "https://download.pytorch.org/whl/cpu/torch-2.7.0%2Bcpu-cp312-cp312-win_amd64.whl", hash = "sha256:69e25c973bdd7ea24b0fa9f9792114950afaeb8f819e5723819b923f50989175" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.7.0%2Bcpu-cp312-cp312-win_arm64.whl", hash = "sha256:1d7a6f33868276770a657beec7f77c7726b4da9d0739eff1b3ae64cc9a09d8e3" },
 ]
 
 [[package]]
@@ -1832,6 +1849,54 @@ wheels = [
 ]
 
 [[package]]
+name = "wasserstein"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "wurlitzer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2a/bf/c00067dcfbb70042402d25d61a33a05085a141c490045e1bb240da0815d3/Wasserstein-1.1.0.tar.gz", hash = "sha256:dc95415bb91a3b6d04d06f11878fcfab56468311a4991da2488600f6abc7fd5b", size = 397407, upload-time = "2022-07-08T04:53:49.528Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/ab/52eabb1150f9355a7612d53ca7ae78610bedbe886d157e219e3ab39b2671/Wasserstein-1.1.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:321ec6937e6df5ee0f7c0a35ab3b612145bcd017b02ad8c5b9629d161d2e9c1d", size = 1016998, upload-time = "2022-07-08T05:01:22.947Z" },
+    { url = "https://files.pythonhosted.org/packages/05/9a/603d4ebc35d1022196593143e3ce6dbb6dc7a740a1086cd739c881483218/Wasserstein-1.1.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:17cb079a8dc39d14c1a9c2a9e0ef090a3b3d8b8a8302b23ac0bdfa04e75d0a97", size = 685634, upload-time = "2022-07-08T05:01:24.307Z" },
+    { url = "https://files.pythonhosted.org/packages/95/39/e6cdf64911e0a420c0f42cb6631e69b8ea36403eb638cf96a79f6bc6bd9f/Wasserstein-1.1.0-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:ac3ae71a6c415d0b089f0217d5f11005ca5f64767f2c8d93f3e241efa516bda0", size = 509632, upload-time = "2022-07-08T04:53:51.385Z" },
+    { url = "https://files.pythonhosted.org/packages/53/c4/de96a7906943a7ef53fe87305e78ed8628a66ac1a694f08cb849ad72a198/Wasserstein-1.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e9ea786b31f385d3345ceb9d77e0449a1b156a91024f1b44204909fada940546", size = 502196, upload-time = "2022-07-08T04:53:52.75Z" },
+    { url = "https://files.pythonhosted.org/packages/55/eb/7b53bd312d9558e8c1b0b50a55b529699ae1972909e018cfc81f3a55e2af/Wasserstein-1.1.0-cp310-cp310-win32.whl", hash = "sha256:e5eb61841ea8aad37a621d4bbbb4bba3ca4789c4396672ce59ab3f0771e460aa", size = 242536, upload-time = "2022-07-08T04:48:57.13Z" },
+    { url = "https://files.pythonhosted.org/packages/99/94/1dcb8b0dd73bed5c3a44866fac18786191a2afb9c643410c8ed860a35a89/Wasserstein-1.1.0-cp310-cp310-win_amd64.whl", hash = "sha256:5c1da648cc8047c1ad0ca921ec775d8aaed567c65963b0d6424ffc62e6ed4f96", size = 265309, upload-time = "2022-07-08T04:48:58.933Z" },
+    { url = "https://files.pythonhosted.org/packages/26/c7/dbc27e4ad2a981ef81c5e70912c8c63a68e6d623754b04e8a3a335a4b12e/Wasserstein-1.1.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:92a362d7ed3db65ae20a978164c141cf58fcee5f977d419d4fc6724dfd9155d0", size = 1016539, upload-time = "2024-02-16T01:39:09.674Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/ca/b5c18fee951ed877c14f4bb20421e1689d9763c0ab86d59b5223e0734a92/Wasserstein-1.1.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:8bce7a8b50e7b4986226dac7a549e58c9d29e673076ceb1121fa7c4a8d54fe09", size = 691104, upload-time = "2024-02-16T01:39:11.783Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/b4/334705b8fcc6694c13e7cc0f3e2a816c83fcc4b307a3b08b1e2c4eddbf75/Wasserstein-1.1.0-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f4aea4140d81c239af37850ed46ae6113c3d4538f9f2027dc86571b181509a40", size = 509702, upload-time = "2024-02-16T01:31:59.094Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/7f/18c8d50540a0a7e892537e2b294e7bd3ee529d663285fc18cf02aad99db3/Wasserstein-1.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:99376422f6a1beb5298619bf1ac060db4aa1b6acdc625f2b336d9a3674462840", size = 502164, upload-time = "2024-02-16T01:32:01.416Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/e9/c42a3d6f4d8a254b3e80c807be6f5b7412ded72c139be28f6e8f300699d7/Wasserstein-1.1.0-cp311-cp311-win32.whl", hash = "sha256:cd24423b011b024d5130b52d7f78991810ff57b2709f2d3c66b33657969db799", size = 242569, upload-time = "2022-11-11T18:59:17.957Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/a2/0ee0e0302fcc3d2492e6a731353f03b4a25e67af91ac195b09cd2303021a/Wasserstein-1.1.0-cp311-cp311-win_amd64.whl", hash = "sha256:d8add0ff60fc8f818ac8f51754a9575e4cc7aa8a8d5146d3607dadb2fe6d7fa1", size = 265513, upload-time = "2024-02-16T01:24:16.941Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/27/85cd68ca84be7aa01e590f2b5de7ed3f04268a98d37ad24390aa37219c15/Wasserstein-1.1.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:072f7febdb136b517337073ca5c60a98f2ee686405d9581bdfc2913d30c5e421", size = 1020247, upload-time = "2024-02-16T01:39:13.649Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/e9/6bcfe3a9d0c5dcfa8aa149291b1edde0a1e6e47098a854b8a9dc5d64ad49/Wasserstein-1.1.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ff8dd8ec37eb04d279c8a665f728c870755e81b6034512e0cb584c5a4fa8fdcc", size = 693177, upload-time = "2024-02-16T01:39:15.562Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/35/f98763223541c456590c1a08734f9460c9db7e6b6e6bfacade7ce7f4e0b2/Wasserstein-1.1.0-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:69ecf56a20b36eba4ea8761a2a45ef639a37282bcbf50acdb449dfec00a6b6d5", size = 510048, upload-time = "2024-02-16T01:32:03.042Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/20/e1ed79a7061c56924f49b1d1a40c3c5a2a6645314e11af82ad9fbd177529/Wasserstein-1.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9cba6458eb85481d4395a67e7ea1cfa6ffea59ed84ee7ca8ba54b9be5e75a4b8", size = 503238, upload-time = "2024-02-16T01:32:04.453Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/55/a032cf7dd19d869f962db3118b760e6405aa6daf01cd1359de6ad572b0f3/Wasserstein-1.1.0-cp312-cp312-win32.whl", hash = "sha256:dfc53b22784775942036d0dbde80dd03a4d790f50face3d42ffd53f7721f4ffa", size = 243264, upload-time = "2024-02-16T01:24:18.712Z" },
+    { url = "https://files.pythonhosted.org/packages/25/60/d9b5b0e4c91eff78da726f7f2fcb7e436959788934353d37055bb3bbefd3/Wasserstein-1.1.0-cp312-cp312-win_amd64.whl", hash = "sha256:95b06d2de414dfee34a270ca58082ccdd338c9e35303851be1947cc304910b7b", size = 264628, upload-time = "2024-02-16T01:24:20.232Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/ff/88c5a4340c7962d55892dc99fc5b02ccd9aa608af11ffed5c696a9406bb3/wasserstein-1.1.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:6176b335e1a9bc122ee838209e0ce06caf0bcf9c5835d3da7faa97d5764fccc8", size = 1020799, upload-time = "2024-06-20T18:14:01.84Z" },
+    { url = "https://files.pythonhosted.org/packages/76/41/6010113a8029c00f948d6a9a0d20db11d476c7882bc6b44aaf2244fe4422/wasserstein-1.1.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f178720a499d9ce30744af94d06f292bfba282151a2da87dcbf0c65083533de0", size = 611652, upload-time = "2024-06-20T18:14:04.222Z" },
+    { url = "https://files.pythonhosted.org/packages/60/cd/0255639a3ffc493c5baaf3148eb8820603b29c405bd9843d2bb01deb9066/wasserstein-1.1.0-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:0b2fbbbebbe79f57c6258d6ff19505a1aa4104e0276eecd211fdfbaed101cdc8", size = 509607, upload-time = "2024-06-19T13:41:23.58Z" },
+    { url = "https://files.pythonhosted.org/packages/55/5e/97995da5a3724339e9596c889a18ae2a24cd99997f72805502f0717f53b0/wasserstein-1.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7751ab8e220f5278d5a8aa02a80eb8b3563bdba43b2f48ce158b5a812cc4e49d", size = 502160, upload-time = "2024-06-19T13:41:27.815Z" },
+    { url = "https://files.pythonhosted.org/packages/15/a1/97f7b875576a448573e64af879f2ee1e39673ff5238461bb4067eed73abe/wasserstein-1.1.0-cp310-cp310-win32.whl", hash = "sha256:7886538bd389e4efa871c7d8cd94ba32d1d454454efef829c105c529c99feaf7", size = 243956, upload-time = "2024-06-19T13:32:14.717Z" },
+    { url = "https://files.pythonhosted.org/packages/58/a8/73b72139bc5bb106905bb7a1a6253c7a36d241d7110f77757da08dfe56cf/wasserstein-1.1.0-cp310-cp310-win_amd64.whl", hash = "sha256:4d432af59bf4b13036afa76f00956070b3d4b6422fdd5307082245ffa02d97be", size = 261528, upload-time = "2024-06-19T13:32:16.992Z" },
+    { url = "https://files.pythonhosted.org/packages/91/a3/f7c70d026fd771a5b48f6466391168f0cb390e37e6219adc9822002fda36/wasserstein-1.1.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:7c2fc28d854fb755a1cc0181b3e77d1c2a60e5b41241d80a4669fb5d00e06260", size = 1020796, upload-time = "2024-06-20T18:14:06.239Z" },
+    { url = "https://files.pythonhosted.org/packages/29/02/e27cab8e5d14cd6516cd0b67a1ce532d3337e2ac60ea3497aa041ec91c05/wasserstein-1.1.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:d6e4d99135a18575b6734f1e727078c8ea7151ee898e687d494a4c0774241224", size = 611651, upload-time = "2024-06-20T18:14:07.848Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/92/b98010b25a60f2b326a4c5b714b6e44bb673dea3423a4808958205d5e2cb/wasserstein-1.1.0-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1c0b4cd19ee811576e170c848b5035d31de2ec1062546eca20c06b84a69db6aa", size = 509701, upload-time = "2024-06-19T13:41:31.744Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/3b/3377c1df1c1e3855fe8685f34f6f188138205758dba854110e13c4872960/wasserstein-1.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0e454a4ba94700b5ad0e1af6a7b2ee68535bf8fc46d5f39a13b695af1f2cf147", size = 502159, upload-time = "2024-06-19T13:41:34.474Z" },
+    { url = "https://files.pythonhosted.org/packages/35/2c/84f41663a78251c5d39b967869ebbdcf54bec84c364cf0ce66a64ff8076e/wasserstein-1.1.0-cp311-cp311-win32.whl", hash = "sha256:0c70c3e14224a4e1c5ef9ca8f8fe4689a683d553a5db757caf1713ab1ea2f504", size = 243884, upload-time = "2024-06-19T13:32:19.718Z" },
+    { url = "https://files.pythonhosted.org/packages/55/86/ce3ce4897d0c5e2f69836f48b69484c0a60bf56897deb5ebb90514b9deea/wasserstein-1.1.0-cp311-cp311-win_amd64.whl", hash = "sha256:073c9f4d4eb251641c3c432b3c176e45f8ac5fa4be5c27340a3e3b2d07266b7c", size = 261493, upload-time = "2024-06-19T13:32:23.447Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/13/6f24f296bc8d765b6afa27a5f2d6c8a8a16bac3b0adcc69d99598f415e1e/wasserstein-1.1.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:27e46fa7ca94b10220401d3ca678898b063290dc5011d99b2d8329737a567e6c", size = 1023049, upload-time = "2024-06-20T18:14:09.382Z" },
+    { url = "https://files.pythonhosted.org/packages/23/ca/8bda228e583b01434f7e0ba303df105d1ce4711d8ed279f6e32cb870c2e8/wasserstein-1.1.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b86de39b9c2b6f299a30e6f6273bd2dda437aaa474044081dd20920d92338a6f", size = 614634, upload-time = "2024-06-20T18:14:11.803Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/80/55b51517e2d334b3468196f3d761c06f33dde3ba457a2976df683641a214/wasserstein-1.1.0-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5f1b73d121457b0e9a353b13529cdb978a87552e40b61da105b268a2e7aad936", size = 510049, upload-time = "2024-06-19T13:41:38.7Z" },
+    { url = "https://files.pythonhosted.org/packages/48/ec/c74e5b6b14eaaff576a9139e5e9d2ec57f83ea455b7bd58128d8aa190ee4/wasserstein-1.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7975242f003a29f8034b289549f70955e33f00eb69bb35f1d7bae8d7d14d3b0d", size = 503231, upload-time = "2024-06-19T13:41:45.039Z" },
+    { url = "https://files.pythonhosted.org/packages/27/02/9a2a9ae4e8fb0d07aad24a028b4902c4df8331cf181510f981c044cd5aad/wasserstein-1.1.0-cp312-cp312-win32.whl", hash = "sha256:06204b0545489d7d23433005c1ce3ce0088d70eee64cb07efaa8943b5185fa46", size = 243511, upload-time = "2024-06-19T13:32:27.087Z" },
+    { url = "https://files.pythonhosted.org/packages/36/f8/bb9a707d00c1d3e14f6499fa7946c292e084b9e7d4d7551cf7729cdf8430/wasserstein-1.1.0-cp312-cp312-win_amd64.whl", hash = "sha256:c62f2e2205ff6ed65b0649f75e4a5ffc1ecff8bdc64fd0af6baaa4b2c96a3bd3", size = 262215, upload-time = "2024-06-19T13:32:31.359Z" },
+]
+
+[[package]]
 name = "wrapt"
 version = "1.17.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1871,6 +1936,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/17/27/4fe749a54e7fae6e7146f1c7d914d28ef599dacd4416566c055564080fe2/wrapt-1.17.2-cp312-cp312-win32.whl", hash = "sha256:468090021f391fe0056ad3e807e3d9034e0fd01adcd3bdfba977b6fdf4213ea9", size = 36672, upload-time = "2025-01-14T10:34:17.727Z" },
     { url = "https://files.pythonhosted.org/packages/15/06/1dbf478ea45c03e78a6a8c4be4fdc3c3bddea5c8de8a93bc971415e47f0f/wrapt-1.17.2-cp312-cp312-win_amd64.whl", hash = "sha256:ec89ed91f2fa8e3f52ae53cd3cf640d6feff92ba90d62236a81e4e563ac0e991", size = 38865, upload-time = "2025-01-14T10:34:19.577Z" },
     { url = "https://files.pythonhosted.org/packages/2d/82/f56956041adef78f849db6b289b282e72b55ab8045a75abad81898c28d19/wrapt-1.17.2-py3-none-any.whl", hash = "sha256:b18f2d1533a71f069c7f82d524a52599053d4c7166e9dd374ae2136b7f40f7c8", size = 23594, upload-time = "2025-01-14T10:35:44.018Z" },
+]
+
+[[package]]
+name = "wurlitzer"
+version = "3.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/90/623f99c55c7d0727a58eb2b7dfb65cb406c561a5c2e9a95b0d6a450c473d/wurlitzer-3.1.1.tar.gz", hash = "sha256:bfb9144ab9f02487d802b9ff89dbd3fa382d08f73e12db8adc4c2fb00cd39bd9", size = 11867, upload-time = "2024-06-12T10:27:30.089Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9a/24/93ce54550a9dd3fd996ed477f00221f215bf6da3580397fbc138d6036e2e/wurlitzer-3.1.1-py3-none-any.whl", hash = "sha256:0b2749c2cde3ef640bf314a9f94b24d929fe1ca476974719a6909dfc568c3aac", size = 8590, upload-time = "2024-06-12T10:27:28.787Z" },
 ]
 
 [[package]]
