@@ -196,73 +196,78 @@ class Config:
     ntxent_sigma: float = 0.1  # Standard deviation for naive gaussian smearing strategy
     # === EFP (Energy-Flow Polynomial) feature-generation options ===
     # See arXiv:1810.05165 for EFP theory and implementation details
-    efp_mode: str = "disabled"                         # EFP computation and usage mode: "disabled", "cache_only", "full_integration"
-    efp_nmax: int = 5                                  # Maximum number of particles in EFP graphs (default: 140 EFPs)
-    efp_dmax: int = 6                                  # Maximum degree of EFP graphs (default: 140 EFPs)
-    efp_extended_mode: bool = False                    # Use extended config (n≤6, d≤7) for 531 EFPs vs 140 EFPs
-    efp_beta: float = 1.0                              # Energy weighting parameter (IRC-safe baseline)
-    efp_beta_list: list = None                         # Multi-β sweep (if set, concatenate features)
-    efp_measure: str = "hadr"                          # Angular measure: "hadr", "ee", "gen"
-    efp_normed: bool = True                            # Use normed distances in EFPSet
-    efp_include_composites: bool = False               # Include composite graphs (not supported by EnergyFlow API)
-    efp_eps: float = 1e-12                             # Numerical guard for zi lower-cut/angle floor
+    efp_mode: bool = False  # Master switch: enable EFP feature generation
+    efp_nmax: int = 5  # Maximum number of particles in EFP graphs (default: 140 EFPs)
+    efp_dmax: int = 6  # Maximum degree of EFP graphs (default: 140 EFPs)
+    efp_extended_mode: bool = (
+        False  # Use extended config (n≤6, d≤7) for 531 EFPs vs 140 EFPs
+    )
+    efp_beta: float = 1.0  # Energy weighting parameter (IRC-safe baseline)
+    efp_beta_list: list = None  # Multi-β sweep (if set, concatenate features)
+    efp_measure: str = "hadr"  # Angular measure: "hadr", "ee", "gen"
+    efp_normed: bool = True  # Use normed distances in EFPSet
+    efp_include_composites: bool = (
+        False  # Include composite graphs (not supported by EnergyFlow API)
+    )
+    efp_eps: float = 1e-12  # Numerical guard for zi lower-cut/angle floor
     # EFP Embedding Layer Configuration
-    efp_embedding_dim: int = 64                        # Output embedding dimension (transformer token size)
-    efp_gate_type: str = "sigmoid"                     # Gate activation: "sigmoid", "relu6", "tanh"
-    efp_gate_threshold: float = 0.05                   # Sparsification threshold (gates below this are zeroed)
-    efp_dropout_rate: float = 0.1                      # Dropout rate for embedding regularization
-    efp_use_layer_norm: bool = True                    # Enable layer normalization for training stability
-    efp_monitor_sparsity: bool = True                  # Track gate activation statistics for interpretability
-    efp_standardize_meanvar: bool = True               # Apply dataset-level mean/var standardization
-    efp_cache_dir: str = None                          # Cache directory (None = compute on-the-fly)
-    efp_n_jobs: int = 4                               # Number of parallel workers for EFP computation
-    efp_device: str = "cpu"                            # Device for EFP computation (EnergyFlow is CPU-only)
-    efp_feature_prefix: str = "EFP_"                   # Prefix for feature naming/logging
-    efp_use_true_energy: bool = False                  # Use true energy instead of (pT, η, φ) only
-    
-    # Flexible Transformer Configuration
-    enable_transformer: bool = False                   # Master switch: enable transformer integration with VAE
-    transformer_mode: str = "combined"                 # Operation mode: "combined", "latent_only", "efp_only"
-    transformer_d_model: int = 256                     # Transformer model dimension (embedding size)
-    transformer_n_heads: int = 8                       # Number of attention heads
-    transformer_n_layers: int = 6                      # Number of transformer encoder layers
-    transformer_d_ff: int = 2048                       # Feed-forward network dimension
-    transformer_dropout: float = 0.1                  # Dropout rate for transformer layers
-    transformer_activation: str = "gelu"               # Activation function: "gelu", "relu", "swish"
-    transformer_norm_first: bool = True                # Apply normalization before attention (Normformer style)
-    transformer_use_class_attention: bool = True       # Use class attention pooling for sequence-to-vector conversion
-    transformer_max_jets: int = 3                      # Maximum number of jets per event
-    transformer_output_dim: int = 10                   # Output dimension for transformer head
-    transformer_output_activation: str = None          # Output activation: None, "sigmoid", "tanh", "softmax"
-    # Advanced Transformer Options
-    transformer_positional_encoding: str = "sinusoidal"  # Positional encoding type: "sinusoidal", "learned"
-    transformer_token_type_embeddings: bool = True     # Use token type embeddings to distinguish latent vs EFP tokens
-    transformer_gradient_checkpointing: bool = False   # Enable gradient checkpointing to save memory
-    transformer_attention_dropout: float = 0.1         # Separate dropout rate for attention weights
-    transformer_layer_norm_eps: float = 1e-5          # Layer normalization epsilon for numerical stability
+    efp_embedding_dim: int = 64  # Output embedding dimension (transformer token size)
+    efp_gate_type: str = "sigmoid"  # Gate activation: "sigmoid", "relu6", "tanh"
+    efp_gate_threshold: float = (
+        0.05  # Sparsification threshold (gates below this are zeroed)
+    )
+    efp_dropout_rate: float = 0.1  # Dropout rate for embedding regularization
+    efp_use_layer_norm: bool = True  # Enable layer normalization for training stability
+    efp_monitor_sparsity: bool = (
+        True  # Track gate activation statistics for interpretability
+    )
+    efp_standardize_meanvar: bool = True  # Apply dataset-level mean/var standardization
+    efp_cache_dir: str = None  # Cache directory (None = compute on-the-fly)
+    efp_n_jobs: int = 4  # Number of parallel workers for EFP computation
+    efp_device: str = "cpu"  # Device for EFP computation (EnergyFlow is CPU-only)
+    efp_feature_prefix: str = "EFP_"  # Prefix for feature naming/logging
+    efp_use_true_energy: bool = False  # Use true energy instead of (pT, η, φ) only
 
-    # === EFP Mode Helper Methods ===
-    def should_compute_efp(self) -> bool:
-        """Returns True if EFP computation should be performed."""
-        return self.efp_mode in ["cache_only", "full_integration"]
-    
-    def should_use_efp(self) -> bool:
-        """Returns True if EFP features should be used as model input."""
-        return self.efp_mode == "full_integration"
-    
-    def is_efp_cache_only(self) -> bool:
-        """Returns True if EFP should be computed but not used (cache-only mode)."""
-        return self.efp_mode == "cache_only"
-    
-    def is_efp_disabled(self) -> bool:
-        """Returns True if EFP computation and usage are disabled."""
-        return self.efp_mode == "disabled"
-    
-    def validate_efp_mode(self) -> None:
-        """Validates the efp_mode parameter and provides warnings if needed."""
-        valid_modes = ["disabled", "cache_only", "full_integration"]
-        if self.efp_mode not in valid_modes:
-            raise ValueError(f"Invalid efp_mode '{self.efp_mode}'. Must be one of: {valid_modes}")
+    # Flexible Transformer Configuration
+    enable_transformer: bool = (
+        False  # Master switch: enable transformer integration with VAE
+    )
+    transformer_mode: str = (
+        "combined"  # Operation mode: "combined", "latent_only", "efp_only"
+    )
+    transformer_d_model: int = 256  # Transformer model dimension (embedding size)
+    transformer_n_heads: int = 8  # Number of attention heads
+    transformer_n_layers: int = 6  # Number of transformer encoder layers
+    transformer_d_ff: int = 2048  # Feed-forward network dimension
+    transformer_dropout: float = 0.1  # Dropout rate for transformer layers
+    transformer_activation: str = "gelu"  # Activation function: "gelu", "relu", "swish"
+    transformer_norm_first: bool = (
+        True  # Apply normalization before attention (Normformer style)
+    )
+    transformer_use_class_attention: bool = (
+        True  # Use class attention pooling for sequence-to-vector conversion
+    )
+    transformer_max_jets: int = 3  # Maximum number of jets per event
+    transformer_output_dim: int = 10  # Output dimension for transformer head
+    transformer_output_activation: str = (
+        None  # Output activation: None, "sigmoid", "tanh", "softmax"
+    )
+    # Advanced Transformer Options
+    transformer_positional_encoding: str = (
+        "sinusoidal"  # Positional encoding type: "sinusoidal", "learned"
+    )
+    transformer_token_type_embeddings: bool = (
+        True  # Use token type embeddings to distinguish latent vs EFP tokens
+    )
+    transformer_gradient_checkpointing: bool = (
+        False  # Enable gradient checkpointing to save memory
+    )
+    transformer_attention_dropout: float = (
+        0.1  # Separate dropout rate for attention weights
+    )
+    transformer_layer_norm_eps: float = (
+        1e-5  # Layer normalization epsilon for numerical stability
+    )
 
 
 def create_default_config(workspace_name: str, project_name: str) -> str:
@@ -305,7 +310,7 @@ def set_config(c):
     c.subsample_plot               = False
 
 # === EFP (Energy-Flow Polynomial) configuration ===
-    c.efp_mode                     = "disabled"  # EFP mode: "disabled", "cache_only", "full_integration"
+    c.efp_mode                     = False
     c.efp_nmax                     = 5
     c.efp_dmax                     = 6
     c.efp_beta                     = 1.0
