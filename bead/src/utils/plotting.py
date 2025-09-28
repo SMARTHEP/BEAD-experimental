@@ -748,7 +748,7 @@ def plot_roc_curve(config, paths, verbose: bool = False):
     # Store ROC data for potential overlay with current project
     current_project_roc = {}
 
-    if not config.skip_to_roc:
+    if not config.overlay_roc:
         # Load ground truth binary labels from 'label.npy'
         label_path = os.path.join(
             paths["output_path"], "results", "test_" + config.input_level + "_label.npy"
@@ -823,91 +823,112 @@ def plot_roc_curve(config, paths, verbose: bool = False):
         if hasattr(config, "plot_roc_per_signal") and config.plot_roc_per_signal:
             if verbose:
                 print("Generating per-signal ROC plots...")
-            
+
             # Get signal file information from CSV files
             try:
                 from . import helper
+
                 csv_path = os.path.join(paths["data_path"], "csv")
-                signal_file_info = helper.get_signal_file_info_from_csv(csv_path, "sig_test")
+                signal_file_info = helper.get_signal_file_info_from_csv(
+                    csv_path, "sig_test"
+                )
                 bkg_count = helper.get_bkg_test_count_from_csv(csv_path)
-                
+
                 if verbose:
-                    print(f"Found {len(signal_file_info)} signal files for per-signal ROC plotting")
+                    print(
+                        f"Found {len(signal_file_info)} signal files for per-signal ROC plotting"
+                    )
                     print(f"Background test event count: {bkg_count}")
                     for info in signal_file_info:
-                        print(f"  {info['sig_filename']}: {info['events_count']} events (indices {bkg_count + info['start_idx']}:{bkg_count + info['end_idx']})")
-                
+                        print(
+                            f"  {info['sig_filename']}: {info['events_count']} events (indices {bkg_count + info['start_idx']}:{bkg_count + info['end_idx']})"
+                        )
+
                 # Define the loss component prefixes to search for
                 loss_components = ["loss", "reco", "kl", "emd", "l1", "l2"]
-                
+
                 # Generate ROC plot for each signal file
                 for signal_info in signal_file_info:
-                    sig_filename = signal_info['sig_filename']
-                    sig_start_idx = bkg_count + signal_info['start_idx']
-                    sig_end_idx = bkg_count + signal_info['end_idx']
-                    
+                    sig_filename = signal_info["sig_filename"]
+                    sig_start_idx = bkg_count + signal_info["start_idx"]
+                    sig_end_idx = bkg_count + signal_info["end_idx"]
+
                     if verbose:
-                        print(f"Processing signal file: {sig_filename} (indices {sig_start_idx}:{sig_end_idx})")
-                    
+                        print(
+                            f"Processing signal file: {sig_filename} (indices {sig_start_idx}:{sig_end_idx})"
+                        )
+
                     # Create ground truth labels for this specific signal vs all backgrounds
                     # Background events are labeled as 0, this specific signal events as 1
-                    per_signal_ground_truth = np.zeros(bkg_count + signal_info['events_count'])
+                    per_signal_ground_truth = np.zeros(
+                        bkg_count + signal_info["events_count"]
+                    )
                     per_signal_ground_truth[bkg_count:] = 1
-                    
+
                     plt.figure(figsize=(8, 6))
-                    
+
                     for component in loss_components:
                         file_path = os.path.join(output_dir, f"{component}_test.npy")
                         if not os.path.exists(file_path):
                             continue
-                        
+
                         # Load loss scores and extract data for this signal vs backgrounds
                         full_data = np.load(file_path)
                         if full_data.ndim > 1:
                             full_data = full_data.flatten()
-                        
+
                         # Extract background losses and this specific signal's losses
                         bkg_losses = full_data[:bkg_count]
                         signal_losses = full_data[sig_start_idx:sig_end_idx]
                         per_signal_data = np.concatenate([bkg_losses, signal_losses])
-                        
+
                         # Check length consistency
                         if len(per_signal_data) != len(per_signal_ground_truth):
                             if verbose:
-                                print(f"Warning: Length mismatch for {component} and {sig_filename}, skipping")
-                                print(f"  Data length: {len(per_signal_data)}, Ground truth length: {len(per_signal_ground_truth)}")
+                                print(
+                                    f"Warning: Length mismatch for {component} and {sig_filename}, skipping"
+                                )
+                                print(
+                                    f"  Data length: {len(per_signal_data)}, Ground truth length: {len(per_signal_ground_truth)}"
+                                )
                             continue
-                        
+
                         # Compute ROC curve and AUC
-                        fpr, tpr, thresholds = roc_curve(per_signal_ground_truth, per_signal_data)
+                        fpr, tpr, thresholds = roc_curve(
+                            per_signal_ground_truth, per_signal_data
+                        )
                         roc_auc = auc(fpr, tpr)
-                        
+
                         # Plot the ROC curve
                         plt.plot(
-                            fpr, tpr, label=f"{component.capitalize()} AUC = {roc_auc:.2f}", lw=2
+                            fpr,
+                            tpr,
+                            label=f"{component.capitalize()} AUC = {roc_auc:.2f}",
+                            lw=2,
                         )
-                    
+
                     plt.plot([0, 1], [0, 1], "k--", lw=2, label="Random Guess")
                     plt.xlabel("False Positive Rate")
                     plt.ylabel("True Positive Rate")
                     plt.title(f"ROC Curve - {config.project_name} - {sig_filename}")
                     plt.legend(loc="best")
                     plt.tight_layout()
-                    
+
                     # Save the per-signal ROC plot
                     per_signal_filename = os.path.join(
                         paths["output_path"], "plots", "loss", f"roc_{sig_filename}.pdf"
                     )
                     plt.savefig(per_signal_filename)
                     plt.close()
-                    
+
                     if verbose:
                         print(f"Saved per-signal ROC plot: {per_signal_filename}")
-                        
+
             except Exception as e:
                 print(f"Error generating per-signal ROC plots: {e}")
                 if verbose:
                     import traceback
+
                     traceback.print_exc()
 
     # Create ROC overlay if enabled
