@@ -395,7 +395,7 @@ def compute_efp_features(
 
     # Reshape constituents from (events, jets*constits, features) to (events, jets, constits, features)
     num_events = constituents_selection.shape[0]
-    total_features = constituents_selection.shape[1]
+    total_features = constituents_selection.shape[1]  # noqa: F841
 
     # Extract features from constituent array
     # Based on BEAD data structure: [evt_id, jet_id, constit_id, b_tagged, constit_pt, constit_eta, constit_phi_sin, constit_phi_cos, generator_id]
