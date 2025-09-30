@@ -26,6 +26,13 @@ The statistical plotting functions parse terminal output from the `roc_per_signa
    - Box plots provide statistical summary overlays
    - Best of both visualization types
 
+4. **Parameterized Violin Plots** (`*_parameterized_violin_plots.pdf`) - **NEW!**
+   - Enhanced violin plots that show both overall performance and signal parameter effects
+   - Each model's violin shows the overall distribution (semi-transparent background)
+   - Colored scatter points indicate individual signal performance, color-coded by parameters
+   - Legend shows all mediator mass and R_invisible combinations
+   - Reveals how model performance varies across different signal characteristics
+
 ### Metrics Analyzed
 
 - **AUC**: Area Under the ROC Curve
@@ -83,7 +90,8 @@ from bead.src.utils.statistical_plotting import (
     parse_roc_output,
     create_box_plots,
     create_violin_plots,
-    create_combined_box_violin_plots
+    create_combined_box_violin_plots,
+    create_parameterized_violin_plots
 )
 
 # Parse the data
@@ -93,6 +101,7 @@ parsed_data = parse_roc_output("roc_output.txt", verbose=True)
 create_box_plots(parsed_data, "./plots/", verbose=True)
 create_violin_plots(parsed_data, "./plots/", verbose=True)
 create_combined_box_violin_plots(parsed_data, "./plots/", verbose=True)
+create_parameterized_violin_plots(parsed_data, "./plots/", verbose=True)  # NEW!
 ```
 
 ## Input Format
@@ -111,17 +120,30 @@ Saved per-signal ROC plot: bead/workspaces/csf_results/convvae/output/plots/loss
 
 ## Output Files
 
-For each workspace found in the ROC output, three PDF files are generated:
+For each workspace found in the ROC output, four PDF files are generated:
 
 - `{workspace_name}_box_plots.pdf`
 - `{workspace_name}_violin_plots.pdf` 
 - `{workspace_name}_combined_plots.pdf`
+- `{workspace_name}_parameterized_violin_plots.pdf` - **NEW!**
 
 ## Signal Processing
 
 - The `sneaky5000R075` signal is automatically skipped due to known data length mismatches
 - Signal names are parsed to extract mediator mass and R_invisible values
 - Each signal's performance metrics are collected across all models in the workspace
+
+### Signal Parameter Encoding
+
+The parameterized violin plots decode signal names as follows:
+- `sneaky1000R025` → Mediator mass: 1000 GeV, R_invisible: 0.25
+- `sneaky2000R05` → Mediator mass: 2000 GeV, R_invisible: 0.5  
+- `sneaky3000R075` → Mediator mass: 3000 GeV, R_invisible: 0.75
+- etc.
+
+This allows visualization of how model performance varies across:
+- **Mediator masses**: 1000, 2000, 3000, 4000, 5000 GeV
+- **R_invisible values**: 0.25, 0.5, 0.75
 
 ## Dependencies
 
