@@ -170,6 +170,14 @@ bead/src/utils/
 - Includes optional verbose mode for debugging
 - Skips problematic signals automatically
 
+## Visualization Features
+
+- **Right-aligned x-axis labels**: Model names are right-aligned to prevent overlap with long model names (e.g., "convvae_house_sc_anneal")
+- **Consistent color schemes**: CSF results workspace uses specified colors, others use matplotlib defaults
+- **Professional layouts**: Proper spacing, legends, and grid lines for publication-ready plots
+- **Parameter legends**: Parameterized plots include comprehensive legends for signal parameters
+- **Multiple plot formats**: Box, violin, combined, and parameterized options for different analysis needs
+
 ## Future Enhancements
 
 Potential improvements could include:

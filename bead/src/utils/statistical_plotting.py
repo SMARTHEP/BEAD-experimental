@@ -233,6 +233,9 @@ def create_box_plots(parsed_data, save_dir, verbose=False):
             ax.set_title(f'{metric.replace("_", " at FPR ")}')
             ax.set_ylabel('Value')
             ax.tick_params(axis='x', rotation=45)
+            # Right-align x-axis labels to avoid overlap
+            for tick in ax.get_xticklabels():
+                tick.set_horizontalalignment('right')
             ax.grid(True, alpha=0.3)
         
         plt.suptitle(f'Model Performance Comparison - {workspace_name}', fontsize=16)
@@ -328,7 +331,7 @@ def create_violin_plots(parsed_data, save_dir, verbose=False):
                     pc.set_alpha(0.7)
                 
                 ax.set_xticks(range(1, len(violin_labels) + 1))
-                ax.set_xticklabels(violin_labels, rotation=45)
+                ax.set_xticklabels(violin_labels, rotation=45, ha='right')
             
             ax.set_title(f'{metric.replace("_", " at FPR ")}')
             ax.set_ylabel('Value')
@@ -442,7 +445,7 @@ def create_combined_box_violin_plots(parsed_data, save_dir, verbose=False):
                     patch.set_linewidth(1)
                 
                 ax.set_xticks(positions)
-                ax.set_xticklabels(plot_labels, rotation=45)
+                ax.set_xticklabels(plot_labels, rotation=45, ha='right')
             
             ax.set_title(f'{metric.replace("_", " at FPR ")}')
             ax.set_ylabel('Value')
@@ -610,7 +613,7 @@ def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False):
                                  label=f'{mass}GeV, R={r_inv}' if j == 0 else "")
                 
                 ax.set_xticks(violin_positions)
-                ax.set_xticklabels(violin_labels, rotation=45)
+                ax.set_xticklabels(violin_labels, rotation=45, ha='right')
             
             ax.set_title(f'{metric.replace("_", " at FPR ")}')
             ax.set_ylabel('Value')
