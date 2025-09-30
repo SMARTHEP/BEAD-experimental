@@ -72,7 +72,9 @@ wheels = [
 
 [[package]]
 name = "bead"
-version = "0.17.4"
+
+version = "0.14.2"
+
 source = { editable = "." }
 dependencies = [
     { name = "argparse" },

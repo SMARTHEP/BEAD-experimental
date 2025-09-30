@@ -64,6 +64,9 @@ def main():
     local_rank = 0
     world_size = 1
     is_ddp_active = False
+    config.skip_to_roc = False  # Default value, can be overridden by options
+    config.overlay_roc = False  # Default value, can be overridden by options
+    config.plot_roc_per_signal = False  # Default value, can be overridden by options
 
     if (
         config
@@ -131,11 +134,16 @@ def main():
     if config is not None:
         config.skip_to_roc = False  # Default value for skip_to_roc
 
+
     # Check what the options flag is set to and override the default if necessary
     if options == "h5" or options == "npy":
         config.file_type = options
     elif options == "overlay_roc":
         config.skip_to_roc = True
+        config.overlay_roc = True
+    elif options == "roc_per_signal":
+        config.skip_to_roc = True
+        config.plot_roc_per_signal = True
 
     # Call the appropriate ggl function based on the mode
     if mode == "new_project":

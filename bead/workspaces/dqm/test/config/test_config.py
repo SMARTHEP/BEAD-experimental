@@ -17,7 +17,7 @@ def set_config(c):
     c.input_level                  = "constituent"
     c.input_features               = "4momentum_btag"
     c.model_init                   = "xavier"
-    c.loss_function                = "VAEFlowLoss"
+    c.loss_function                = "VAELoss"
     c.optimizer                    = "adamw"
     c.epochs                       = 2
     c.lr                           = 0.001
@@ -77,3 +77,8 @@ def set_config(c):
     c.deterministic_algorithm      = False
     c.separate_model_saving        = False
 
+    c.plot_roc_per_signal          = True
+    c.skip_to_roc                  = False
+    c.subsample_plot               = False
+    c.use_amp                      = False
+    c.use_ddp                      = False

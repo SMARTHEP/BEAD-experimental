@@ -372,6 +372,85 @@ def load_tensors(folder_path, keyword="sig_test", include_efp=False):
         )
 
 
+def get_signal_file_info_from_csv(csv_folder_path, keyword="sig_test"):
+    """
+    Get information about signal files for per-signal ROC plotting by counting CSV lines.
+    
+    Args:
+        csv_folder_path (str): The path to the folder containing CSV files.
+        keyword (str): The keyword to filter files (default: 'sig_test').
+    
+    Returns:
+        list: List of dictionaries containing file info with keys:
+              'filename', 'sig_filename', 'events_count', 'start_idx', 'end_idx'
+    """
+    import csv
+    
+    # Get all signal CSV files and sort them to ensure consistent ordering
+    signal_files = []
+    for filename in sorted(os.listdir(csv_folder_path)):
+        if filename.endswith(".csv") and keyword in filename:
+            signal_files.append(filename)
+    
+    # Extract signal file info by counting CSV lines
+    file_info = []
+    current_idx = 0
+    
+    for filename in signal_files:
+        # Count lines in CSV file (excluding header)
+        csv_path = os.path.join(csv_folder_path, filename)
+        with open(csv_path, 'r') as f:
+            reader = csv.reader(f)
+            # Skip header and count data rows
+            next(reader, None)  # Skip header
+            events_count = sum(1 for row in reader)
+        
+        # Extract signal filename from CSV filename
+        # Convert from 'sig_test_sneaky1000R025.csv' to 'sneaky1000R025'
+        base_name = filename.replace('.csv', '')
+        sig_filename = base_name.replace(f'{keyword}_', '')
+        
+        file_info.append({
+            'filename': filename,
+            'sig_filename': sig_filename,
+            'events_count': events_count,
+            'start_idx': current_idx,
+            'end_idx': current_idx + events_count
+        })
+        
+        current_idx += events_count
+    
+    return file_info
+
+
+def get_bkg_test_count_from_csv(csv_folder_path):
+    """
+    Get the total count of background test events by counting CSV lines.
+    
+    Args:
+        csv_folder_path (str): The path to the folder containing CSV files.
+    
+    Returns:
+        int: Total number of background test events
+    """
+    import csv
+    
+    total_bkg_count = 0
+    
+    # Get all background test CSV files
+    for filename in os.listdir(csv_folder_path):
+        if filename.endswith(".csv") and filename.startswith("bkg_test"):
+            csv_path = os.path.join(csv_folder_path, filename)
+            with open(csv_path, 'r') as f:
+                reader = csv.reader(f)
+                # Skip header and count data rows
+                next(reader, None)  # Skip header
+                events_count = sum(1 for row in reader)
+                total_bkg_count += events_count
+    
+    return total_bkg_count
+
+
 def load_augment_tensors(folder_path, keyword):
     """
     Searches through the specified folder for all '.pt' files whose names contain the specified
@@ -440,13 +519,13 @@ def load_augment_tensors(folder_path, keyword):
         raise ValueError("No files found with the specified keyword, " + keyword)
 
     # For each category in 'bkg_train', ensure that each generator type has at least one file.
-    if keyword == "bkg_train":
-        for cat in categories:
-            for gen in generators:
-                if len(file_categories[cat][gen]) == 0:
-                    raise ValueError(
-                        "Required files not found. Please run the --mode convert_csv and prepare inputs before retrying."
-                    )
+    # if keyword == "bkg_train":
+    #     for cat in categories:
+    #         for gen in generators:
+    #             if len(file_categories[cat][gen]) == 0:
+    #                 raise ValueError(
+    #                     "Required files not found. Please run the --mode convert_csv and prepare inputs before retrying."
+    #                 )
 
     # For each file, load its tensor and append the generator feature.
     def load_and_augment(file_info):
