@@ -460,6 +460,187 @@ def create_combined_box_violin_plots(parsed_data, save_dir, verbose=False):
             print(f"Saved combined plot: {save_path}")
 
 
+def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False):
+    """
+    Create violin plots showing performance distributions subdivided by signal parameters.
+    
+    This function creates violin plots where each model's violin is subdivided to show
+    how performance varies across different mediator masses and R_invisible values.
+    Each violin shows both the overall distribution and parameter-specific patterns.
+    
+    Parameters
+    ----------
+    parsed_data : dict
+        Parsed ROC data from parse_roc_output
+    save_dir : str
+        Directory to save the plots
+    verbose : bool, optional
+        Whether to print progress, default is False
+    """
+    if verbose:
+        print("Creating parameterized violin plots...")
+    
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # Color scheme for csf_results models
+    csf_colors = {
+        'convvae': 'blue',
+        'convvae_planar': 'orange', 
+        'convvae_house': 'green',
+        'ntx_convvae': 'red',
+        'dvae': 'violet',
+        'convvae_sc': 'brown',
+        'convvae_house_sc_anneal': 'pink'
+    }
+    
+    # Parameter extraction function
+    def extract_signal_params(signal_name):
+        """Extract mediator mass and R_invisible from signal name."""
+        import re
+        match = re.match(r'sneaky(\d+)R(\d+)', signal_name)
+        if match:
+            mass = int(match.group(1))
+            r_inv_str = match.group(2)
+            # Convert R_invisible string to float (025 -> 0.25, 05 -> 0.5, 075 -> 0.75)
+            if r_inv_str == '025':
+                r_inv = 0.25
+            elif r_inv_str == '05':
+                r_inv = 0.5
+            elif r_inv_str == '075':
+                r_inv = 0.75
+            else:
+                r_inv = float(r_inv_str) / 100  # fallback
+            return mass, r_inv
+        return None, None
+    
+    for workspace_name in parsed_data.keys():
+        if verbose:
+            print(f"Processing workspace: {workspace_name}")
+        
+        # Convert data to structured format with parameters
+        plot_data = _convert_to_dataframe(parsed_data, workspace_name)
+        
+        if not plot_data:
+            continue
+        
+        # Add parameter columns
+        for entry in plot_data:
+            mass, r_inv = extract_signal_params(entry['signal'])
+            entry['mass'] = mass
+            entry['r_inv'] = r_inv
+        
+        # Filter out entries with missing parameters
+        plot_data = [entry for entry in plot_data if entry['mass'] is not None]
+        
+        if not plot_data:
+            continue
+        
+        # Extract unique models and metrics
+        models = list(set(entry['model'] for entry in plot_data))
+        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2', 'TPR_1e-1']
+        
+        # Get unique parameter combinations for color coding
+        param_combos = sorted(list(set((entry['mass'], entry['r_inv']) for entry in plot_data)))
+        param_colors = plt.cm.Set3(np.linspace(0, 1, len(param_combos)))
+        param_color_map = {combo: color for combo, color in zip(param_combos, param_colors)}
+        
+        # Create figure with subplots for each metric
+        fig, axes = plt.subplots(1, 5, figsize=(25, 8))
+        if len(metrics) == 1:
+            axes = [axes]
+        
+        # Determine main model colors
+        if workspace_name == 'csf_results':
+            model_colors = {model: csf_colors.get(model, 'gray') for model in models}
+        else:
+            model_color_list = plt.cm.tab10(np.linspace(0, 1, len(models)))
+            model_colors = {model: color for model, color in zip(models, model_color_list)}
+        
+        for i, metric in enumerate(metrics):
+            ax = axes[i]
+            
+            # Prepare data for violin plot
+            violin_data = []
+            violin_labels = []
+            violin_positions = []
+            
+            # Create separate violins for each model
+            for j, model in enumerate(models):
+                model_values = [entry[metric] for entry in plot_data 
+                              if entry['model'] == model and not np.isnan(entry[metric])]
+                if len(model_values) > 0:
+                    violin_data.append(model_values)
+                    violin_labels.append(model)
+                    violin_positions.append(j + 1)
+            
+            if violin_data:
+                # Create main violins
+                vp = ax.violinplot(violin_data, positions=violin_positions, 
+                                  showmeans=True, showmedians=True, widths=0.8)
+                
+                # Color the main violins with model colors (semi-transparent)
+                for j, (pc, model) in enumerate(zip(vp['bodies'], violin_labels)):
+                    pc.set_facecolor(model_colors[model])
+                    pc.set_alpha(0.3)
+                    pc.set_edgecolor('black')
+                    pc.set_linewidth(0.5)
+                
+                # Add parameter-specific scatter points with jitter
+                for j, model in enumerate(violin_labels):
+                    model_data = [entry for entry in plot_data 
+                                if entry['model'] == model and not np.isnan(entry[metric])]
+                    
+                    # Group by parameters
+                    param_groups = {}
+                    for entry in model_data:
+                        key = (entry['mass'], entry['r_inv'])
+                        if key not in param_groups:
+                            param_groups[key] = []
+                        param_groups[key].append(entry[metric])
+                    
+                    # Plot each parameter group with jitter
+                    for (mass, r_inv), values in param_groups.items():
+                        # Add small horizontal jitter for visibility
+                        jitter = np.random.normal(0, 0.02, len(values))
+                        x_pos = [violin_positions[j] + jit for jit in jitter]
+                        
+                        ax.scatter(x_pos, values, 
+                                 color=param_color_map[(mass, r_inv)],
+                                 s=25, alpha=0.8, edgecolors='black', linewidth=0.5,
+                                 label=f'{mass}GeV, R={r_inv}' if j == 0 else "")
+                
+                ax.set_xticks(violin_positions)
+                ax.set_xticklabels(violin_labels, rotation=45)
+            
+            ax.set_title(f'{metric.replace("_", " at FPR ")}')
+            ax.set_ylabel('Value')
+            ax.grid(True, alpha=0.3)
+        
+        # Create legend for parameters (only show unique combinations)
+        handles = []
+        labels = []
+        for (mass, r_inv), color in param_color_map.items():
+            handles.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                    markerfacecolor=color, markersize=8, 
+                                    markeredgecolor='black', markeredgewidth=0.5))
+            labels.append(f'{mass}GeV, R={r_inv}')
+        
+        # Add legend outside the plot area
+        fig.legend(handles, labels, loc='center left', bbox_to_anchor=(1.02, 0.5), 
+                  title='Signal Parameters', title_fontsize=12)
+        
+        plt.suptitle(f'Model Performance by Signal Parameters - {workspace_name}', fontsize=16)
+        plt.tight_layout()
+        
+        # Save the plot
+        save_path = os.path.join(save_dir, f'{workspace_name}_parameterized_violin_plots.pdf')
+        plt.savefig(save_path, bbox_inches='tight')
+        plt.close()
+        
+        if verbose:
+            print(f"Saved parameterized violin plot: {save_path}")
+
+
 def generate_statistical_plots_from_roc_output(output_file_path, save_dir=None, verbose=False):
     """
     Generate all statistical plots (box, violin, and combined) from ROC output file.
@@ -490,6 +671,7 @@ def generate_statistical_plots_from_roc_output(output_file_path, save_dir=None, 
     create_box_plots(parsed_data, save_dir, verbose=verbose)
     create_violin_plots(parsed_data, save_dir, verbose=verbose)
     create_combined_box_violin_plots(parsed_data, save_dir, verbose=verbose)
+    create_parameterized_violin_plots(parsed_data, save_dir, verbose=verbose)
     
     if verbose:
         print(f"All statistical plots saved to: {save_dir}")
