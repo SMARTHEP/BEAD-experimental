@@ -411,15 +411,14 @@ def plot_latent_variables(config, paths, verbose=False):
             # Determine minimum length among relevant arrays
             if prefix == "train_":
                 min_length = min(len(gen_labels), len(z0), len(zk))
+                gen_labels = gen_labels[:min_length]
+                z0 = z0[:min_length]
+                zk = zk[:min_length]
             else:
-                min_length = min(len(gen_labels), len(z0), len(zk), len(labels))
-
-            # Clip arrays to min_length
-            gen_labels = gen_labels[:min_length]
-            z0 = z0[:min_length]
-            zk = zk[:min_length]
-            if prefix == "test_":
-                labels = labels[:min_length]
+                min_length = min(len(z0), len(zk), len(labels))
+                z0 = z0[:min_length]
+                zk = zk[:min_length]
+                labels = labels[:min_length] if labels is not None else None
 
             if prefix == "test_":
                 n_background = np.sum(labels == 0)
@@ -585,15 +584,14 @@ def plot_mu_logvar(config, paths, verbose=False):
             # Determine minimum length among relevant arrays
             if prefix == "train_":
                 min_length = min(len(gen_labels), len(mu), len(logvar))
+                gen_labels = gen_labels[:min_length]
+                mu = mu[:min_length]
+                logvar = logvar[:min_length]
             else:
-                min_length = min(len(gen_labels), len(mu), len(logvar), len(labels))
-
-            # Clip arrays to min_length
-            gen_labels = gen_labels[:min_length]
-            mu = mu[:min_length]
-            logvar = logvar[:min_length]
-            if prefix == "test_":
-                labels = labels[:min_length]
+                min_length = min(len(mu), len(logvar), len(labels))
+                mu = mu[:min_length]
+                logvar = logvar[:min_length]
+                labels = labels[:min_length] if labels is not None else None
 
             if prefix == "test_":
                 n_background = np.sum(labels == 0)
@@ -684,14 +682,20 @@ def plot_mu_logvar(config, paths, verbose=False):
         # Plot uncertainty
         sigma = np.exp(0.5 * logvar)
         uncertainty = np.mean(sigma, axis=1)
+        if prefix == "test_":
+            background_uncertainty = uncertainty[:n_background]
+            signal_uncertainty = uncertainty[n_background:]
+        else:
+            background_uncertainty = uncertainty
+            signal_uncertainty = []
         plt.figure(figsize=(8, 6))
         for color, values in zip(
             ["green", "blue", "yellow", "red"],
             [
-                uncertainty[gen_labels == 0],
-                uncertainty[gen_labels == 1],
-                uncertainty[gen_labels == 2],
-                uncertainty[len(gen_labels) :] if prefix == "test_" else [],
+                background_uncertainty[gen_labels == 0],
+                background_uncertainty[gen_labels == 1],
+                background_uncertainty[gen_labels == 2],
+                signal_uncertainty,
             ],
             strict=False,
         ):
