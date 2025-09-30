@@ -13,7 +13,7 @@ The statistical plotting functions parse terminal output from the `roc_per_signa
 1. **Box Plots** (`*_box_plots.pdf`)
    - Show statistical summaries (median, quartiles, outliers) for each model
    - Each metric (AUC, TPR at different FPR levels) has its own subplot
-   - Models are displayed along the y-axis with different colors
+   - Models are displayed along the x-axis with right-aligned labels
 
 2. **Violin Plots** (`*_violin_plots.pdf`)
    - Show the full distribution shape for each model's performance
@@ -26,12 +26,26 @@ The statistical plotting functions parse terminal output from the `roc_per_signa
    - Box plots provide statistical summary overlays
    - Best of both visualization types
 
-4. **Parameterized Violin Plots** (`*_parameterized_violin_plots.pdf`) - **NEW!**
+4. **Parameterized Violin Plots** (`*_parameterized_violin_plots.pdf`)
    - Enhanced violin plots that show both overall performance and signal parameter effects
    - Each model's violin shows the overall distribution (semi-transparent background)
    - Colored scatter points indicate individual signal performance, color-coded by parameters
+   - **Mass-based colors**: Each mediator mass gets a distinct color from Set1 colormap
+   - **R_invisible transparency**: Different alpha values for visual distinction
    - Legend shows all mediator mass and R_invisible combinations
    - Reveals how model performance varies across different signal characteristics
+
+5. **Parameterized Box Plots** (`*_parameterized_box_plots.pdf`) - **NEW!**
+   - Box plots with signal parameter color-coding
+   - Shows statistical summaries grouped by signal parameters
+   - Same enhanced color scheme as parameterized violin plots
+   - Ideal for comparing median performance across signal characteristics
+
+6. **Parameterized Combined Plots** (`*_parameterized_combined_plots.pdf`) - **NEW!**
+   - Combines parameterized violin and box plots
+   - Full distribution shapes with statistical summary overlays
+   - Complete visualization of both overall and parameter-specific performance
+   - Most comprehensive analysis option
 
 ### Metrics Analyzed
 
@@ -43,7 +57,17 @@ The statistical plotting functions parse terminal output from the `roc_per_signa
 
 ### Color Schemes
 
-#### CSF Results Workspace
+#### Enhanced Parameter-Based Color Scheme
+For parameterized plots (violin, box, and combined), an advanced color scheme is used:
+
+- **Mass-based colors**: Each mediator mass (1000, 2000, 3000, 4000, 5000 GeV) gets a distinct color from matplotlib's Set1 colormap
+- **R_invisible transparency**: Different alpha (transparency) values distinguish R_invisible values:
+  - R_invisible = 0.25: α = 0.9 (most opaque)
+  - R_invisible = 0.5: α = 0.7 (medium transparency)  
+  - R_invisible = 0.75: α = 0.5 (most transparent)
+- This dual encoding allows easy identification of both mass and R_invisible effects
+
+#### CSF Results Workspace (Basic Plots)
 - `convvae`: Blue
 - `convvae_planar`: Orange
 - `convvae_house`: Green
@@ -52,7 +76,7 @@ The statistical plotting functions parse terminal output from the `roc_per_signa
 - `convvae_sc`: Brown
 - `convvae_house_sc_anneal`: Pink
 
-#### Other Workspaces
+#### Other Workspaces (Basic Plots)
 - Uses matplotlib's default tab10 colormap for consistent color assignment
 
 ## Usage
@@ -91,7 +115,9 @@ from bead.src.utils.statistical_plotting import (
     create_box_plots,
     create_violin_plots,
     create_combined_box_violin_plots,
-    create_parameterized_violin_plots
+    create_parameterized_violin_plots,
+    create_parameterized_box_plots,
+    create_parameterized_combined_plots
 )
 
 # Parse the data
@@ -101,7 +127,11 @@ parsed_data = parse_roc_output("roc_output.txt", verbose=True)
 create_box_plots(parsed_data, "./plots/", verbose=True)
 create_violin_plots(parsed_data, "./plots/", verbose=True)
 create_combined_box_violin_plots(parsed_data, "./plots/", verbose=True)
-create_parameterized_violin_plots(parsed_data, "./plots/", verbose=True)  # NEW!
+
+# Generate parameterized plots with enhanced color schemes
+create_parameterized_violin_plots(parsed_data, "./plots/", verbose=True)
+create_parameterized_box_plots(parsed_data, "./plots/", verbose=True)  # NEW!
+create_parameterized_combined_plots(parsed_data, "./plots/", verbose=True)  # NEW!
 ```
 
 ## Input Format
@@ -120,12 +150,16 @@ Saved per-signal ROC plot: bead/workspaces/csf_results/convvae/output/plots/loss
 
 ## Output Files
 
-For each workspace found in the ROC output, four PDF files are generated:
+For each workspace found in the ROC output, six PDF files are generated:
 
 - `{workspace_name}_box_plots.pdf`
 - `{workspace_name}_violin_plots.pdf` 
 - `{workspace_name}_combined_plots.pdf`
-- `{workspace_name}_parameterized_violin_plots.pdf` - **NEW!**
+- `{workspace_name}_parameterized_violin_plots.pdf`
+- `{workspace_name}_parameterized_box_plots.pdf` - **NEW!**
+- `{workspace_name}_parameterized_combined_plots.pdf` - **NEW!**
+
+The parameterized plots use enhanced color schemes to show how model performance varies with signal parameters (mediator mass and R_invisible values).
 
 ## Signal Processing
 
@@ -173,10 +207,16 @@ bead/src/utils/
 ## Visualization Features
 
 - **Right-aligned x-axis labels**: Model names are right-aligned to prevent overlap with long model names (e.g., "convvae_house_sc_anneal")
-- **Consistent color schemes**: CSF results workspace uses specified colors, others use matplotlib defaults
+- **Enhanced color schemes**: 
+  - Basic plots use workspace-specific colors (CSF results) or matplotlib defaults
+  - Parameterized plots use mass-based colors with R_invisible transparency encoding
 - **Professional layouts**: Proper spacing, legends, and grid lines for publication-ready plots
-- **Parameter legends**: Parameterized plots include comprehensive legends for signal parameters
-- **Multiple plot formats**: Box, violin, combined, and parameterized options for different analysis needs
+- **Parameter legends**: Parameterized plots include comprehensive legends for signal parameters showing both mass and R_invisible combinations
+- **Multiple plot formats**: Six different plot types for comprehensive analysis:
+  - Basic: Box, violin, combined
+  - Parameterized: Box, violin, combined (with signal parameter color-coding)
+- **Statistical robustness**: Proper handling of data grouping, outlier visualization, and distribution analysis
+- **Performance insights**: Reveals both overall model performance and parameter-specific effects
 
 ## Future Enhancements
 
@@ -186,3 +226,6 @@ Potential improvements could include:
 - Statistical significance testing between models
 - Custom color scheme configuration
 - Export to other formats (PNG, SVG, etc.)
+- Automated statistical reporting with confidence intervals
+- Parameter correlation analysis
+- Model ranking based on parameter-specific performance
