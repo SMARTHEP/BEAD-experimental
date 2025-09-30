@@ -543,6 +543,10 @@ def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False, skip
         # Filter out entries with missing parameters
         plot_data = [entry for entry in plot_data if entry['mass'] is not None]
         
+        # Apply skip_5000 filtering if requested
+        if skip_5000:
+            plot_data = [entry for entry in plot_data if entry["mass"] != 5000]
+        
         if not plot_data:
             continue
         
@@ -744,6 +748,10 @@ def create_parameterized_box_plots(parsed_data, save_dir, verbose=False, skip_50
         # Filter out entries with missing parameters
         plot_data = [entry for entry in plot_data if entry['mass'] is not None]
         
+        # Apply skip_5000 filtering if requested
+        if skip_5000:
+            plot_data = [entry for entry in plot_data if entry["mass"] != 5000]
+        
         if not plot_data:
             continue
         
@@ -939,6 +947,10 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False, sk
         
         # Filter out entries with missing parameters
         plot_data = [entry for entry in plot_data if entry['mass'] is not None]
+        
+        # Apply skip_5000 filtering if requested
+        if skip_5000:
+            plot_data = [entry for entry in plot_data if entry["mass"] != 5000]
         
         if not plot_data:
             continue
@@ -1138,6 +1150,10 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False, sk
         
         # Filter out entries with missing parameters
         plot_data = [entry for entry in plot_data if entry['mass'] is not None]
+        
+        # Apply skip_5000 filtering if requested
+        if skip_5000:
+            plot_data = [entry for entry in plot_data if entry["mass"] != 5000]
         
         if not plot_data:
             continue
