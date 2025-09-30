@@ -156,6 +156,47 @@ def _convert_to_dataframe(parsed_data, workspace_name, skip_5000=False):
     return plot_data
 
 
+def _sort_models_by_sc(models, workspace_name):
+    """
+    Sort models to group by tag (hp, ps, hs) with non-sc version before sc version for 2class workspace.
+    
+    Parameters
+    ----------
+    models : list
+        List of model names
+    workspace_name : str
+        Name of the workspace
+        
+    Returns
+    -------
+    list
+        Sorted list of models
+    """
+    if workspace_name == '2class':
+        # Extract tag and sc status for each model
+        model_info = []
+        for model in models:
+            # Look for hp, ps, or hs tag
+            tag = None
+            for prefix in ['hp', 'ps', 'hs']:
+                if prefix in model:
+                    tag = prefix
+                    break
+            
+            # Check if model has sc
+            has_sc = 'sc' in model
+            
+            model_info.append((tag, has_sc, model))
+        
+        # Sort by: tag (hp, ps, hs), then non-sc before sc, then alphabetically
+        model_info.sort(key=lambda x: (x[0] or 'zzz', x[1], x[2]))
+        
+        return [model for _, _, model in model_info]
+    else:
+        # For other workspaces, just sort alphabetically
+        return sorted(models)
+
+
 def create_box_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
     """
     Create box plots showing statistical variation across models and signals.
@@ -199,6 +240,7 @@ def create_box_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
         
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
+        models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
         metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2', 'TPR_1e-1']
         
         # Create figure with subplots for each metric
@@ -299,6 +341,7 @@ def create_violin_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
         
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
+        models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
         metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2', 'TPR_1e-1']
         
         # Create figure with subplots for each metric
@@ -398,6 +441,7 @@ def create_combined_box_violin_plots(parsed_data, save_dir, verbose=False, skip_
         
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
+        models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
         metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2', 'TPR_1e-1']
         
         # Create figure with subplots for each metric
@@ -552,6 +596,7 @@ def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False, skip
         
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
+        models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
         metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2', 'TPR_1e-1']
         
         # Get unique parameter combinations for color coding
@@ -757,6 +802,7 @@ def create_parameterized_box_plots(parsed_data, save_dir, verbose=False, skip_50
         
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
+        models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
         metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2', 'TPR_1e-1']
         
         # Get unique parameter combinations for color coding
@@ -957,6 +1003,7 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False, sk
         
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
+        models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
         metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2', 'TPR_1e-1']
         
         # Get unique parameter combinations for color coding
@@ -1160,6 +1207,7 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False, sk
         
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
+        models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
         metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2', 'TPR_1e-1']
         
         # Get unique parameter combinations for color coding
