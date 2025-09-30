@@ -60,7 +60,12 @@ The statistical plotting functions parse terminal output from the `roc_per_signa
 #### Enhanced Parameter-Based Color Scheme
 For parameterized plots (violin, box, and combined), an advanced color scheme is used:
 
-- **Mass-based colors**: Each mediator mass (1000, 2000, 3000, 4000, 5000 GeV) gets a distinct color from matplotlib's Set1 colormap
+- **Mass-based colors**: Each mediator mass gets a specific color:
+  - **1000 GeV**: Red
+  - **2000 GeV**: Yellow
+  - **3000 GeV**: Green  
+  - **4000 GeV**: Blue
+  - **5000 GeV**: Violet
 - **R_invisible transparency**: Different alpha (transparency) values distinguish R_invisible values:
   - R_invisible = 0.25: α = 0.9 (most opaque)
   - R_invisible = 0.5: α = 0.7 (medium transparency)  
@@ -92,6 +97,9 @@ uv run python generate_statistical_plots.py roc_output.txt ./my_plots/
 
 # With verbose output
 uv run python generate_statistical_plots.py roc_output.txt -v
+
+# Skip 5000 GeV signals (useful for focused analysis on lower masses)
+uv run python generate_statistical_plots.py roc_output.txt ./plots_no_5000/ --skip-5000 -v
 ```
 
 ### Method 2: Python Import
@@ -104,6 +112,14 @@ generate_statistical_plots_from_roc_output(
     output_file_path="roc_output.txt",
     save_dir="./statistical_plots/",
     verbose=True
+)
+
+# Generate plots without 5000 GeV signals
+generate_statistical_plots_from_roc_output(
+    output_file_path="roc_output.txt",
+    save_dir="./statistical_plots_no_5000/",
+    verbose=True,
+    skip_5000=True
 )
 ```
 
@@ -132,6 +148,11 @@ create_combined_box_violin_plots(parsed_data, "./plots/", verbose=True)
 create_parameterized_violin_plots(parsed_data, "./plots/", verbose=True)
 create_parameterized_box_plots(parsed_data, "./plots/", verbose=True)  # NEW!
 create_parameterized_combined_plots(parsed_data, "./plots/", verbose=True)  # NEW!
+
+# Generate plots without 5000 GeV signals
+create_parameterized_violin_plots(parsed_data, "./plots_no_5000/", verbose=True, skip_5000=True)
+create_parameterized_box_plots(parsed_data, "./plots_no_5000/", verbose=True, skip_5000=True)
+create_parameterized_combined_plots(parsed_data, "./plots_no_5000/", verbose=True, skip_5000=True)
 ```
 
 ## Input Format
@@ -164,6 +185,7 @@ The parameterized plots use enhanced color schemes to show how model performance
 ## Signal Processing
 
 - The `sneaky5000R075` signal is automatically skipped due to known data length mismatches
+- **Optional 5000 GeV filtering**: Use `--skip-5000` flag or `skip_5000=True` parameter to exclude all 5000 GeV signals from analysis
 - Signal names are parsed to extract mediator mass and R_invisible values
 - Each signal's performance metrics are collected across all models in the workspace
 
@@ -176,8 +198,15 @@ The parameterized violin plots decode signal names as follows:
 - etc.
 
 This allows visualization of how model performance varies across:
-- **Mediator masses**: 1000, 2000, 3000, 4000, 5000 GeV
+- **Mediator masses**: 1000, 2000, 3000, 4000, 5000 GeV (or subset when using `--skip-5000`)
 - **R_invisible values**: 0.25, 0.5, 0.75
+
+### Color Encoding System
+
+The enhanced parameterized plots use a sophisticated dual-encoding color system:
+- **Primary colors by mass**: Each mass gets a unique, easily distinguishable color (red, yellow, green, blue, violet)
+- **Transparency by R_invisible**: Higher R_invisible values become more transparent, creating a natural visual hierarchy
+- **Consistent mapping**: Colors remain consistent across all plot types for easy comparison
 
 ## Dependencies
 
@@ -209,7 +238,7 @@ bead/src/utils/
 - **Right-aligned x-axis labels**: Model names are right-aligned to prevent overlap with long model names (e.g., "convvae_house_sc_anneal")
 - **Enhanced color schemes**: 
   - Basic plots use workspace-specific colors (CSF results) or matplotlib defaults
-  - Parameterized plots use mass-based colors with R_invisible transparency encoding
+  - Parameterized plots use custom mass-based colors (red, yellow, green, blue, violet) with R_invisible transparency encoding
 - **Professional layouts**: Proper spacing, legends, and grid lines for publication-ready plots
 - **Parameter legends**: Parameterized plots include comprehensive legends for signal parameters showing both mass and R_invisible combinations
 - **Multiple plot formats**: Six different plot types for comprehensive analysis:
@@ -217,6 +246,7 @@ bead/src/utils/
   - Parameterized: Box, violin, combined (with signal parameter color-coding)
 - **Statistical robustness**: Proper handling of data grouping, outlier visualization, and distribution analysis
 - **Performance insights**: Reveals both overall model performance and parameter-specific effects
+- **Flexible data filtering**: Option to exclude 5000 GeV signals for focused analysis on lower mass ranges
 
 ## Future Enhancements
 
@@ -224,8 +254,10 @@ Potential improvements could include:
 - Support for additional metrics beyond AUC and TPR
 - Interactive plots with hover information
 - Statistical significance testing between models
-- Custom color scheme configuration
+- Custom color scheme configuration via command-line arguments
 - Export to other formats (PNG, SVG, etc.)
 - Automated statistical reporting with confidence intervals
 - Parameter correlation analysis
 - Model ranking based on parameter-specific performance
+- Advanced filtering options (e.g., exclude specific R_invisible values)
+- Performance optimization for large datasets

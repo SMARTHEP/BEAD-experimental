@@ -116,27 +116,33 @@ def parse_roc_output(output_file_path, verbose=False):
     return dict(data)
 
 
-def _convert_to_dataframe(parsed_data, workspace_name):
+def _convert_to_dataframe(parsed_data, workspace_name, skip_5000=False):
     """
     Convert parsed data to a structured format for plotting.
     
     Parameters
     ----------
     parsed_data : dict
-        Parsed ROC data from parse_roc_output
+        Parsed data from parse_roc_output
     workspace_name : str
-        Name of the workspace to process
-        
+        Name of the workspace to convert
+    skip_5000 : bool, optional
+        Whether to skip 5000 GeV signals, default is False
+    
     Returns
     -------
     list
-        List of dictionaries with structured data for plotting
+        List of dictionaries containing model, signal, and metric data
     """
     workspace_data = parsed_data.get(workspace_name, {})
     plot_data = []
     
     for model_name, model_data in workspace_data.items():
         for entry in model_data:
+            # Skip 5000 GeV signals if requested
+            if skip_5000 and 'sneaky5000' in entry['signal_name']:
+                continue
+                
             plot_data.append({
                 'model': model_name,
                 'signal': entry['signal_name'],
@@ -150,7 +156,7 @@ def _convert_to_dataframe(parsed_data, workspace_name):
     return plot_data
 
 
-def create_box_plots(parsed_data, save_dir, verbose=False):
+def create_box_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
     """
     Create box plots showing statistical variation across models and signals.
     
@@ -162,6 +168,8 @@ def create_box_plots(parsed_data, save_dir, verbose=False):
         Directory to save the plots
     verbose : bool, optional
         Whether to print progress, default is False
+    skip_5000 : bool, optional
+        Whether to skip 5000 GeV signals, default is False
     """
     if verbose:
         print("Creating box plots...")
@@ -250,7 +258,7 @@ def create_box_plots(parsed_data, save_dir, verbose=False):
             print(f"Saved box plot: {save_path}")
 
 
-def create_violin_plots(parsed_data, save_dir, verbose=False):
+def create_violin_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
     """
     Create violin plots showing statistical variation across models and signals.
     
@@ -349,7 +357,7 @@ def create_violin_plots(parsed_data, save_dir, verbose=False):
             print(f"Saved violin plot: {save_path}")
 
 
-def create_combined_box_violin_plots(parsed_data, save_dir, verbose=False):
+def create_combined_box_violin_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
     """
     Create combined plots with both box and violin plots overlaid.
     
@@ -463,7 +471,7 @@ def create_combined_box_violin_plots(parsed_data, save_dir, verbose=False):
             print(f"Saved combined plot: {save_path}")
 
 
-def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False):
+def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
     """
     Create violin plots showing performance distributions subdivided by signal parameters.
     
@@ -547,8 +555,14 @@ def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False):
         r_invs = sorted(list(set(entry['r_inv'] for entry in plot_data if entry['r_inv'] is not None)))
         
         # Create color scheme: different colors for masses, different brightness for R_inv
-        mass_base_colors = plt.cm.Set1(np.linspace(0, 1, len(masses)))  # Distinct colors for each mass
-        mass_color_map = {mass: color for mass, color in zip(masses, mass_base_colors)}
+        # Custom color scheme for masses
+        custom_mass_colors = {1000: "red", 2000: "yellow", 3000: "green", 4000: "blue", 5000: "violet"}
+        # Convert color names to RGB tuples for proper alpha blending
+        import matplotlib.colors as mcolors
+        mass_color_map = {}
+        for mass in masses:
+            color_name = custom_mass_colors.get(mass, "gray")
+            mass_color_map[mass] = mcolors.to_rgb(color_name)
         
         # R_inv brightness mapping (0.25 -> darkest, 0.75 -> lightest)
         r_inv_alpha_map = {0.25: 0.9, 0.5: 0.7, 0.75: 0.5}  # Higher alpha = more opaque = darker
@@ -658,7 +672,7 @@ def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False):
             print(f"Saved parameterized violin plot: {save_path}")
 
 
-def create_parameterized_box_plots(parsed_data, save_dir, verbose=False):
+def create_parameterized_box_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
     """
     Create box plots showing performance distributions subdivided by signal parameters.
     
@@ -742,8 +756,14 @@ def create_parameterized_box_plots(parsed_data, save_dir, verbose=False):
         r_invs = sorted(list(set(entry['r_inv'] for entry in plot_data if entry['r_inv'] is not None)))
         
         # Create color scheme: different colors for masses, different brightness for R_inv
-        mass_base_colors = plt.cm.Set1(np.linspace(0, 1, len(masses)))  # Distinct colors for each mass
-        mass_color_map = {mass: color for mass, color in zip(masses, mass_base_colors)}
+        # Custom color scheme for masses
+        custom_mass_colors = {1000: "red", 2000: "yellow", 3000: "green", 4000: "blue", 5000: "violet"}
+        # Convert color names to RGB tuples for proper alpha blending
+        import matplotlib.colors as mcolors
+        mass_color_map = {}
+        for mass in masses:
+            color_name = custom_mass_colors.get(mass, "gray")
+            mass_color_map[mass] = mcolors.to_rgb(color_name)
         
         # R_inv brightness mapping (0.25 -> darkest, 0.75 -> lightest)
         r_inv_alpha_map = {0.25: 0.9, 0.5: 0.7, 0.75: 0.5}  # Higher alpha = more opaque = darker
@@ -848,7 +868,7 @@ def create_parameterized_box_plots(parsed_data, save_dir, verbose=False):
             print(f"Saved parameterized box plot: {save_path}")
 
 
-def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False):
+def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
     """
     Create violin plots showing performance distributions subdivided by signal parameters.
     
@@ -932,8 +952,14 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False):
         r_invs = sorted(list(set(entry['r_inv'] for entry in plot_data if entry['r_inv'] is not None)))
         
         # Create color scheme: different colors for masses, different brightness for R_inv
-        mass_base_colors = plt.cm.Set1(np.linspace(0, 1, len(masses)))  # Distinct colors for each mass
-        mass_color_map = {mass: color for mass, color in zip(masses, mass_base_colors)}
+        # Custom color scheme for masses
+        custom_mass_colors = {1000: "red", 2000: "yellow", 3000: "green", 4000: "blue", 5000: "violet"}
+        # Convert color names to RGB tuples for proper alpha blending
+        import matplotlib.colors as mcolors
+        mass_color_map = {}
+        for mass in masses:
+            color_name = custom_mass_colors.get(mass, "gray")
+            mass_color_map[mass] = mcolors.to_rgb(color_name)
         
         # R_inv brightness mapping (0.25 -> darkest, 0.75 -> lightest)
         r_inv_alpha_map = {0.25: 0.9, 0.5: 0.7, 0.75: 0.5}  # Higher alpha = more opaque = darker
@@ -1043,7 +1069,7 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False):
             print(f"Saved parameterized violin plot: {save_path}")
 
 
-def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False):
+def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
     """
     Create combined plots with both parameterized violin and box plots overlaid.
     
@@ -1125,8 +1151,20 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False):
         r_invs = sorted(list(set(entry['r_inv'] for entry in plot_data if entry['r_inv'] is not None)))
         
         # Create color scheme: different colors for masses, different brightness for R_inv
-        mass_base_colors = plt.cm.Set1(np.linspace(0, 1, len(masses)))
-        mass_color_map = {mass: color for mass, color in zip(masses, mass_base_colors)}
+        # Create custom color scheme: specific colors for masses
+        custom_mass_colors = {
+            1000: 'red',     
+            2000: 'yellow', 
+            3000: 'green',
+            4000: 'blue', 
+            5000: 'violet'
+        }
+        # Convert color names to RGB tuples for proper alpha blending
+        import matplotlib.colors as mcolors
+        mass_color_map = {}
+        for mass in masses:
+            color_name = custom_mass_colors.get(mass, 'gray')
+            mass_color_map[mass] = mcolors.to_rgb(color_name)
         
         # R_inv brightness mapping
         r_inv_alpha_map = {0.25: 0.9, 0.5: 0.7, 0.75: 0.5}
@@ -1250,7 +1288,7 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False):
             print(f"Saved parameterized combined plot: {save_path}")
 
 
-def generate_statistical_plots_from_roc_output(output_file_path, save_dir=None, verbose=False):
+def generate_statistical_plots_from_roc_output(output_file_path, save_dir=None, verbose=False, skip_5000=False):
     """
     Generate all statistical plots (box, violin, and combined) from ROC output file.
     
@@ -1262,6 +1300,8 @@ def generate_statistical_plots_from_roc_output(output_file_path, save_dir=None, 
         Directory to save plots, if None uses current directory
     verbose : bool, optional
         Whether to print progress, default is False
+    skip_5000 : bool, optional
+        Whether to skip 5000 GeV signals, default is False
     """
     if save_dir is None:
         save_dir = os.path.dirname(output_file_path)
@@ -1277,12 +1317,12 @@ def generate_statistical_plots_from_roc_output(output_file_path, save_dir=None, 
         return
     
     # Create all types of plots
-    create_box_plots(parsed_data, save_dir, verbose=verbose)
-    create_violin_plots(parsed_data, save_dir, verbose=verbose)
-    create_combined_box_violin_plots(parsed_data, save_dir, verbose=verbose)
-    create_parameterized_violin_plots(parsed_data, save_dir, verbose=verbose)
-    create_parameterized_box_plots(parsed_data, save_dir, verbose=verbose)
-    create_parameterized_combined_plots(parsed_data, save_dir, verbose=verbose)
+    create_box_plots(parsed_data, save_dir, verbose=verbose, skip_5000=skip_5000)
+    create_violin_plots(parsed_data, save_dir, verbose=verbose, skip_5000=skip_5000)
+    create_combined_box_violin_plots(parsed_data, save_dir, verbose=verbose, skip_5000=skip_5000)
+    create_parameterized_violin_plots(parsed_data, save_dir, verbose=verbose, skip_5000=skip_5000)
+    create_parameterized_box_plots(parsed_data, save_dir, verbose=verbose, skip_5000=skip_5000)
+    create_parameterized_combined_plots(parsed_data, save_dir, verbose=verbose, skip_5000=skip_5000)
     
     if verbose:
         print(f"All statistical plots saved to: {save_dir}")

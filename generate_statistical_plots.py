@@ -56,6 +56,12 @@ For csf_results workspace, specific model colors are applied as requested.
         help='Enable verbose output'
     )
     
+    parser.add_argument(
+        '--skip-5000',
+        action='store_true',
+        help='Skip 5000 GeV signals in the analysis'
+    )
+    
     args = parser.parse_args()
     
     # Validate input file
@@ -77,7 +83,8 @@ For csf_results workspace, specific model colors are applied as requested.
         generate_statistical_plots_from_roc_output(
             output_file_path=args.roc_output_file,
             save_dir=output_dir,
-            verbose=args.verbose
+            verbose=args.verbose,
+            skip_5000=args.skip_5000
         )
         
         print("\\nStatistical plot generation completed successfully!")
