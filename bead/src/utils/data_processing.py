@@ -21,6 +21,12 @@ import numpy as np
 import torch
 
 from . import helper, normalization
+from .efp_utils import (
+    compute_efps_batch,
+    create_efpset,
+    standardize_efps,
+    validate_efp_config,
+)
 
 
 def load_data(file_path, file_type="h5", verbose: bool = False):
@@ -183,6 +189,17 @@ def process_and_save_tensors(
             f"Jets shape after selection: {jet_selection.shape}\nConstituents shape after selection: {constits_selection.shape}"
         )
 
+    # Compute EFP features if enabled
+    efp_tensor = None
+    if config.should_compute_efp():
+        if verbose:
+            print("Computing EFP features...")
+        efp_tensor = compute_efp_features(
+            constits_selection, config, n_jets, n_constits, verbose
+        )
+        if verbose:
+            print(f"EFP tensor shape: {efp_tensor.shape}")
+
     # Convert to PyTorch tensors
     if verbose:
         print("Converting to PyTorch tensors...")
@@ -193,12 +210,19 @@ def process_and_save_tensors(
 
     # Save tensors
     if verbose:
+        efp_msg = f" and {output_prefix}_efp.pt" if efp_tensor is not None else ""
         print(
-            f"Saving tensors to {output_prefix}_events.pt, {output_prefix}_jets.pt and {output_prefix}_constituents.pt..."
+            f"Saving tensors to {output_prefix}_events.pt, {output_prefix}_jets.pt, {output_prefix}_constituents.pt{efp_msg}..."
         )
     torch.save(evt_tensor, out_path + f"/{output_prefix}_events.pt")
     torch.save(jet_tensor, out_path + f"/{output_prefix}_jets.pt")
     torch.save(constits_tensor, out_path + f"/{output_prefix}_constituents.pt")
+
+    # Save EFP tensor if computed
+    if efp_tensor is not None:
+        torch.save(efp_tensor, out_path + f"/{output_prefix}_efp.pt")
+        if verbose:
+            print(f"EFP tensor saved: {efp_tensor.shape}")
 
     # Save normalization scalers as pickle files
     if norm:
@@ -229,17 +253,46 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
         paths["data_path"], config.file_type, "tensors", "processed"
     )
 
+    # Default: no EFP computation or usage
+    include_efp = False
+    efp_tensor = None
+
     try:
-        events_tensor, jets_tensor, constituents_tensor = helper.load_tensors(
-            input_path, keyword
-        )
-        if verbose:
-            print(
-                f"Loaded tensors from {input_path}/{keyword}_events.pt, {keyword}_jets.pt and {keyword}_constituents.pt"
+        # Validate EFP mode
+        if config.efp_mode:
+            include_efp = True
+            if verbose:
+                print("EFP integration: EFPs will be computed and used for training")
+
+            events_tensor, jets_tensor, constituents_tensor, efp_tensor = (
+                helper.load_tensors(input_path, keyword, include_efp=include_efp)
             )
-            print(
-                f"Events tensor shape: {events_tensor.shape}\nJets tensor shape: {jets_tensor.shape}\nConstituents tensor shape: {constituents_tensor.shape}"
+            if verbose:
+                print(
+                    f"Loaded tensors from {input_path}/{keyword}_events.pt, {keyword}_jets.pt, {keyword}_constituents.pt, and {keyword}_efp.pt"
+                )
+                print(
+                    f"Events tensor shape: {events_tensor.shape}\nJets tensor shape: {jets_tensor.shape}\nConstituents tensor shape: {constituents_tensor.shape}"
+                )
+                if efp_tensor is not None:
+                    print(f"EFP tensor shape: {efp_tensor.shape}")
+                else:
+                    print("EFP tensor: None (files not found)")
+
+        else:
+            if verbose:
+                print("EFPs disabled: no EFP computation or usage")
+
+            events_tensor, jets_tensor, constituents_tensor = helper.load_tensors(
+                input_path, keyword
             )
+            if verbose:
+                print(
+                    f"Loaded tensors from {input_path}/{keyword}_events.pt, {keyword}_jets.pt and {keyword}_constituents.pt"
+                )
+                print(
+                    f"Events tensor shape: {events_tensor.shape}\nJets tensor shape: {jets_tensor.shape}\nConstituents tensor shape: {constituents_tensor.shape}"
+                )
     except ValueError as e:
         print(e)
         sys.exit(1)
@@ -249,12 +302,20 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
         jets_tensor, constituents_tensor = helper.select_features(
             jets_tensor, constituents_tensor, config.input_features
         )
-        data = (events_tensor, jets_tensor, constituents_tensor)
+
+        # Prepare data tuple with or without EFP tensor
+        if include_efp and efp_tensor is not None:
+            data = (events_tensor, jets_tensor, constituents_tensor, efp_tensor)
+        else:
+            data = (events_tensor, jets_tensor, constituents_tensor)
+
         if verbose:
             print("Data reshaped successfully")
             print("Events tensor shape:", events_tensor.shape)
             print("Jets tensor shape:", jets_tensor.shape)
             print("Constituents tensor shape:", constituents_tensor.shape)
+            if include_efp and efp_tensor is not None:
+                print("EFP tensor shape:", efp_tensor.shape)
     except ValueError as e:
         print(e)
 
@@ -266,11 +327,22 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
                 f"Train:Val split ratio: {config.train_size * 100}:{(1 - config.train_size) * 100}"
             )
         try:
-            # Apply the function to each tensor, producing a list of three tuples.
-            splits = [
-                helper.train_val_split(t, config.train_size)
-                for t in (events_tensor, jets_tensor, constituents_tensor)
-            ]
+            # Apply the function to each tensor, producing a list of tuples.
+            if include_efp and efp_tensor is not None:
+                splits = [
+                    helper.train_val_split(t, config.train_size)
+                    for t in (
+                        events_tensor,
+                        jets_tensor,
+                        constituents_tensor,
+                        efp_tensor,
+                    )
+                ]
+            else:
+                splits = [
+                    helper.train_val_split(t, config.train_size)
+                    for t in (events_tensor, jets_tensor, constituents_tensor)
+                ]
         except ValueError as e:
             print(e)
         # Unpack the list of tuples into two transposed tuples.
@@ -279,3 +351,120 @@ def preproc_inputs(paths, config, keyword, verbose: bool = False):
         data = trains + vals
 
     return data
+
+
+def compute_efp_features(
+    constituents_selection, config, n_jets, n_constits, verbose=False
+):
+    """
+    Compute EFP features for the selected constituents.
+
+    Args:
+        constituents_selection: Array of shape (num_events, n_jets * n_constits, features)
+        config: Configuration object with EFP parameters
+        n_jets: Number of jets per event
+        n_constits: Number of constituents per jet
+        verbose: Whether to print progress information
+
+    Returns:
+        torch.Tensor: EFP features of shape (num_events, n_jets, n_efps)
+    """
+    import logging
+
+    # Set up logging
+    logging.basicConfig(level=logging.INFO if verbose else logging.WARNING)
+    logger = logging.getLogger(__name__)
+
+    # Validate EFP configuration
+    try:
+        efp_config = validate_efp_config(config)
+        if verbose:
+            logger.info(f"EFP config validated: {efp_config['n_efps']} features")
+    except Exception as e:
+        logger.error(f"EFP configuration validation failed: {e}")
+        raise
+
+    # Create EFPSet
+    try:
+        efpset = create_efpset(efp_config)
+        if verbose:
+            logger.info("EFPSet created successfully")
+    except Exception as e:
+        logger.error(f"EFPSet creation failed: {e}")
+        raise
+
+    # Reshape constituents from (events, jets*constits, features) to (events, jets, constits, features)
+    num_events = constituents_selection.shape[0]
+    total_features = constituents_selection.shape[1]  # noqa: F841
+
+    # Extract features from constituent array
+    # Based on BEAD data structure: [evt_id, jet_id, constit_id, b_tagged, constit_pt, constit_eta, constit_phi_sin, constit_phi_cos, generator_id]
+    # Where generator_id is now mass
+    pt_values = constituents_selection[:, :, 4]  # pT
+    eta_values = constituents_selection[:, :, 5]  # eta
+    phi_sin = constituents_selection[:, :, 6]  # phi_sin
+    phi_cos = constituents_selection[:, :, 7]  # phi_cos
+    mass_values = constituents_selection[:, :, 8]  # mass (from generator_id/PID)
+
+    # Reconstruct phi from sin/cos
+    phi_values = np.arctan2(phi_sin, phi_cos)
+
+    # Reshape to (events, jets, constits, 4) for [pT, eta, phi, mass]
+    # Note: We pass eta here, but preprocess_jet_constituents will convert it to rapidity
+    constituents_reshaped = np.stack(
+        [pt_values, eta_values, phi_values, mass_values], axis=-1
+    )
+    constituents_reshaped = constituents_reshaped.reshape(
+        num_events, n_jets, n_constits, 4
+    )
+
+    if verbose:
+        logger.info(f"Reshaped constituents: {constituents_reshaped.shape}")
+
+    # Compute EFPs for each event
+    n_efps = efp_config["n_efps"]
+    efp_results = np.zeros((num_events, n_jets, n_efps), dtype=np.float32)
+
+    for event_idx in range(num_events):
+        # Process all jets for this event
+        jets_for_event = constituents_reshaped[
+            event_idx
+        ]  # Shape: (n_jets, n_constits, 4)
+
+        try:
+            # Compute EFPs for all jets in this event
+            event_efps = compute_efps_batch(
+                jets_for_event, efpset, n_jobs=getattr(config, "efp_n_jobs", 4)
+            )
+            efp_results[event_idx] = event_efps
+
+        except Exception as e:
+            logger.warning(f"EFP computation failed for event {event_idx}: {e}")
+            # Fill with zeros on failure
+            efp_results[event_idx] = np.zeros((n_jets, n_efps), dtype=np.float32)
+
+    if verbose:
+        logger.info(f"EFP computation completed: {efp_results.shape}")
+
+    # Apply standardization if requested
+    if getattr(config, "efp_standardize_meanvar", True):
+        if verbose:
+            logger.info("Applying EFP standardization...")
+
+        # Flatten for standardization: (events * jets, n_efps)
+        efp_flat = efp_results.reshape(-1, n_efps)
+        efp_standardized, efp_stats = standardize_efps(efp_flat)
+        efp_results = efp_standardized.reshape(num_events, n_jets, n_efps)
+
+        if verbose:
+            logger.info("EFP standardization completed")
+
+    # Convert to PyTorch tensor
+    efp_tensor = torch.from_numpy(efp_results).float()
+
+    if verbose:
+        logger.info(
+            f"EFP tensor created: {efp_tensor.shape}, dtype: {efp_tensor.dtype}"
+        )
+
+    return efp_tensor

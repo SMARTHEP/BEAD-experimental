@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14888114.svg)](https://doi.org/10.5281/zenodo.14888114)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17117302.svg)](https://zenodo.org/records/17117302)
 ![GitHub Release-date](https://img.shields.io/github/release-date-pre/PRAkTIKal24/BEAD?style=flat&color=blue)
 ![Release-version](https://img.shields.io/github/v/tag/PRAkTIKal24/BEAD?include_prereleases&label=latest%20release&color=blue)
 ![GitHub repo size](https://img.shields.io/github/repo-size/PRAkTIKal24/BEAD)
@@ -22,6 +22,35 @@
 
 BEAD is a Python package that uses deep learning based methods for anomaly detection in HEP data for new physics searches. BEAD has been designed with modularity in mind, to enable usage of various unsupervised latent variable models for anomaly detection by design, but any tasks beyond this scope as well with easily customizable modules. 
 
+## Citing us
+
+Visit our [zenodo link](https://zenodo.org/records/17117302) to find different ways of citing us in your format of choice!
+
+For BibTex:
+
+```
+@software{pratik_jawahar_2025_17117302,
+  author       = {Pratik Jawahar and
+                  Ioannis (Yannis) Kalaitzidis and
+                  Abhishek Kotwani},
+  title        = {PRAkTIKal24/BEAD: Background Enrichment for
+                   Anomaly Detection [Framework]
+                  },
+  month        = sep,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {v0.17.4},
+  doi          = {10.5281/zenodo.17117302},
+  url          = {https://doi.org/10.5281/zenodo.17117302},
+  swhid        = {swh:1:dir:6674448587eef8f53ccfcbf853a4dfcc10861f75
+                   ;origin=https://doi.org/10.5281/zenodo.14888113;vi
+                   sit=swh:1:snp:edd499bfe1ea8da99d182a98d92761faddd5
+                   6478;anchor=swh:1:rel:a5c90acb045bc70e0d2e265baef2
+                   b779054d1656;path=PRAkTIKal24-BEAD-c92e108
+                  },
+}
+```
+
 ## Features
 
 BEAD has five main running modes:
@@ -44,8 +73,11 @@ Bead has several versions each targetting different operating conditions (local 
 
 
 # News
-* [ ] *10 July* - **Big Stuff** preliminary tests planned with GSoC and HSF-India contributions!
-* [ ] *26 June* - New CRVSTAL loss ([NT-xEnt](https://arxiv.org/abs/2002.05709)) PR waiting to be merged! Feature added by GSoC contributor @JohnKala [Ioannis Kalaitzidis](https://github.com/JohnKala).
+* [ ] *Late Dec* - Expecting a Christmas-release research paper (preprint) detailing results using BEAD so far!
+* [x] *10 Sept* - Our summer contributors @Abhi-sheKkK [Abhishek Kotwani](https://github.com/Abhi-sheKkK) and @JohnKala [Ioannis Kalaitzidis](https://github.com/JohnKala) have successfully completed their projects!
+* [x] *04 Sept* - New PR merged! We now have new large-transformer models added to the models suite! See release notes for v0.17.4 for details. 
+* [x] *04 Sept* - New PR merged! BEAD now has the Energy Flow package that calculates Energy Flow Polynomials ([EFPs](https://energyflow.network/)) integrated.
+* [x] *26 June* - New CRVSTAL loss ([NT-xEnt](https://arxiv.org/abs/2002.05709)) PR merged! Feature added by GSoC contributor @JohnKala [Ioannis Kalaitzidis](https://github.com/JohnKala).
 * [x] *19 June* - New model update! [DVAE](https://arxiv.org/abs/2104.08291) integration complete! Feature added by HSF-India Fellow @Abhi-sheKkK [Abhishek Kotwani](https://github.com/Abhi-sheKkK).
 * [x] *17 June* - New pre-release, BEAD v0.12.7 - Now supports faster GPU-based plotting and overlaid ROCs for comparing across projects!
 * [x] *16 June* - ~BEAD talk and poster at EuCAIFCon '25 @ Cagliari, Sardinia!~ - Withdrawn due to visa issues :(

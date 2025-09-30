@@ -28,6 +28,7 @@ from tqdm.rich import tqdm
 from ..utils import helper
 from ..utils.annealing import AnnealingManager
 
+
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 
@@ -85,7 +86,14 @@ def fit(
         pbar = dataloader
 
     for _idx, batch in enumerate(pbar):
-        inputs, gen_labels = batch
+        # Handle both 2-tuple (inputs, labels) and 3-tuple (inputs, labels, efp_features) batches
+        if len(batch) == 3:
+            inputs, gen_labels, efp_features = batch
+            efp_features = efp_features.to(device, non_blocking=True)
+        else:
+            inputs, gen_labels = batch
+            efp_features = None
+            
         inputs = inputs.to(device, non_blocking=True)
         gen_labels = gen_labels.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
@@ -101,11 +109,17 @@ def fit(
             # This will match NTXentLoss, NTXentVAELoss, NTXentVAEFlowLoss, NTXentDVAELoss, etc.
             is_ntxent = "ntxent" in config.loss_function.lower()
             
+            # Prepare model input with optional EFP features
+            model_input = inputs
+            if efp_features is not None and config.should_use_efp():
+                efp_flat = efp_features.view(efp_features.size(0), -1)
+                model_input = torch.cat([inputs, efp_flat], dim=1)
+            
             if is_ntxent:
-                recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, inputs, config)
+                recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, model_input, config)
             else:
                 # Standard single forward pass
-                out = helper.call_forward(ddp_model, inputs)
+                out = helper.call_forward(ddp_model, model_input)
                 recon, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
                 zk_j = None  # No second view for standard training
 
@@ -208,7 +222,14 @@ def validate(
 
     with torch.no_grad():
         for _idx, batch in enumerate(pbar):
-            inputs, gen_labels = batch
+            # Handle both 2-tuple (inputs, labels) and 3-tuple (inputs, labels, efp_features) batches
+            if len(batch) == 3:
+                inputs, gen_labels, efp_features = batch
+                efp_features = efp_features.to(device, non_blocking=True)
+            else:
+                inputs, gen_labels = batch
+                efp_features = None
+                
             inputs = inputs.to(device, non_blocking=True)
             gen_labels = gen_labels.to(device, non_blocking=True)
 
@@ -223,11 +244,17 @@ def validate(
                 # This will match NTXentLoss, NTXentVAELoss, NTXentVAEFlowLoss, NTXentDVAELoss, etc.
                 is_ntxent = "ntxent" in config.loss_function.lower()
                 
+                # Prepare model input with optional EFP features
+                model_input = inputs
+                if efp_features is not None and config.should_use_efp():
+                    efp_flat = efp_features.view(efp_features.size(0), -1)
+                    model_input = torch.cat([inputs, efp_flat], dim=1)
+                
                 if is_ntxent:
-                    recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, inputs, config)
+                    recon, mu, logvar, ldj, z0, zk, zk_j = helper.get_ntxent_outputs(ddp_model, model_input, config)
                 else:
                     # Standard single forward pass
-                    out = helper.call_forward(ddp_model, inputs)
+                    out = helper.call_forward(ddp_model, model_input)
                     recon, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
                     zk_j = None  # No second view for standard validation
 
@@ -330,24 +357,65 @@ def train(
             )
         data = [x.unsqueeze(1).float() if x is not None else None for x in data]
 
-    (
-        events_train,
-        jets_train,
-        constituents_train,
-        events_val,
-        jets_val,
-        constituents_val,
-    ) = data
-    (
-        events_train_label,
-        jets_train_label,
-        constituents_train_label,
-        events_val_label,
-        jets_val_label,
-        constituents_val_label,
-    ) = labels
+    # Handle data unpacking with optional EFP features
+    if len(data) == 8:  # EFP features included
+        (
+            events_train,
+            jets_train,
+            constituents_train,
+            efp_train,
+            events_val,
+            jets_val,
+            constituents_val,
+            efp_val,
+        ) = data
+        (
+            events_train_label,
+            jets_train_label,
+            constituents_train_label,
+            efp_train_label,
+            events_val_label,
+            jets_val_label,
+            constituents_val_label,
+            efp_val_label,
+        ) = labels
+    elif len(data) == 6:  # No EFP features
+        (
+            events_train,
+            jets_train,
+            constituents_train,
+            events_val,
+            jets_val,
+            constituents_val,
+        ) = data
+        (
+            events_train_label,
+            jets_train_label,
+            constituents_train_label,
+            events_val_label,
+            jets_val_label,
+            constituents_val_label,
+        ) = labels
+        efp_train = efp_val = efp_train_label = efp_val_label = None
+    else:
+        raise ValueError(f"Expected 6 or 8 data tensors, got {len(data)}")
 
-    datasets = helper.create_datasets(*data, *labels)
+    # Create datasets with optional EFP features
+    if efp_train is not None:
+        datasets = helper.create_datasets(
+            events_train, jets_train, constituents_train,
+            events_val, jets_val, constituents_val,
+            events_train_label, jets_train_label, constituents_train_label,
+            events_val_label, jets_val_label, constituents_val_label,
+            efp_train, efp_val, efp_train_label, efp_val_label
+        )
+    else:
+        datasets = helper.create_datasets(
+            events_train, jets_train, constituents_train,
+            events_val, jets_val, constituents_val,
+            events_train_label, jets_train_label, constituents_train_label,
+            events_val_label, jets_val_label, constituents_val_label
+        )
 
     if verbose and (not is_ddp_active or local_rank == 0):
         print(
@@ -368,6 +436,13 @@ def train(
         print(
             f"Constituents - Validation set shape: {constituents_val.shape if constituents_val is not None else 'N/A'}"
         )
+        if efp_train is not None:
+            print(
+                f"EFP - Training set shape: {efp_train.shape if efp_train is not None else 'N/A'}"
+            )
+            print(
+                f"EFP - Validation set shape: {efp_val.shape if efp_val is not None else 'N/A'}"
+            )
 
     # Calculate the input shapes to initialize the model
     input_shape = helper.calculate_in_shape(data, config)
@@ -667,13 +742,25 @@ def train(
                         disable=not verbose,
                     )
                 ):
-                    inputs, _ = batch
+                    # Handle both 2-tuple (inputs, labels) and 3-tuple (inputs, labels, efp_features) batches
+                    if len(batch) == 3:
+                        inputs, _, efp_features = batch
+                        efp_features = efp_features.to(device, non_blocking=True)
+                    else:
+                        inputs, _ = batch
+                        efp_features = None
+                        
                     inputs = inputs.to(device, non_blocking=True)
                     with torch.amp.autocast(
                         device_type=device.type,
                         enabled=(config.use_amp and device.type == "cuda"),
                     ):
-                        out = helper.call_forward(actual_model_for_evaluation, inputs)
+                        # Prepare model input with optional EFP features
+                        model_input = inputs
+                        if efp_features is not None and config.should_use_efp():
+                            efp_flat = efp_features.view(efp_features.size(0), -1)
+                            model_input = torch.cat([inputs, efp_flat], dim=1)
+                        out = helper.call_forward(actual_model_for_evaluation, model_input)
                         _, mu, logvar, ldj, z0, zk = helper.unpack_model_outputs(out)
                     mu_data_list.append(mu.detach().cpu().numpy())
                     logvar_data_list.append(logvar.detach().cpu().numpy())
