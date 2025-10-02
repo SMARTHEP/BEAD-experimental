@@ -51,9 +51,8 @@ The statistical plotting functions parse terminal output from the `roc_per_signa
 
 - **AUC**: Area Under the ROC Curve
 - **TPR at FPR 1e-4**: True Positive Rate at False Positive Rate 10^-4
-- **TPR at FPR 1e-3**: True Positive Rate at False Positive Rate 10^-3  
+- **TPR at FPR 1e-3**: True Positive Rate at False Positive Rate 10^-3
 - **TPR at FPR 1e-2**: True Positive Rate at False Positive Rate 10^-2
-- **TPR at FPR 1e-1**: True Positive Rate at False Positive Rate 10^-1
 
 ### Color Schemes
 
@@ -63,12 +62,12 @@ For parameterized plots (violin, box, and combined), an advanced color scheme is
 - **Mass-based colors**: Each mediator mass gets a specific color:
   - **1000 GeV**: Red
   - **2000 GeV**: Yellow
-  - **3000 GeV**: Green  
+  - **3000 GeV**: Green
   - **4000 GeV**: Blue
   - **5000 GeV**: Violet
 - **R_invisible transparency**: Different alpha (transparency) values distinguish R_invisible values:
   - R_invisible = 0.25: α = 0.9 (most opaque)
-  - R_invisible = 0.5: α = 0.7 (medium transparency)  
+  - R_invisible = 0.5: α = 0.7 (medium transparency)
   - R_invisible = 0.75: α = 0.5 (most transparent)
 - This dual encoding allows easy identification of both mass and R_invisible effects
 
@@ -174,7 +173,7 @@ Saved per-signal ROC plot: bead/workspaces/csf_results/convvae/output/plots/loss
 For each workspace found in the ROC output, six PDF files are generated:
 
 - `{workspace_name}_box_plots.pdf`
-- `{workspace_name}_violin_plots.pdf` 
+- `{workspace_name}_violin_plots.pdf`
 - `{workspace_name}_combined_plots.pdf`
 - `{workspace_name}_parameterized_violin_plots.pdf`
 - `{workspace_name}_parameterized_box_plots.pdf` - **NEW!**
@@ -193,7 +192,7 @@ The parameterized plots use enhanced color schemes to show how model performance
 
 The parameterized violin plots decode signal names as follows:
 - `sneaky1000R025` → Mediator mass: 1000 GeV, R_invisible: 0.25
-- `sneaky2000R05` → Mediator mass: 2000 GeV, R_invisible: 0.5  
+- `sneaky2000R05` → Mediator mass: 2000 GeV, R_invisible: 0.5
 - `sneaky3000R075` → Mediator mass: 3000 GeV, R_invisible: 0.75
 - etc.
 
@@ -236,7 +235,7 @@ bead/src/utils/
 ## Visualization Features
 
 - **Right-aligned x-axis labels**: Model names are right-aligned to prevent overlap with long model names (e.g., "convvae_house_sc_anneal")
-- **Enhanced color schemes**: 
+- **Enhanced color schemes**:
   - Basic plots use workspace-specific colors (CSF results) or matplotlib defaults
   - Parameterized plots use custom mass-based colors (red, yellow, green, blue, violet) with R_invisible transparency encoding
 - **Professional layouts**: Proper spacing, legends, and grid lines for publication-ready plots
