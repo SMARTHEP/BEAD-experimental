@@ -78,9 +78,9 @@ def parse_roc_output(output_file_path, verbose=False):
                     if auc_match:
                         auc_value = float(auc_match.group(2))
                         
-                        # Extract TPR values from the next 4 lines
+                        # Extract TPR values from the next 3 lines  
                         tpr_values = {}
-                        fpr_levels = ['1.0e-04', '1.0e-03', '1.0e-02', '1.0e-01']
+                        fpr_levels = ['1.0e-04', '1.0e-03', '1.0e-02']
                         
                         for j, fpr_level in enumerate(fpr_levels):
                             if i + 2 + j < len(lines):
@@ -90,7 +90,7 @@ def parse_roc_output(output_file_path, verbose=False):
                                     tpr_values[f'tpr_{fpr_level}'] = float(tpr_match.group(1))
                         
                         # Look for the saved plot line to extract workspace and model
-                        for k in range(i + 6, min(i + 10, len(lines))):
+                        for k in range(i + 5, min(i + 8, len(lines))):
                             if k < len(lines) and 'Saved per-signal ROC plot:' in lines[k]:
                                 plot_path = lines[k].split(': ')[1]
                                 # Extract workspace and model from path like:
