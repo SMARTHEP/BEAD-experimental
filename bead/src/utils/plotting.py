@@ -902,19 +902,27 @@ def plot_roc_curve(config, paths, verbose: bool = False):
                             per_signal_ground_truth, per_signal_data
                         )
                         roc_auc = auc(fpr, tpr)
-                        
+
                         # Output AUC and TPR at specific FPR thresholds for verbose mode
-                        if verbose and component == "loss":  # Only output for main loss component to avoid spam
-                            print(f"  {sig_filename} - {component.upper()} AUC: {roc_auc:.4f}")
-                            target_fpr = [1e-4, 1e-3, 1e-2, 1e-1]
+                        if (
+                            verbose and component == "loss"
+                        ):  # Only output for main loss component to avoid spam
+                            print(
+                                f"  {sig_filename} - {component.upper()} AUC: {roc_auc:.4f}"
+                            )
+                            target_fpr = [1e-4, 1e-3, 1e-2]
                             for threshold in target_fpr:
                                 if threshold <= fpr.max() and threshold >= fpr.min():
                                     # Interpolate to find TPR at the desired FPR
                                     tpr_at_fpr = np.interp(threshold, fpr, tpr)
-                                    print(f"    TPR at FPR {threshold:.1e}: {tpr_at_fpr:.4f}")
+                                    print(
+                                        f"    TPR at FPR {threshold:.1e}: {tpr_at_fpr:.4f}"
+                                    )
                                 else:
-                                    print(f"    TPR at FPR {threshold:.1e}: N/A (FPR out of range)")
-                        
+                                    print(
+                                        f"    TPR at FPR {threshold:.1e}: N/A (FPR out of range)"
+                                    )
+
                         # Plot the ROC curve
                         plt.plot(
                             fpr,
