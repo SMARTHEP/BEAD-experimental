@@ -42,7 +42,7 @@ def parse_roc_output(output_file_path, verbose=False):
     dict
         Dictionary with workspace names as keys, each containing model data
         Structure: {workspace_name: {model_name: [{signal_name: str, auc: float, 
-                   tpr_1e-4: float, tpr_1e-3: float, tpr_1e-1: float}]}}
+                   tpr_1e-4: float, tpr_1e-3: float, tpr_1e-2: float}]}}
     """
     if verbose:
         print(f"Parsing ROC output from: {output_file_path}")
@@ -149,7 +149,7 @@ def _convert_to_dataframe(parsed_data, workspace_name, skip_5000=False):
                 'AUC': entry['auc'],
                 'TPR_1e-4': entry.get('tpr_1.0e-04', np.nan),
                 'TPR_1e-3': entry.get('tpr_1.0e-03', np.nan),
-                'TPR_1e-1': entry.get('tpr_1.0e-01', np.nan)
+                'TPR_1e-2': entry.get('tpr_1.0e-02', np.nan)
             })
     
     return plot_data
@@ -240,7 +240,7 @@ def create_box_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
         models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
-        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-1']
+        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2']
         
         # Create figure with subplots for each metric
         fig, axes = plt.subplots(1, 4, figsize=(16, 6))
@@ -341,7 +341,7 @@ def create_violin_plots(parsed_data, save_dir, verbose=False, skip_5000=False):
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
         models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
-        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-1']
+        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2']
         
         # Create figure with subplots for each metric
         fig, axes = plt.subplots(1, 4, figsize=(16, 6))
@@ -441,7 +441,7 @@ def create_combined_box_violin_plots(parsed_data, save_dir, verbose=False, skip_
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
         models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
-        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-1']
+        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2']
         
         # Create figure with subplots for each metric
         fig, axes = plt.subplots(1, 4, figsize=(16, 6))
@@ -596,7 +596,7 @@ def create_parameterized_violin_plots(parsed_data, save_dir, verbose=False, skip
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
         models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
-        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-1']
+        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2']
         
         # Get unique parameter combinations for color coding
         masses = sorted(list(set(entry['mass'] for entry in plot_data if entry['mass'] is not None)))
@@ -802,7 +802,7 @@ def create_parameterized_box_plots(parsed_data, save_dir, verbose=False, skip_50
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
         models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
-        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-1']
+        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2']
         
         # Get unique parameter combinations for color coding
         masses = sorted(list(set(entry['mass'] for entry in plot_data if entry['mass'] is not None)))
@@ -1003,7 +1003,7 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False, sk
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
         models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
-        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-1']
+        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2']
         
         # Get unique parameter combinations for color coding
         masses = sorted(list(set(entry['mass'] for entry in plot_data if entry['mass'] is not None)))
@@ -1207,7 +1207,7 @@ def create_parameterized_combined_plots(parsed_data, save_dir, verbose=False, sk
         # Extract unique models and metrics
         models = list(set(entry['model'] for entry in plot_data))
         models = _sort_models_by_sc(models, workspace_name)  # Sort models by tag grouping
-        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-1']
+        metrics = ['AUC', 'TPR_1e-4', 'TPR_1e-3', 'TPR_1e-2']
         
         # Get unique parameter combinations for color coding
         masses = sorted(list(set(entry['mass'] for entry in plot_data if entry['mass'] is not None)))
