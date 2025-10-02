@@ -2,7 +2,7 @@
 uv run bead -m plot -p csf_results convvae -o roc_per_signal -v
 uv run bead -m plot -p csf_results convvae_planar -o roc_per_signal -v
 uv run bead -m plot -p csf_results convvae_house -o roc_per_signal -v
-uv run bead -m plot -p csf_results ntx_convvae_house -o roc_per_signal -v
+uv run bead -m plot -p csf_results ntx_convvae -o roc_per_signal -v
 uv run bead -m plot -p csf_results dvae -o roc_per_signal -v
 uv run bead -m plot -p csf_results convvae_sc -o roc_per_signal -v
 uv run bead -m plot -p csf_results convvae_house_sc_anneal -o roc_per_signal -v
